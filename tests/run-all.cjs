@@ -39,9 +39,17 @@ const tests = [
   // R1 rename gate tests
   { name: "schema-alias-completeness (R1 gate: alias table covers all schemas)", file: "schema-alias-completeness.test.cjs" },
   { name: "rename-inventory (R1 gate: no unauthorized legacy refs)", file: "rename-inventory.test.cjs" },
+  // R2 formal migration gates (suites 21-23)
+  // Each aggregator invokes its own disjoint pair of focused child suites
+  // under tests/r2/. The three child-sets are pairwise disjoint and none
+  // overlap the suites above.
+  { name: "r2-migration-forward",  file: "r2-migration-forward.test.cjs" },
+  { name: "r2-migration-refusal",  file: "r2-migration-refusal.test.cjs" },
+  { name: "r2-migration-closeout", file: "r2-migration-closeout.test.cjs" },
 ];
 
-let anyFailed = false;
+let passedCount = 0;
+let failedCount = 0;
 for (const t of tests) {
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
@@ -49,15 +57,24 @@ for (const t of tests) {
   console.log("═══════════════════════════════════════════════════════════════");
   const result = spawnSync("node", [path.join(__dirname, t.file)], { stdio: "inherit" });
   if (result.status !== 0) {
-    anyFailed = true;
+    failedCount++;
     console.log(">>> " + t.name + " FAILED (exit " + result.status + ")");
   } else {
+    passedCount++;
     console.log(">>> " + t.name + " PASSED");
   }
 }
 
 console.log("");
 console.log("═══════════════════════════════════════════════════════════════");
-console.log(anyFailed ? "SUITE: FAIL — at least one test failed" : "SUITE: PASS — all tests passed");
+console.log("registered suites: " + tests.length);
+console.log("passed:             " + passedCount);
+console.log("failed:             " + failedCount);
+console.log("");
+if (failedCount > 0) {
+  console.log("SUITE: FAIL — " + failedCount + "/" + tests.length + " registered suites failed");
+} else {
+  console.log("SUITE: PASS — " + passedCount + "/" + tests.length + " registered suites passed");
+}
 console.log("═══════════════════════════════════════════════════════════════");
-process.exit(anyFailed ? 1 : 0);
+process.exit(failedCount > 0 ? 1 : 0);
