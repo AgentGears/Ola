@@ -1,14 +1,14 @@
-name: Offload latency/structural stability
+name: Offload worker safety
 
-# Runs the repaired offload-latency and offload-hook-structural tests 10
-# consecutive times in one job. Proves determinism after issue #11.
+# 4-job CI structure — issue #14.
 #
-# Rules:
-#   first failure fails the job
-#   no automatic rerun
-#   no allowed-failure count
-#   no continue-on-error
-#   all iteration logs retained
+# Job A: structural dispatch + spawn contract (100 iterations, zero real processes)
+# Job B: managed worker lifecycle (10 sequential single-job runs, all reaped)
+# Job C: bounded latency distribution (1 formal run, ≤24 managed children, all reaped)
+# Job D: existing deterministic baseline (excludes real-spawn tests)
+#
+# All jobs are gating. No continue-on-error. No retries. No retry-to-green.
+# No broad process cleanup. Leak guards use recorded PIDs + per-run tokens only.
 
 on:
   pull_request:
@@ -17,7 +17,11 @@ on:
       - 'hooks/post-tool-use.js'
       - 'tests/offload-latency.test.cjs'
       - 'tests/offload-hook-structural.test.cjs'
+      - 'tests/offload-spawn-contract.test.cjs'
+      - 'tests/offload-worker-lifecycle.test.cjs'
+      - 'tests/helpers/managed-offload-worker.cjs'
       - '.github/workflows/offload-stability.yml'
+      - '.github/workflows/baseline-tests.yml'
   push:
     branches: [main]
     paths:
@@ -25,39 +29,152 @@ on:
       - 'hooks/post-tool-use.js'
       - 'tests/offload-latency.test.cjs'
       - 'tests/offload-hook-structural.test.cjs'
+      - 'tests/offload-spawn-contract.test.cjs'
+      - 'tests/offload-worker-lifecycle.test.cjs'
+      - 'tests/helpers/managed-offload-worker.cjs'
       - '.github/workflows/offload-stability.yml'
 
 permissions:
   contents: read
 
 jobs:
-  stability-10x:
-    name: 10x stability (structural + latency)
+  # ── Job A: structural + spawn contract (zero real processes) ───────
+  job-a-structural-spawn-contract:
+    name: A — structural + spawn contract (100x, zero processes)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22.17.0'
 
-      - name: Run both tests 10 consecutive times
+      - name: 100× structural dispatch + spawn contract
         run: |
           set -euo pipefail
-          echo "=== 10x stability proof (issue #11) ==="
-          echo "First failure fails the job. No reruns. No continue-on-error."
+          echo "=== Job A: structural dispatch (100×) + spawn contract (1×) ==="
+          echo "Zero real processes. No worker spawning."
           echo "================================================================"
-          for i in $(seq 1 10); do
-            echo ""
-            echo "::group::=== stability iteration $i/10 ==="
-            echo "--- structural (deterministic, blocked worker) ---"
+          for i in $(seq 1 100); do
             node tests/offload-hook-structural.test.cjs
-            echo "--- latency (real spawn + eventual-state) ---"
-            node tests/offload-latency.test.cjs
-            echo "::endgroup::"
-            echo ">>> iteration $i/10: BOTH PASS"
           done
+          echo "structural: 100/100 PASS"
           echo ""
+          node tests/offload-spawn-contract.test.cjs
+          echo "spawn-contract: PASS"
+
+  # ── Job B: managed worker lifecycle (10 real workers, all reaped) ──
+  job-b-worker-lifecycle:
+    name: B — managed lifecycle (10 workers, all reaped)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.0'
+
+      - name: 10× managed worker lifecycle (real workers, zero leaks)
+        run: |
+          set -euo pipefail
+          echo "=== Job B: managed worker lifecycle (10 sequential single-job runs) ==="
+          echo "Every child is managed (non-detached), awaited, and reaped."
+          echo "Leak guard enforces: spawned=exits, 0 timeouts, 0 active, max concurrency=1"
           echo "================================================================"
-          echo "STABILITY: 10/10 PASS — both tests deterministic"
+          node tests/offload-worker-lifecycle.test.cjs
+
+  # ── Job C: bounded latency distribution (≤24 managed children) ─────
+  job-c-bounded-latency:
+    name: C — bounded latency (≤24 managed children)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.0'
+
+      - name: Bounded latency distribution (1 formal run, managed children)
+        run: |
+          set -euo pipefail
+          echo "=== Job C: bounded latency distribution ==="
+          echo "4 payload classes × (1 warmup + 5 samples) = ≤24 managed workers"
+          echo "Every child reaped. Leak guard at end."
           echo "================================================================"
+          node tests/offload-latency.test.cjs
+
+  # ── Job D: existing deterministic baseline (no real-spawn tests) ───
+  job-d-baseline:
+    name: D — deterministic baseline + R2 + ADR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.0'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 19 deterministic suites (excludes real-spawn offload tests)
+        run: |
+          set -euo pipefail
+          # All suites EXCEPT offload-latency and offload-worker-lifecycle
+          # (those run in Jobs B and C with managed workers).
+          # offload-hook-structural and offload-spawn-contract are safe (zero processes).
+          deterministic_tests=(
+            "tests/test-sentinel-survives-canonical-destruction.cjs"
+            "tests/test-resolver-ignores-zcode-plugin-data.cjs"
+            "tests/test-post-migration-guard-exit.cjs"
+            "tests/embed-observability.test.cjs"
+            "tests/exact-anchor-override.test.cjs"
+            "tests/negative-leakage.test.cjs"
+            "tests/fusion-determinism.test.cjs"
+            "tests/offload-core.test.cjs"
+            "tests/offload-verify.test.cjs"
+            "tests/offload-secrets.test.cjs"
+            "tests/offload-spool.test.cjs"
+            "tests/offload-integration.test.cjs"
+            "tests/offload-session.test.cjs"
+            "tests/offload-capability.test.cjs"
+            "tests/offload-read.test.cjs"
+            "tests/offload-rehydration.test.cjs"
+            "tests/offload-ops.test.cjs"
+            "tests/schema-alias-completeness.test.cjs"
+            "tests/rename-inventory.test.cjs"
+            "tests/offload-hook-structural.test.cjs"
+            "tests/offload-spawn-contract.test.cjs"
+          )
+          failed=0
+          for t in "${deterministic_tests[@]}"; do
+            echo "::group::$(basename "$t")"
+            if node "$t"; then
+              echo "PASS: $t"
+            else
+              echo "::error::FAIL: $t"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          [ "$failed" -eq 0 ] || exit 1
+          echo "PASS: 21/21 deterministic suites"
+
+      - name: 3 R2 aggregators independently
+        run: |
+          set -euo pipefail
+          for agg in r2-migration-forward r2-migration-refusal r2-migration-closeout; do
+            echo "::group::$agg"
+            node "tests/${agg}.test.cjs"
+            echo "::endgroup::"
+          done
+          echo "PASS: 3/3 R2 aggregators"
+
+      - name: ADR package integrity
+        working-directory: docs/architecture/adr-0001
+        run: python verify_adr_package.py
+
+      - name: Frozen package-root check
+        working-directory: docs/architecture/adr-0001
+        run: |
+          set -euo pipefail
+          expected="94c68edcceec5b8cd6b6b8a188e0f067a242b221dbcc423d70ebabb4e8090bf9"
+          actual="$(awk '{print $1}' PACKAGE-ROOT.sha256)"
+          [ "$actual" = "$expected" ]
+          echo "PASS: package root matches frozen candidate"
