@@ -11,7 +11,10 @@
 | Node version | v22.17.0 |
 | Operating system | Windows 11 |
 | Baseline branch | `chore/publish-ola-source-baseline` |
-| Baseline commit SHA | _(filled after commit)_ |
+| Baseline PR head SHA | recorded externally in issue #9 after final push |
+| Baseline merge SHA | recorded externally in issue #9 after merge |
+
+> A commit cannot embed its own final SHA without a self-reference problem. The PR head SHA and merge SHA are recorded in issue #9, not in this file.
 
 ## Included top-level paths
 
@@ -45,7 +48,6 @@ phase-e-closeout-verification.md
 /.chatgpt-collaboration.json — tool config
 /.ola/                   — Ola runtime data store
 /.moneta/                — legacy Moneta data store
-/eval/runs/              — generated evaluation run output
 /eval/.cache/            — embedding cache
 /eval/smoke/results/     — smoke test output
 /eval/phase-w5/offload-task-*/ — offload task output
@@ -56,6 +58,19 @@ phase-e-closeout-verification.md
 *.log, *.pem, *.key      — logs and credentials
 /x                       — stray dev artifact
 node_modules/, __pycache__/, etc.
+```
+
+## Included baseline evidence (NOT excluded)
+
+```
+eval/runs/
+  classification: BASELINE_EVIDENCE / SCHEMA_OR_FIXTURE
+  disposition:    INCLUDED
+  reason:         required by exact-anchor-override, negative-leakage, and
+                  integrity tests as baseline run-records. These are synthetic-
+                  corpus retrieval results (schema_version: b0.run.v1), not
+                  runtime output. Excluding them causes test failures.
+  verified:       no secrets, no PII, no absolute paths in these files.
 ```
 
 ## Secret-scan command and result
@@ -73,7 +88,7 @@ Additional scans: absolute-path scan (C:\Next-Era, C:\Users — cosmetic referen
 ## Publication-necessity fixes applied
 
 1. `bin/probe-transcripts.cjs:74` — replaced hardcoded real session ID `sess_74ea4ccf-...` with `process.env.SESSION_ID || "sess_00000000-..."` placeholder. No behavioural change to the probe's logic; only the default sample-session is now portable.
-2. `.gitignore` — added `/eval/runs/`, `/eval/.cache/`, `/eval/smoke/results/`, `/eval/phase-w5/offload-task-*/`, `/eval/phase-w5/tasks/`, `/x` to exclude generated output.
+2. `.gitignore` — added `/eval/.cache/`, `/eval/smoke/results/`, `/eval/phase-w5/offload-task-*/`, `/eval/phase-w5/tasks/`, `/x` to exclude generated output. Note: `eval/runs/` is **NOT** excluded — it contains baseline run-records required by the test suite (see "Included baseline evidence" above).
 
 No other changes. No refactor, rename, restructure, algorithm change, or behavioural modification.
 
@@ -104,23 +119,37 @@ R2 closeout aggregator: PASS
 Cloned `chore/publish-ola-source-baseline` to a fresh temp directory and ran the suite with only declared prerequisites (Node.js, Python):
 
 ```
-run-all.cjs:          19/20 or 20/20 PASS (see note below)
+run-all.cjs:          19/20 deterministic PASS (offload-latency excluded — see below)
 R2 forward aggregator: PASS
 R2 refusal aggregator: PASS
 R2 closeout aggregator: PASS
 package-integrity:    PASS (root 94c68edc…8090bf9)
 ```
 
-### Known flaky test: `offload-latency`
+### Known defective test: `offload-latency` (test-harness race, NOT timing variance)
 
-The `offload-latency` suite measures hook-spawn latency across 20 iterations per case and asserts zero "structural failures" (spawn-timing anomalies). Under OS scheduling variance it intermittently reports `Structural: 1` on a single iteration, causing a FAIL. This is **environmental timing flakiness**, not a missing dependency:
+The `offload-latency` suite intermittently reports `Structural: 1` and fails. This is **not** ordinary OS scheduling variance — it is a **test-harness race condition and assertion-boundary defect**:
 
-- Re-run 3× in the clean clone: FAIL, FAIL, PASS — confirming intermittent flakiness.
-- The same flakiness occurs in the original working directory.
-- All median/p95/max values are well within the 750ms ceiling (typical median 12–35ms).
+The test spawns a real detached worker, then compares task-state modification time immediately after the synchronous hook path returns. The detached worker is allowed to process the queued job **asynchronously** and can legitimately mutate task state between the pre-spawn and post-return snapshots. The test cannot distinguish:
+
+```
+forbidden synchronous hook mutation
+```
+
+from:
+
+```
+legitimate asynchronous worker completion
+```
+
+Yet any modification increments `structuralFailures` and fails the gate.
+
+- Re-run 3× in the clean clone: FAIL, FAIL, PASS — confirming the race.
+- The same defect occurs in the original working directory.
+- All median/p95/max latency values are well within the 750ms ceiling (typical median 12–35ms) — the latency measurement itself is sound.
 - The test and all its dependencies (hooks/lib/offload*, spool, etc.) are present and correct in the clone.
 
-This is not a clean-clone reproducibility defect. It is a pre-existing characteristic of a timing-sensitive test that should be hardened in a separate PR (e.g., structural-failure retry, or relaxing the zero-structural-failure assertion to a threshold).
+**Classification: test-harness race + assertion-boundary defect.** This test is excluded from the deterministic CI gate and runs as a non-gating diagnostic only. It must be repaired before it can contribute to formal M0 closure evidence. Tracked in a dedicated issue (#11). The correct fix separates the deterministic structural test (synchronous-path-only, with an injected/blocked test worker) from the real-spawn latency test (which allows and waits for eventual asynchronous state). It must NOT be "fixed" by permitting one failure, retrying until green, raising the ceiling, or deleting locks more aggressively.
 
 ## Known local-only dependencies
 
