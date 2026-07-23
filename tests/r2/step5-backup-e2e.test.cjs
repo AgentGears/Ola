@@ -160,82 +160,62 @@ async function main() {
     backupDb.close();
   }
 
-  // ── Test 6: second backup with same plan creates new backup (different name) ──
-  console.log("\n=== Test 6: second backup creates independent backup ===");
+  // ── Test 6: injected post-bootstrap backup creation failure ──
+  console.log("\n=== Test 6: injected post-bootstrap backup failure ===");
   {
-    // A second cmdBackup with the same plan should create a new backup with
-    // a different timestamp-based name (not refuse). The duplicate-name
-    // refusal is tested in step5-backup-primitive.test.cjs Test 5.
-    const planPath = path.join(paths.olaMigrationRoot, "test-plan.json");
-    let result2 = null;
-    let err = null;
-    try {
-      result2 = await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths);
-    } catch (e) { err = e; }
-    // It may succeed (new backup name) or fail (quiescence re-check).
-    // Either way, it should not leave the system in an inconsistent state.
-    if (result2) {
-      assert(result2.backup_path !== backupResult.backup_path,
-        "second backup has a different path from the first");
-    } else {
-      // If it failed, that's acceptable (quiescence may not hold for the second run)
-      assert(err !== null, "second cmdBackup either succeeds or throws (no silent failure)");
-    }
-  }
-
-  // ── Test 7: failure path uses canonical status vocabulary ────
-  console.log("\n=== Test 7: failure path canonical status ===");
-  {
-    // Create a new fixture and force a backup failure by making the plan
-    // point to a nonexistent transcript DB
-    const fixture2 = fx.buildFixture({ seed: "step5-fail" });
+    // Use dependency injection to force backup creation failure AFTER bootstrap.
+    // This is the deterministic version of the old Test 7 (plan corruption
+    // could fail before bootstrap, making the test conditional).
+    const fixture2 = fx.buildFixture({ seed: "step5-e2e-fail" });
     const plan2 = fx.buildPlanFor(fixture2);
     const paths2 = fixture2.pathsFor();
-
-    // Corrupt the plan to have a wrong transcript_db path
-    plan2.source_paths.transcript_db = "/nonexistent/transcript.db";
-    plan2.transcript.database_fingerprint = "wrong";
-    // Recompute digest
-    delete plan2.plan_digest;
-    plan2.plan_digest = m.computePlanDigest(plan2);
-
-    const planPath2 = path.join(paths2.olaMigrationRoot, "fail-plan.json");
+    const planPath2 = path.join(paths2.olaMigrationRoot, "test-plan.json");
     fs.writeFileSync(planPath2, m.canonicalJson(plan2) + "\n");
 
-    let threw = false;
-    let errorCode = null;
-    try {
-      await m.cmdBackup({ flags: { plan: planPath2, confirm: plan2.plan_digest } }, paths2);
-    } catch (e) { threw = true; errorCode = e.code; }
-    assert(threw === true, "cmdBackup with corrupted plan fails");
+    const deps = m.defaultBackupCommandDeps();
+    deps.createVerifiedBackup = async function () {
+      const e = new Error("injected backup failure");
+      e.code = "INJECTED_BACKUP_FAIL";
+      throw e;
+    };
 
-    // If a run was created, check that its state uses canonical backup_failed status
-    // (not a custom final_status field)
-    // We don't know the exact run_id, so scan for state files
+    let threw = false, errorCode = null;
+    try {
+      await m.cmdBackup({ flags: { plan: planPath2, confirm: plan2.plan_digest } }, paths2, deps);
+    } catch (e) { threw = true; errorCode = e.code; }
+    assert(threw === true, "cmdBackup throws on injected backup failure");
+    assert(errorCode === "INJECTED_BACKUP_FAIL", "error code propagated (got: " + errorCode + ")");
+
+    // Find the run state and verify canonical backup_failed
     const runsDir = path.join(paths2.olaMigrationRoot, "runs");
+    assert(fs.existsSync(runsDir) === true, "run directory exists (bootstrap created it)");
+    let foundFailedState = false;
     if (fs.existsSync(runsDir)) {
-      const runDirs = fs.readdirSync(runsDir);
-      let foundFailedState = false;
-      for (const rd of runDirs) {
+      for (const rd of fs.readdirSync(runsDir)) {
         const sp = path.join(runsDir, rd, "state.json");
         if (fs.existsSync(sp)) {
-          try {
-            const st = JSON.parse(fs.readFileSync(sp, "utf8"));
-            if (st.status === "backup_failed") foundFailedState = true;
-            // Verify NO final_status field (that was the old broken pattern)
-            assert(st.final_status === undefined,
-              "state does NOT use non-canonical final_status field (run " + rd + ")");
-          } catch { /* state may not be readable */ }
+          const st = JSON.parse(fs.readFileSync(sp, "utf8"));
+          if (st.status === "backup_failed") {
+            foundFailedState = true;
+            assert(st.backup.verified === false, "backup_failed state has backup.verified=false");
+            assert(st.rollback.status === "not_available", "backup_failed state has rollback.status=not_available");
+            assert(st.failure !== null, "backup_failed state has failure object");
+            assert(st.final_status === undefined, "NO non-canonical final_status field");
+          }
         }
       }
-      // Note: the failure may occur before run creation, in which case no state exists
-      console.log("    (failure occurred " + (foundFailedState ? "after run creation — state has canonical backup_failed" : "before/at run creation") + ")");
     }
+    assert(foundFailedState === true, "canonical backup_failed state exists in run directory");
 
-    try { fs.rmSync(paths2.home, { recursive: true, force: true }); } catch { /* best effort */ }
+    try { fs.rmSync(paths2.home, { recursive: true, force: true }); } catch {}
   }
 
-  // ── Test 8: actual CLI subprocess (node bin/migrate-r2.cjs backup) ──
+  // ── Test 7: (removed — failure injection is covered by step5-backup-fault-injection.test.cjs) ──
+  // Test 7 was the old plan-corruption test which could fail before bootstrap.
+  // It has been replaced by Test 6 (injected post-bootstrap failure) and the
+  // dedicated fault-injection suite. No conditional test here.
+
+  // ── Test 8: actual CLI subprocess using process.execPath ─────
   console.log("\n=== Test 8: actual CLI subprocess ===");
   {
     const { spawnSync } = require("node:child_process");
@@ -243,15 +223,12 @@ async function main() {
     const plan3 = fx.buildPlanFor(fixture3);
     const paths3 = fixture3.pathsFor();
 
-    // Write plan to disk
     const planPath3 = path.join(paths3.olaMigrationRoot, "cli-test-plan.json");
     fs.writeFileSync(planPath3, m.canonicalJson(plan3) + "\n");
 
-    // Run the actual CLI as a subprocess
-    // Override HOME so the process uses the fixture's synthetic tree
     const env = Object.assign({}, process.env, { HOME: paths3.home });
     const cliPath = path.join(__dirname, "..", "..", "bin", "migrate-r2.cjs");
-    const result = spawnSync("node", [cliPath, "backup", "--plan", planPath3, "--confirm", plan3.plan_digest], {
+    const result = spawnSync(process.execPath, [cliPath, "backup", "--plan", planPath3, "--confirm", plan3.plan_digest], {
       env: env,
       cwd: path.join(__dirname, "..", ".."),
       encoding: "utf-8",
@@ -263,7 +240,6 @@ async function main() {
     assert(result.stdout.indexOf("BACKUP COMPLETE") >= 0,
       "CLI stdout contains 'BACKUP COMPLETE'");
 
-    // Verify backup exists
     const backupsDir = path.join(paths3.olaMigrationRoot, "backups");
     const backupDirs = fs.existsSync(backupsDir)
       ? fs.readdirSync(backupsDir).filter(function (f) { return !f.startsWith("."); })
