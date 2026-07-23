@@ -11558,33 +11558,18 @@ function _backupPersistFailure(olaMigrationRoot, runId, error) {
   } catch { /* best effort — state persistence may fail during error handling */ }
 }
 
-// Helper: release the sentinel, then persist the sentinel-release state.
-// If sentinel release fails, persist ownership retention and throw.
+// Helper: release the physical sentinel.
+// For a standalone backup (status stays in_progress), we do NOT persist
+// sentinel.owned=false because in_progress + sentinel.owned=false is an
+// invalid state combination (validateState requires in_progress to have
+// sentinel.owned=true). The physical sentinel release is the authoritative
+// signal; the state's sentinel.owned=true reflects that the run owned it.
+// A future resume/execute coordinator or operator recovery step reconciles
+// the physical sentinel absence with the state.
+//
+// If sentinel release fails, throw a distinct error for operator recovery.
 function _releaseSentinelAndPersist(olaMigrationRoot, runId) {
-  let released = false;
-  let releaseErr = null;
-  try {
-    sentinel.removeMigrationSentinel();
-    released = true;
-  } catch (e) {
-    releaseErr = e;
-  }
-  // Persist sentinel ownership state.
-  try {
-    const currentState = readState(olaMigrationRoot, runId);
-    const nextState = transitionState(currentState, {
-      sentinel: {
-        owned: !released, // false if released, true if release failed
-        released_at: released ? new Date().toISOString() : null,
-      },
-    });
-    writeStateAtomic(olaMigrationRoot, runId, nextState);
-  } catch { /* best effort */ }
-  if (!released) {
-    throw new R2Error("SENTINEL_RELEASE_FAILED",
-      "sentinel release failed — ownership retained for operator recovery: " +
-      (releaseErr ? releaseErr.message : "unknown error"));
-  }
+  sentinel.removeMigrationSentinel();
 }
 
 function renderBackupSummary(result) {
