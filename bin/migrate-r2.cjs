@@ -9717,9 +9717,12 @@ function assertMonotonicStateUpdate(previousState, nextState) {
   function rbLegalTransition(from, to) {
     if (from === to) return true;
     if (from === ROLLBACK_STATUSES.not_started) {
-      return to === ROLLBACK_STATUSES.in_progress || to === ROLLBACK_STATUSES.not_available;
+      return to === ROLLBACK_STATUSES.in_progress
+        || to === ROLLBACK_STATUSES.not_available
+        || to === ROLLBACK_STATUSES.not_applicable;
     }
     if (from === ROLLBACK_STATUSES.not_available) return false;  // terminal
+    if (from === ROLLBACK_STATUSES.not_applicable) return false;  // terminal
     if (from === ROLLBACK_STATUSES.in_progress) {
       return to === ROLLBACK_STATUSES.completed || to === ROLLBACK_STATUSES.failed;
     }
