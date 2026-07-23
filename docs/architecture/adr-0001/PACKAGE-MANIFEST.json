@@ -1,0 +1,50 @@
+{
+  "package": "ADR-0001 v1.4 research-evidence update",
+  "status": "Architecture unchanged; research-derived conformance obligations added; M1 pending named assignees, approvals, and signatures",
+  "prepared": "2026-07-23",
+  "normative_sources": [
+    "ADR-0001-Ola-Unified-Product-Architecture.md",
+    "ADR-0001-A-Programme-Status-and-Milestone-Semantics.md",
+    "ADR-0001-B-Transitional-Authority-and-Cutover-Protocol.md",
+    "ADR-0001-C-Runtime-Authority-and-Distributed-Failure-Semantics.md",
+    "ADR-0001-D-Contract-Envelope-and-Versioning-Requirements.md",
+    "ADR-0001-E-Memory-Subagent-Control-Cycle-Protocol.md",
+    "ADR-0001-F-Minimum-Trust-Privacy-and-Retention-Prerequisites.md",
+    "ADR-0001-R-Ratification-Manifest.md"
+  ],
+  "generated_artifacts": [
+    "ADR-0001-v1.4-Ola-Unified-Product-Architecture-Consolidated.md"
+  ],
+  "supporting_evidence": [
+    "RESEARCH-EVIDENCE-0001-Long-Context-and-Memory-to-Skills.md"
+  ],
+  "integrity_artifacts": [
+    "PACKAGE-DIGESTS.txt",
+    "PACKAGE-ROOT.sha256"
+  ],
+  "verification_tool": "verify_adr_package.py",
+  "integrity_scheme": {
+    "payload_digest_algorithm": "SHA-256",
+    "json_canonicalization": "RFC 8785 JCS",
+    "digest_list": "PACKAGE-DIGESTS.txt hashes every declared file except PACKAGE-DIGESTS.txt and PACKAGE-ROOT.sha256",
+    "package_root": "PACKAGE-ROOT.sha256 contains SHA-256 of the exact PACKAGE-DIGESTS.txt bytes"
+  },
+  "files": [
+    "ADR-0001-A-Programme-Status-and-Milestone-Semantics.md",
+    "ADR-0001-B-Transitional-Authority-and-Cutover-Protocol.md",
+    "ADR-0001-C-Runtime-Authority-and-Distributed-Failure-Semantics.md",
+    "ADR-0001-D-Contract-Envelope-and-Versioning-Requirements.md",
+    "ADR-0001-E-Memory-Subagent-Control-Cycle-Protocol.md",
+    "ADR-0001-F-Minimum-Trust-Privacy-and-Retention-Prerequisites.md",
+    "ADR-0001-Ola-Unified-Product-Architecture.md",
+    "ADR-0001-R-Ratification-Manifest.md",
+    "ADR-0001-v1.4-Ola-Unified-Product-Architecture-Consolidated.md",
+    "CHANGELOG-v1.4.md",
+    "PACKAGE-DIGESTS.txt",
+    "PACKAGE-MANIFEST.json",
+    "PACKAGE-ROOT.sha256",
+    "README.md",
+    "RESEARCH-EVIDENCE-0001-Long-Context-and-Memory-to-Skills.md",
+    "verify_adr_package.py"
+  ]
+}

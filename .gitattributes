@@ -1,0 +1,6 @@
+# Treat the ADR-0001 package as binary so payload SHA-256 digests recorded in
+# docs/architecture/adr-0001/PACKAGE-DIGESTS.txt are preserved byte-for-byte on
+# every platform and CI checkout. The frozen candidate package (root
+# 94c68edcceec5b8cd6b6b8a188e0f067a242b221dbcc423d70ebabb4e8090bf9) is normative;
+# no line-ending normalization may alter its bytes.
+docs/architecture/adr-0001/** binary
