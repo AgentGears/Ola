@@ -181,8 +181,9 @@ async function main() {
       console.log("  Measuring: " + tc.name + " (" + ITERATIONS + " iterations)...");
 
       for (let i = 0; i < ITERATIONS; i++) {
-        clearPending(dir);
-        // Wait for any prior worker to complete before starting next iteration
+        // Wait for any prior worker to fully complete before starting the next
+        // iteration. Do NOT clear pending jobs or delete locks — the worker
+        // must drain naturally. Stale-lock cleanup is tested separately.
         const preWait = await waitForWorkerCompletion(dir);
         if (!preWait.completed) {
           completionFailures++;
