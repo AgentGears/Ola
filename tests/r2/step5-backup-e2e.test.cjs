@@ -100,22 +100,38 @@ async function main() {
       "step_outputs.backup has projected evidence shape");
   }
 
-  // ── Test 3: sentinel reconciled after success ────────────────
-  console.log("\n=== Test 3: sentinel reconciliation after success ===");
+  // ── Test 3: backup_completed state with sentinel released ───
+  console.log("\n=== Test 3: backup_completed state with sentinel released ===");
   {
-    // Physical sentinel must be absent after success.
-    // For standalone backup, the status stays in_progress and state.sentinel.owned
-    // stays true (valid: in_progress requires sentinel.owned=true). The physical
-    // sentinel release is the authoritative signal that authority was released.
+    const runId = backupResult.run_id;
+    const state = m.readState(paths.olaMigrationRoot, runId);
+
+    // Physical sentinel absent
     const sentinelPath = path.join(paths.home, ".ola-migration", ".migration-in-progress");
     assert(fs.existsSync(sentinelPath) === false, "physical sentinel absent after success");
 
-    // State should still be valid (in_progress + sentinel.owned=true)
-    const runId = backupResult.run_id;
-    const state = m.readState(paths.olaMigrationRoot, runId);
-    assert(state.sentinel !== undefined && typeof state.sentinel.owned === "boolean",
-      "state.sentinel.owned is boolean");
-    assert(state.status === "in_progress", "state.status is in_progress (standalone backup)");
+    // State: backup_completed terminal status
+    assert(state.status === "backup_completed", "state.status === 'backup_completed'");
+
+    // Sentinel owned=false, released_at set
+    assert(state.sentinel.owned === false, "state.sentinel.owned === false");
+    assert(state.sentinel.released_at !== null && typeof state.sentinel.released_at === "string",
+      "state.sentinel.released_at is a non-null ISO timestamp");
+
+    // Rollback not_applicable
+    assert(state.rollback.status === "not_applicable", "state.rollback.status === 'not_applicable'");
+
+    // Verification not_applicable
+    assert(state.structural_verification === "not_applicable", "structural_verification === 'not_applicable'");
+    assert(state.live_verification === "not_applicable", "live_verification === 'not_applicable'");
+
+    // No failure
+    assert(state.failure === null, "state.failure === null (no failure on success)");
+
+    // State passes full validateState
+    let validates = false;
+    try { m.validateState(state); validates = true; } catch { validates = false; }
+    assert(validates === true, "final state passes validateState");
   }
 
   // ── Test 4: backup manifest verifies ─────────────────────────
@@ -208,6 +224,48 @@ async function main() {
     }
 
     try { fs.rmSync(paths2.home, { recursive: true, force: true }); } catch { /* best effort */ }
+  }
+
+  // ── Test 8: actual CLI subprocess (node bin/migrate-r2.cjs backup) ──
+  console.log("\n=== Test 8: actual CLI subprocess ===");
+  {
+    const { spawnSync } = require("node:child_process");
+    const fixture3 = fx.buildFixture({ seed: "step5-cli" });
+    const plan3 = fx.buildPlanFor(fixture3);
+    const paths3 = fixture3.pathsFor();
+
+    // Write plan to disk
+    const planPath3 = path.join(paths3.olaMigrationRoot, "cli-test-plan.json");
+    fs.writeFileSync(planPath3, m.canonicalJson(plan3) + "\n");
+
+    // Run the actual CLI as a subprocess
+    // Override HOME so the process uses the fixture's synthetic tree
+    const env = Object.assign({}, process.env, { HOME: paths3.home });
+    const cliPath = path.join(__dirname, "..", "..", "bin", "migrate-r2.cjs");
+    const result = spawnSync("node", [cliPath, "backup", "--plan", planPath3, "--confirm", plan3.plan_digest], {
+      env: env,
+      cwd: path.join(__dirname, "..", ".."),
+      encoding: "utf-8",
+      timeout: 30000,
+    });
+
+    assert(result.status === 0,
+      "CLI exit code = 0 (got: " + result.status + ", stderr: " + (result.stderr || "").substring(0, 200) + ")");
+    assert(result.stdout.indexOf("BACKUP COMPLETE") >= 0,
+      "CLI stdout contains 'BACKUP COMPLETE'");
+
+    // Verify backup exists
+    const backupsDir = path.join(paths3.olaMigrationRoot, "backups");
+    const backupDirs = fs.existsSync(backupsDir)
+      ? fs.readdirSync(backupsDir).filter(function (f) { return !f.startsWith("."); })
+      : [];
+    assert(backupDirs.length > 0, "backup directory created by CLI");
+
+    // Verify physical sentinel absent
+    const sentinelPath = path.join(paths3.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelPath) === false, "physical sentinel absent after CLI backup");
+
+    try { fs.rmSync(paths3.home, { recursive: true, force: true }); } catch { /* best effort */ }
   }
 
   // ── Cleanup ─────────────────────────────────────────────────

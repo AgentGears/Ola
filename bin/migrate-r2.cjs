@@ -8710,6 +8710,7 @@ const RUN_STATUSES = Object.freeze({
   initializing: "initializing",
   initialization_failed: "initialization_failed",   // terminal: pre-sentinel or sentinel-acquisition failure
   in_progress: "in_progress",
+  backup_completed: "backup_completed",             // terminal: standalone backup succeeded, sentinel released
   backup_failed: "backup_failed",
   rollback_in_progress: "rollback_in_progress",
   rolled_back: "rolled_back",
@@ -8754,6 +8755,7 @@ const RUN_TRANSITIONS = Object.freeze({
     "failed_manual_intervention",
   ])),
   in_progress: Object.freeze(new Set([
+    "backup_completed",
     "rollback_in_progress", "verified_pending_release",
     "backup_failed", "failed_manual_intervention",
   ])),
@@ -8765,6 +8767,7 @@ const RUN_TRANSITIONS = Object.freeze({
   ])),
   // Terminal:
   completed: Object.freeze(new Set([])),
+  backup_completed: Object.freeze(new Set([])),
   rolled_back: Object.freeze(new Set([])),
   backup_failed: Object.freeze(new Set([])),
   initialization_failed: Object.freeze(new Set([])),
@@ -9279,6 +9282,52 @@ function validateState(state) {
       } else {
         throw new R2Error("RUN_STATE_INVALID",
           "backup_failed requires sentinel.owned to be boolean");
+      }
+      break;
+    case RUN_STATUSES.backup_completed:
+      // Terminal: standalone backup succeeded. Only the backup step ran;
+      // the full forward migration was not attempted.
+      if (cs.length !== 1 || cs[0] !== "backup") {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires completed_steps=['backup'] (got " + JSON.stringify(cs) + ")");
+      }
+      if (state.backup.verified !== true) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires backup.verified=true");
+      }
+      if (typeof state.backup.path !== "string" || state.backup.path.length === 0) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires backup.path to be a non-empty string");
+      }
+      if (typeof state.backup.manifest_digest !== "string" || state.backup.manifest_digest.length !== 64) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires backup.manifest_digest to be a 64-char hex string");
+      }
+      // Sentinel must be released: owned=false, released_at set.
+      if (state.sentinel.owned !== false) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires sentinel.owned=false (physical sentinel released)");
+      }
+      if (state.sentinel.released_at === null || typeof state.sentinel.released_at !== "string") {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires sentinel.released_at set (non-null ISO timestamp)");
+      }
+      // No rollback, structural, or live verification applies to standalone backup.
+      if (state.rollback.status !== ROLLBACK_STATUSES.not_applicable) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires rollback.status=not_applicable");
+      }
+      if (state.structural_verification !== VERIFICATION_STATUSES.not_applicable) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires structural_verification=not_applicable");
+      }
+      if (state.live_verification !== VERIFICATION_STATUSES.not_applicable) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires live_verification=not_applicable");
+      }
+      if (state.failure !== null) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires state.failure=null (no failure on success)");
       }
       break;
     case RUN_STATUSES.verified_pending_release:
@@ -11477,55 +11526,43 @@ async function cmdBackup(args, paths) {
       paths: planPaths,
     });
   } catch (e) {
-    // Backup failed. Persist canonical failure state, then release sentinel.
-    _backupPersistFailure(planPaths.olaMigrationRoot, runId, e);
-    _releaseSentinelAndPersist(planPaths.olaMigrationRoot, runId);
+    // Backup failed. Two-phase failure transition:
+    // Phase 1: persist backup_failed while sentinel is still owned.
+    _persistBackupFailure(planPaths.olaMigrationRoot, runId, e);
+    // Phase 2: release sentinel, then persist sentinel-released state.
+    _releaseSentinelAndPersistFailure(planPaths.olaMigrationRoot, runId);
     throw e;
   }
 
-  // 8. Persist backup success using the canonical state contract.
-  //    Mirrors runForwardExecution lines 10836-10848 exactly:
-  //    backup = { path, verified, manifest_digest } (canonical authority)
-  //    step_outputs.backup = projected evidence (detailed output)
-  //    completed_steps = idempotent ordered prefix
+  // 8. SUCCESS PATH — two-phase protocol with crash-recovery boundaries.
+  //
+  // Phase 1: persist backup evidence while still in_progress (sentinel owned).
+  //          Valid: in_progress allows sentinel.owned=true and completed_steps.
+  //          A crash here leaves in_progress with verified backup evidence
+  //          and an active sentinel — the operator knows backup succeeded
+  //          but the command didn't finish. Recoverable.
+  //
+  // Phase 2: remove physical sentinel, then transition in_progress →
+  //          backup_completed in a single write that includes ALL companion
+  //          fields (sentinel.owned=false, released_at, rollback, verification).
+  //          A crash between physical removal and this write leaves
+  //          in_progress with backup evidence and no physical sentinel —
+  //          the operator sees the mismatch and can complete the transition.
   const projected = projectBackupEvidence(backupResult);
-  let persistedState;
   try {
-    const currentState = readState(planPaths.olaMigrationRoot, runId);
-    const completedSteps = currentState.completed_steps.includes("backup")
-      ? currentState.completed_steps
-      : ["backup"]; // first step; idempotent
-    const nextState = transitionState(currentState, {
-      backup: {
-        path: backupResult.backup_path,
-        verified: true,
-        manifest_digest: backupResult.manifest_digest,
-      },
-      step_outputs: Object.assign({}, currentState.step_outputs, { backup: projected }),
-      completed_steps: completedSteps,
-    });
-    writeStateAtomic(planPaths.olaMigrationRoot, runId, nextState);
-    // Reopen and verify persisted state.
-    persistedState = readState(planPaths.olaMigrationRoot, runId);
-    if (!persistedState.backup || persistedState.backup.verified !== true) {
-      throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
-        "reopened state backup.verified is not true");
-    }
-    if (!persistedState.completed_steps || persistedState.completed_steps.indexOf("backup") < 0) {
-      throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
-        "reopened state does not contain backup in completed_steps");
-    }
+    _persistBackupEvidence(planPaths.olaMigrationRoot, runId, backupResult, projected);
   } catch (e) {
-    // State persistence failed. Release sentinel, persist failure, rethrow.
-    _releaseSentinelAndPersist(planPaths.olaMigrationRoot, runId);
+    _releaseSentinelAndPersistFailure(planPaths.olaMigrationRoot, runId);
     throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
-      "backup created but state persistence failed: " + e.message, e.code);
+      "backup created but evidence-state persistence failed: " + e.message, e.code);
   }
 
-  // 9. Release the sentinel and persist the sentinel-release state.
-  //    The command must not print success while durable state and physical
-  //    sentinel disagree.
-  _releaseSentinelAndPersist(planPaths.olaMigrationRoot, runId);
+  // Phase 2: release sentinel and persist the final backup_completed state.
+  try {
+    _completeBackupAndReleaseSentinel(planPaths.olaMigrationRoot, runId);
+  } catch (e) {
+    throw e;
+  }
 
   return {
     run_id: runId,
@@ -11535,41 +11572,173 @@ async function cmdBackup(args, paths) {
   };
 }
 
-// Helper: persist a canonical backup-failed state.
-// Uses the established status vocabulary (RUN_STATUSES.backup_failed), not
-// an unvalidated parallel status channel.
-function _backupPersistFailure(olaMigrationRoot, runId, error) {
+// ── Standalone-backup state helpers ──────────────────────────────────────
+
+// Phase 1 success: persist backup evidence while status stays in_progress.
+function _persistBackupEvidence(olaMigrationRoot, runId, backupResult, projected) {
+  const currentState = readState(olaMigrationRoot, runId);
+  const completedSteps = currentState.completed_steps.includes("backup")
+    ? currentState.completed_steps
+    : ["backup"];
+  const nextState = transitionState(currentState, {
+    backup: {
+      path: backupResult.backup_path,
+      verified: true,
+      manifest_digest: backupResult.manifest_digest,
+    },
+    step_outputs: Object.assign({}, currentState.step_outputs, { backup: projected }),
+    completed_steps: completedSteps,
+  });
+  writeStateAtomic(olaMigrationRoot, runId, nextState);
+  const reopened = readState(olaMigrationRoot, runId);
+  if (!reopened.backup || reopened.backup.verified !== true) {
+    throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
+      "Phase 1 reopen: backup.verified is not true");
+  }
+}
+
+// Phase 2 success: remove physical sentinel, then transition in_progress →
+// backup_completed in a single write with all companion fields.
+function _completeBackupAndReleaseSentinel(olaMigrationRoot, runId) {
+  // Remove the physical sentinel.
+  sentinel.removeMigrationSentinel();
+
+  // Single write: in_progress → backup_completed with ALL fields.
+  const currentState = readState(olaMigrationRoot, runId);
+  const releaseTs = new Date().toISOString();
+  const finalState = transitionState(currentState, {
+    status: RUN_STATUSES.backup_completed,
+    sentinel: {
+      owned: false,
+      released_at: releaseTs,
+    },
+    rollback: {
+      schema: "ola.migration.r2.rollback-state.v1",
+      status: ROLLBACK_STATUSES.not_applicable,
+      trigger_failure_digest: null,
+      intent_path: null,
+      intent_digest: null,
+      completed_steps: [],
+      target_quarantine: null,
+      source_quarantine: null,
+      quarantine_manifest_path: null,
+      quarantine_manifest_digest: null,
+      quarantine_manifest_input_state_digest: null,
+      attestation_path: null,
+      attestation_digest: null,
+      release_intent_path: null,
+      release_intent_digest: null,
+      receipt_path: null,
+      receipt_digest: null,
+      started_at: null,
+      verified_at: null,
+      released_at: null,
+      failure: null,
+      verified: false,
+    },
+    structural_verification: VERIFICATION_STATUSES.not_applicable,
+    live_verification: VERIFICATION_STATUSES.not_applicable,
+  });
+  writeStateAtomic(olaMigrationRoot, runId, finalState);
+
+  // Reopen and fully validate. writeStateAtomic already called validateState,
+  // but we reopen to confirm durability.
+  const reopened = readState(olaMigrationRoot, runId);
+  if (reopened.status !== RUN_STATUSES.backup_completed) {
+    throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
+      "final state status is not backup_completed (got: " + reopened.status + ")");
+  }
+  if (reopened.sentinel.owned !== false) {
+    throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
+      "final state sentinel.owned is not false");
+  }
+}
+
+// Failure path: persist backup_failed with all canonical companion fields.
+// Phase 1: persist while sentinel is still owned (no swallowing).
+function _persistBackupFailure(olaMigrationRoot, runId, error) {
+  const currentState = readState(olaMigrationRoot, runId);
+  const failedState = transitionState(currentState, {
+    status: RUN_STATUSES.backup_failed,
+    failure: {
+      code: error.code || "BACKUP_FAILED",
+      message: error.message,
+      at: new Date().toISOString(),
+    },
+    backup: {
+      path: null,
+      verified: false,
+      manifest_digest: null,
+    },
+    rollback: {
+      schema: "ola.migration.r2.rollback-state.v1",
+      status: ROLLBACK_STATUSES.not_available,
+      trigger_failure_digest: null,
+      intent_path: null,
+      intent_digest: null,
+      completed_steps: [],
+      target_quarantine: null,
+      source_quarantine: null,
+      quarantine_manifest_path: null,
+      quarantine_manifest_digest: null,
+      quarantine_manifest_input_state_digest: null,
+      attestation_path: null,
+      attestation_digest: null,
+      release_intent_path: null,
+      release_intent_digest: null,
+      receipt_path: null,
+      receipt_digest: null,
+      started_at: null,
+      verified_at: null,
+      released_at: null,
+      failure: null,
+      verified: false,
+    },
+    structural_verification: VERIFICATION_STATUSES.not_applicable,
+    live_verification: VERIFICATION_STATUSES.not_applicable,
+  });
+  writeStateAtomic(olaMigrationRoot, runId, failedState);
+  // Reopen and validate.
+  const reopened = readState(olaMigrationRoot, runId);
+  if (reopened.status !== RUN_STATUSES.backup_failed) {
+    throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
+      "failure state reopen: status is not backup_failed");
+  }
+}
+
+// Failure path Phase 2: release sentinel, persist sentinel-released state.
+// backup_failed + sentinel.owned=false requires released_at set,
+// structural_verification=not_applicable, live_verification=not_applicable.
+function _releaseSentinelAndPersistFailure(olaMigrationRoot, runId) {
+  let released = false;
+  let releaseErr = null;
+  try {
+    sentinel.removeMigrationSentinel();
+    released = true;
+  } catch (e) {
+    releaseErr = e;
+  }
+
+  // Persist sentinel-release state for failure.
   try {
     const currentState = readState(olaMigrationRoot, runId);
     const nextState = transitionState(currentState, {
-      status: RUN_STATUSES.backup_failed,
-      failure: {
-        code: error.code || "BACKUP_FAILED",
-        message: error.message,
-        at: new Date().toISOString(),
-      },
-      backup: {
-        path: null,
-        verified: false,
-        manifest_digest: null,
+      sentinel: {
+        owned: !released,
+        released_at: released ? new Date().toISOString() : null,
       },
     });
     writeStateAtomic(olaMigrationRoot, runId, nextState);
-  } catch { /* best effort — state persistence may fail during error handling */ }
-}
+  } catch (e) {
+    throw new R2Error("SENTINEL_RELEASE_STATE_FAILED",
+      "failed to persist sentinel-release state during failure handling: " + e.message);
+  }
 
-// Helper: release the physical sentinel.
-// For a standalone backup (status stays in_progress), we do NOT persist
-// sentinel.owned=false because in_progress + sentinel.owned=false is an
-// invalid state combination (validateState requires in_progress to have
-// sentinel.owned=true). The physical sentinel release is the authoritative
-// signal; the state's sentinel.owned=true reflects that the run owned it.
-// A future resume/execute coordinator or operator recovery step reconciles
-// the physical sentinel absence with the state.
-//
-// If sentinel release fails, throw a distinct error for operator recovery.
-function _releaseSentinelAndPersist(olaMigrationRoot, runId) {
-  sentinel.removeMigrationSentinel();
+  if (!released) {
+    throw new R2Error("SENTINEL_RELEASE_FAILED",
+      "sentinel release failed — ownership retained for operator recovery: " +
+      (releaseErr ? releaseErr.message : "unknown error"));
+  }
 }
 
 function renderBackupSummary(result) {
