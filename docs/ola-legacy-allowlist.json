@@ -141,6 +141,14 @@
       "reason": "This allowlist file itself references moneta in its patterns and reasons",
       "owner": "R0 baseline",
       "remove_after": null
+    },
+    {
+      "id": "ci-prohibited-path-check",
+      "path": ".github/workflows/baseline-tests.yml",
+      "pattern": "\\.moneta",
+      "reason": "Baseline CI prohibited-path check lists .moneta as a runtime-state directory that must never be committed. The reference is to the legacy store path name, not a live dependency.",
+      "owner": "baseline CI",
+      "remove_after": null
     }
   ]
 }
