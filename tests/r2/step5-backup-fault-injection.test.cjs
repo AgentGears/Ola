@@ -107,8 +107,8 @@ async function main() {
     const deps = makeDeps({
       writeStateAtomic: function (root, runId, body) {
         writeCount++;
-        // Fail on the Phase 1 evidence write (in_progress + backup.verified=true)
-        if (body.backup && body.backup.verified === true && body.status === undefined) {
+        // Fail on the Phase 1 evidence write (in_progress + backup.verified=true, not backup_release_pending)
+        if (body.backup && body.backup.verified === true && body.status === "in_progress") {
           throw makeErr("EIO", "disk write error during evidence persist");
         }
         return m.writeStateAtomic(root, runId, body);
