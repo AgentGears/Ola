@@ -33,12 +33,12 @@ permissions:
   contents: read
 
 jobs:
-  # ── Deterministic gate ─────────────────────────────────────────────
-  # 19 registered suites (all except offload-latency, which has a known
-  # test-harness race — issue #11) + 3 R2 aggregators + ADR package
-  # integrity + prohibited-path absence check.
-  deterministic:
-    name: Deterministic suite (19 + 3 aggregators + ADR)
+  # ── Job 1: Zero-process deterministic gate ─────────────────────────
+  # 21 zero-process tests (no real worker spawns) + 3 independent R2
+  # aggregators + ADR package integrity + prohibited-path absence check.
+  # This job never spawns real OS worker processes.
+  zero-process-deterministic:
+    name: Zero-process deterministic (21 tests + 3 R2 + ADR)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,14 +84,13 @@ jobs:
           fi
           echo "PASS: no prohibited runtime-state paths"
 
-      - name: Run deterministic registered suites (no real-spawn tests)
+      - name: Run 21 zero-process deterministic suites
         run: |
           set -euo pipefail
           # Deterministic suites that do NOT spawn real worker processes.
-          # offload-latency and offload-worker-lifecycle spawn real managed workers
-          # and are tested in the offload-stability workflow (Jobs B and C) on CI only.
           # offload-hook-structural and offload-spawn-contract use injected fakes
           # (zero real processes) and are safe everywhere.
+          # offload-latency spawns real managed workers and runs in the formal-suite job below.
           deterministic_tests=(
             "tests/test-sentinel-survives-canonical-destruction.cjs"
             "tests/test-resolver-ignores-zcode-plugin-data.cjs"
@@ -130,7 +129,7 @@ jobs:
             echo "::error::At least one deterministic suite failed"
             exit 1
           fi
-          echo "PASS: 21/21 deterministic suites"
+          echo "PASS: 21/21 zero-process deterministic suites"
 
       - name: Run 3 R2 aggregators independently
         run: |
@@ -141,14 +140,6 @@ jobs:
             echo "::endgroup::"
           done
           echo "PASS: 3/3 R2 aggregators"
-
-      - name: Run formal registered suite (tests/run-all.cjs)
-        run: |
-          set -euo pipefail
-          echo "=== Formal registered suite via run-all.cjs ==="
-          echo "This proves the runner contains and executes all 23 registered gates."
-          echo "================================================================"
-          node tests/run-all.cjs
 
       - name: ADR package integrity verification
         working-directory: docs/architecture/adr-0001
@@ -165,3 +156,28 @@ jobs:
           echo "actual  =$actual"
           [ "$actual" = "$expected" ]
           echo "PASS: package root matches frozen candidate"
+
+  # ── Job 2: Formal registered suite ─────────────────────────────────
+  # Executes tests/run-all.cjs, which contains all 23 registered gates.
+  # This INCLUDES offload-latency, which spawns real managed worker processes
+  # (bounded, leak-guarded — see offload-stability workflow). The worker
+  # lifecycle safety is independently proven by the offload-stability workflow.
+  formal-suite:
+    name: Formal registered suite (23/23, includes managed real-worker test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.0'
+
+      - name: Run formal registered suite (tests/run-all.cjs)
+        run: |
+          set -euo pipefail
+          echo "=== Formal registered suite via run-all.cjs ==="
+          echo "Proves the runner contains and executes all 23 registered gates."
+          echo "NOTE: includes offload-latency, which spawns real managed workers."
+          echo "Worker lifecycle safety is independently proven by offload-stability workflow."
+          echo "================================================================"
+          node tests/run-all.cjs
