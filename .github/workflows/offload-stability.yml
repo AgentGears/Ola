@@ -15,10 +15,12 @@ on:
     paths:
       - 'hooks/lib/offload-dispatch.js'
       - 'hooks/post-tool-use.js'
+      - 'bin/migrate-r2.cjs'
       - 'tests/offload-latency.test.cjs'
       - 'tests/offload-hook-structural.test.cjs'
       - 'tests/offload-spawn-contract.test.cjs'
       - 'tests/offload-worker-lifecycle.test.cjs'
+      - 'tests/r2/step5-backup-primitive.test.cjs'
       - 'tests/helpers/managed-offload-worker.cjs'
       - '.github/workflows/offload-stability.yml'
       - '.github/workflows/baseline-tests.yml'
@@ -27,10 +29,12 @@ on:
     paths:
       - 'hooks/lib/offload-dispatch.js'
       - 'hooks/post-tool-use.js'
+      - 'bin/migrate-r2.cjs'
       - 'tests/offload-latency.test.cjs'
       - 'tests/offload-hook-structural.test.cjs'
       - 'tests/offload-spawn-contract.test.cjs'
       - 'tests/offload-worker-lifecycle.test.cjs'
+      - 'tests/r2/step5-backup-primitive.test.cjs'
       - 'tests/helpers/managed-offload-worker.cjs'
       - '.github/workflows/offload-stability.yml'
 
