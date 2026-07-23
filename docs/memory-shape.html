@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moneta — The Shape of Memory</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --dim: #8b949e;
+    --accent: #58a6ff;
+    --warm: #f0883e;
+    --green: #3fb950;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --yellow: #d29922;
+    --cyan: #39d2c0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    padding: 40px 20px;
+    line-height: 1.6;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 {
+    font-size: 2.4em;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle { color: var(--dim); font-size: 1.1em; margin-bottom: 48px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 32px;
+  }
+  .card-title {
+    font-size: 1.3em;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--accent);
+  }
+  .card-desc {
+    color: var(--dim);
+    font-size: 0.95em;
+    margin-bottom: 24px;
+  }
+  svg { display: block; margin: 0 auto; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 16px;
+    justify-content: center;
+    font-size: 0.85em;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--dim);
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .footnote {
+    color: var(--dim);
+    font-size: 0.8em;
+    margin-top: 12px;
+    font-style: italic;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>The Shape of Memory</h1>
+<p class="subtitle">Moneta's memory system as a designed product — five dimensional views</p>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DIMENSION 1: DEPTH — the drill-down axis -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">1. Depth — the drill-down axis</div>
+  <div class="card-desc">Every memory has a path from surface signal to raw evidence. This is the product's core promise: you can always go deeper.</div>
+  <svg viewBox="0 0 700 360" width="100%">
+    <defs>
+      <linearGradient id="depthGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#58a6ff" stop-opacity="0.4"/>
+        <stop offset="100%" stop-color="#58a6ff" stop-opacity="0.05"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Triangle shape: wide at top, narrow at bottom -->
+    <polygon points="350,30 620,290 80,290" fill="url(#depthGrad)" stroke="#30363d" stroke-width="1"/>
+
+    <!-- Layer labels -->
+    <text x="350" y="62" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Retrieval Anchor</text>
+    <text x="350" y="80" text-anchor="middle" fill="#8b949e" font-size="11">"When: mutating config.json; Apply: safePatchConfig..."</text>
+
+    <text x="350" y="135" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Body / Content</text>
+    <text x="350" y="153" text-anchor="middle" fill="#8b949e" font-size="11">The rule, the lesson, the decision — 15-5000 chars</text>
+
+    <text x="350" y="205" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Source / Provenance</text>
+    <text x="350" y="223" text-anchor="middle" fill="#8b949e" font-size="11">docs/phase-c-decision.md, run-record, eval artifact</text>
+
+    <text x="350" y="272" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="600">Raw Evidence</text>
+    <text x="350" y="285" text-anchor="middle" fill="#8b949e" font-size="11">stats DB, corpus JSON, code behavior</text>
+
+    <!-- Side arrows -->
+    <path d="M 640 50 L 640 280" stroke="#30363d" stroke-width="1.5" fill="none" marker-end="url(#arrowDown)"/>
+
+    <!-- Depth labels -->
+    <text x="655" y="60" fill="#f0883e" font-size="10" font-weight="600">SURFACE</text>
+    <text x="655" y="165" fill="#d29922" font-size="10" font-weight="600">DEPTH</text>
+    <text x="655" y="278" fill="#f85149" font-size="10" font-weight="600">ROOTS</text>
+
+    <!-- Width annotations -->
+    <text x="350" y="310" text-anchor="middle" fill="#8b949e" font-size="10" font-style="italic">Every memory narrows as you drill deeper — from broad retrieval signal to specific artifact</text>
+
+    <!-- Left side: what each layer is FOR -->
+    <text x="50" y="62" fill="#58a6ff" font-size="10" font-weight="600">FIND IT</text>
+    <text x="50" y="135" fill="#58a6ff" font-size="10" font-weight="600">READ IT</text>
+    <text x="50" y="205" fill="#58a6ff" font-size="10" font-weight="600">TRUST IT</text>
+    <text x="50" y="272" fill="#58a6ff" font-size="10" font-weight="600">PROVE IT</text>
+  </svg>
+  <div class="footnote">The drill-down invariant (Phase T): every memory must carry a deterministic path from anchor → body → source → raw evidence</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DIMENSION 2: LIFECYCLE — the metabolic axis -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">2. Lifecycle — the metabolic axis</div>
+  <div class="card-desc">Memories are not static. They live, strengthen, decay, and eventually retire. This is the product's relationship with time.</div>
+  <svg viewBox="0 0 700 260" width="100%">
+    <!-- Timeline arrow -->
+    <line x1="60" y1="130" x2="640" y2="130" stroke="#30363d" stroke-width="2" marker-end="url(#arrowRight)"/>
+
+    <!-- Lifecycle stages as circles with arcs -->
+    <!-- Created -->
+    <circle cx="100" cy="130" r="22" fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
+    <text x="100" y="134" text-anchor="middle" fill="#58a6ff" font-size="10" font-weight="600">BORN</text>
+    <text x="100" y="170" text-anchor="middle" fill="#8b949e" font-size="10">remember()</text>
+
+    <!-- Used -->
+    <circle cx="230" cy="130" r="22" fill="#161b22" stroke="#3fb950" stroke-width="2"/>
+    <text x="230" y="134" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">USED</text>
+    <text x="230" y="170" text-anchor="middle" fill="#8b949e" font-size="10">strength ↑</text>
+
+    <!-- Consolidated -->
+    <circle cx="360" cy="130" r="22" fill="#161b22" stroke="#d29922" stroke-width="2"/>
+    <text x="360" y="134" text-anchor="middle" fill="#d29922" font-size="9" font-weight="600">CONSOL.</text>
+    <text x="360" y="170" text-anchor="middle" fill="#8b949e" font-size="10">decay slows</text>
+
+    <!-- Archived -->
+    <circle cx="490" cy="130" r="22" fill="#161b22" stroke="#f0883e" stroke-width="2"/>
+    <text x="490" y="134" text-anchor="middle" fill="#f0883e" font-size="9" font-weight="600">ARCHIVE</text>
+    <text x="490" y="170" text-anchor="middle" fill="#8b949e" font-size="10">excluded</text>
+
+    <!-- Tombstoned -->
+    <circle cx="610" cy="130" r="22" fill="#161b22" stroke="#f85149" stroke-width="2"/>
+    <text x="610" y="134" text-anchor="middle" fill="#f85149" font-size="9" font-weight="600">TOMB</text>
+    <text x="610" y="170" text-anchor="middle" fill="#8b949e" font-size="10">soft-delete</text>
+
+    <!-- Ebbinghaus decay curve overlay -->
+    <path d="M 122 100 Q 200 60, 280 100 Q 380 145, 480 140 Q 560 138, 588 135"
+          stroke="#3fb950" stroke-width="2" fill="none" opacity="0.5" stroke-dasharray="4,3"/>
+
+    <!-- Strength label -->
+    <text x="250" y="55" fill="#3fb950" font-size="10" font-style="italic" opacity="0.7">strength = confidence × exp(-decay / consolidation)</text>
+
+    <!-- Key principle -->
+    <rect x="60" y="200" width="580" height="40" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="350" y="218" text-anchor="middle" fill="#8b949e" font-size="10">Contract 4: Retrieval is exposure (seen). Use is reinforcement (used).</text>
+    <text x="350" y="232" text-anchor="middle" fill="#8b949e" font-size="10">Every 5 uses → consolidation_count++ → decay slows. Memories that are never used decay.</text>
+  </svg>
+  <div class="footnote">The Ebbinghaus model: memory is a living thing that strengthens with use and forgets when ignored</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DIMENSION 3: AUTHORITY — the supersession axis -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">3. Authority — the supersession axis</div>
+  <div class="card-desc">Memories compete. When guidance changes, the old record doesn't disappear — it gets marked as superseded. Retrieval must prefer current authority.</div>
+  <svg viewBox="0 0 700 280" width="100%">
+    <!-- Authority spectrum -->
+    <rect x="60" y="80" width="580" height="40" rx="20" fill="#161b22" stroke="#30363d"/>
+
+    <!-- Gradient overlay -->
+    <defs>
+      <linearGradient id="authGrad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#3fb950" stop-opacity="0.6"/>
+        <stop offset="33%" stop-color="#58a6ff" stop-opacity="0.4"/>
+        <stop offset="66%" stop-color="#d29922" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#f85149" stop-opacity="0.2"/>
+      </linearGradient>
+    </defs>
+    <rect x="60" y="80" width="580" height="40" rx="20" fill="url(#authGrad)"/>
+
+    <!-- Authority labels -->
+    <text x="130" y="105" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">CURRENT</text>
+    <text x="290" y="105" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="600">HISTORICAL</text>
+    <text x="450" y="105" text-anchor="middle" fill="#d29922" font-size="11" font-weight="600">SUPERSEDED</text>
+    <text x="590" y="105" text-anchor="middle" fill="#f85149" font-size="11" font-weight="600">STALE/TEST</text>
+
+    <!-- Example records at each tier -->
+    <g font-size="9" fill="#8b949e">
+      <text x="130" y="140" text-anchor="middle">data_dir_authority_for_cli_mutations</text>
+      <text x="130" y="153" text-anchor="middle">phase_c_outcome_a</text>
+      <text x="290" y="140" text-anchor="middle">b0_accepted_phase_a_gate_locked</text>
+      <text x="290" y="153" text-anchor="middle">env_driven_data_dir_split_brain</text>
+      <text x="450" y="140" text-anchor="middle">agent_neutral_path_resolver</text>
+      <text x="450" y="153" text-anchor="middle">b0_accepted_..._supersession</text>
+      <text x="590" y="140" text-anchor="middle">test_dry_run (tombstoned)</text>
+    </g>
+
+    <!-- Supersession arrows -->
+    <path d="M 450 175 L 310 175" stroke="#f85149" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arrowLeftRed)"/>
+    <text x="380" y="168" text-anchor="middle" fill="#f85149" font-size="9">supersedes</text>
+
+    <path d="M 290 175 L 150 175" stroke="#d29922" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arrowLeftYellow)"/>
+    <text x="220" y="168" text-anchor="middle" fill="#d29922" font-size="9">replaces</text>
+
+    <!-- Retrieval preference -->
+    <text x="60" y="210" fill="#3fb950" font-size="10" font-weight="600">◀ RETRIEVAL PREFERENCE</text>
+
+    <!-- The gap Moneta hasn't closed yet -->
+    <rect x="60" y="230" width="580" height="30" rx="6" fill="#161b22" stroke="#f85149" stroke-dasharray="4,3"/>
+    <text x="350" y="249" text-anchor="middle" fill="#f85149" font-size="10">⚠ GAP: authority tier is not yet a machine-readable ranking signal (Phase T recommendation #2)</text>
+  </svg>
+  <div class="footnote">The cp-001 pattern: when two records match a query, retrieval must prefer the current authority — not just the one with more keyword overlap</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DIMENSION 4: LAYERS — the cognitive architecture -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">4. Layers — the cognitive architecture</div>
+  <div class="card-desc">Moneta is four intelligence sources unified into one memory product. Each layer answers a different question.</div>
+  <svg viewBox="0 0 700 340" width="100%">
+    <!-- L4 (top) -->
+    <rect x="180" y="20" width="340" height="55" rx="8" fill="#161b22" stroke="#bc8cff" stroke-width="2"/>
+    <text x="350" y="42" text-anchor="middle" fill="#bc8cff" font-size="13" font-weight="600">L4 — Metacognitive Dispatch</text>
+    <text x="350" y="60" text-anchor="middle" fill="#8b949e" font-size="10">"Which intelligence source should answer this question?"</text>
+    <text x="350" y="72" text-anchor="middle" fill="#8b949e" font-size="9">hooks/pre-tool-use.js → assess.js → routing hints (suggests, never forces)</text>
+
+    <!-- Connection lines -->
+    <line x1="260" y1="75" x2="160" y2="115" stroke="#30363d" stroke-width="1"/>
+    <line x1="320" y1="75" x2="320" y2="115" stroke="#30363d" stroke-width="1"/>
+    <line x1="380" y1="75" x2="380" y2="115" stroke="#30363d" stroke-width="1"/>
+    <line x1="440" y1="75" x2="540" y2="115" stroke="#30363d" stroke-width="1"/>
+
+    <!-- L1 -->
+    <rect x="60" y="115" width="160" height="80" rx="8" fill="#161b22" stroke="#39d2c0" stroke-width="2"/>
+    <text x="140" y="138" text-anchor="middle" fill="#39d2c0" font-size="12" font-weight="600">L1 Code Intelligence</text>
+    <text x="140" y="155" text-anchor="middle" fill="#8b949e" font-size="9">"Where is this function?"</text>
+    <text x="140" y="168" text-anchor="middle" fill="#8b949e" font-size="9">"Who calls this?"</text>
+    <text x="140" y="185" text-anchor="middle" fill="#8b949e" font-size="8">codebase-memory graph</text>
+
+    <!-- L2 -->
+    <rect x="240" y="115" width="160" height="80" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
+    <text x="320" y="138" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="600">L2 Work History</text>
+    <text x="320" y="155" text-anchor="middle" fill="#8b949e" font-size="9">"What did we try before?"</text>
+    <text x="320" y="168" text-anchor="middle" fill="#8b949e" font-size="9">transcript keyword search</text>
+    <text x="320" y="185" text-anchor="middle" fill="#8b949e" font-size="8">session DB (read-only)</text>
+
+    <!-- L3 -->
+    <rect x="420" y="115" width="160" height="80" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="2"/>
+    <text x="500" y="138" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="600">L3 Distilled Memory</text>
+    <text x="500" y="155" text-anchor="middle" fill="#8b949e" font-size="9">"What did we learn?"</text>
+    <text x="500" y="168" text-anchor="middle" fill="#8b949e" font-size="9">playbooks + lessons</text>
+    <text x="500" y="185" text-anchor="middle" fill="#8b949e" font-size="8">Ebbinghaus strength</text>
+
+    <!-- External -->
+    <rect x="580" y="115" width="100" height="80" rx="8" fill="#161b22" stroke="#8b949e" stroke-width="2" stroke-dasharray="4,3"/>
+    <text x="630" y="148" text-anchor="middle" fill="#8b949e" font-size="11">Built-in</text>
+    <text x="630" y="163" text-anchor="middle" fill="#8b949e" font-size="9">Read/Grep/</text>
+    <text x="630" y="176" text-anchor="middle" fill="#8b949e" font-size="9">Glob/Bash</text>
+
+    <!-- Current state annotations -->
+    <text x="140" y="212" text-anchor="middle" fill="#39d2c0" font-size="9" font-weight="600">● active (external)</text>
+    <text x="320" y="212" text-anchor="middle" fill="#58a6ff" font-size="9" font-weight="600">● active</text>
+    <text x="500" y="212" text-anchor="middle" fill="#3fb950" font-size="9" font-weight="600">● building</text>
+
+    <!-- Retrieval scoring -->
+    <rect x="60" y="235" width="580" height="80" rx="8" fill="#161b22" stroke="#30363d"/>
+    <text x="350" y="255" text-anchor="middle" fill="#e6edf3" font-size="11" font-weight="600">L3 Retrieval Scoring (Contract 3)</text>
+    <text x="350" y="275" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">final = 0.65 × relevance + 0.20 × structural + 0.15 × strength</text>
+    <text x="350" y="292" text-anchor="middle" fill="#8b949e" font-size="9">exact-match override: memory_id in query → relevance = 1.0, bypass blending</text>
+    <text x="350" y="307" text-anchor="middle" fill="#f0883e" font-size="9">⚠ strength is 59% NULL — the ranking signal is mostly empty for the current corpus</text>
+  </svg>
+  <div class="footnote">L3 is the product's heart. L1/L2/L4 are the surrounding intelligence that makes it useful.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- DIMENSION 5: REINFORCEMENT — the learning axis -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">5. Reinforcement — the learning axis</div>
+  <div class="card-desc">Memory is not a filing cabinet. It's a cognitive system that learns from use and forgets from neglect. The distinction between exposure and learning is the product's deepest design principle.</div>
+  <svg viewBox="0 0 700 300" width="100%">
+
+    <!-- Two-path divergence -->
+    <text x="350" y="25" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="600">A memory appears in recall results...</text>
+
+    <!-- Seen path (left) -->
+    <rect x="40" y="50" width="280" height="110" rx="10" fill="#161b22" stroke="#8b949e" stroke-width="1.5"/>
+    <text x="180" y="75" text-anchor="middle" fill="#8b949e" font-size="12" font-weight="600">SEEN (exposure)</text>
+    <text x="180" y="95" text-anchor="middle" fill="#8b949e" font-size="10">seen_count++, last_seen updated</text>
+    <line x1="60" y1="108" x2="300" y2="108" stroke="#30363d" stroke-width="1"/>
+    <text x="180" y="125" text-anchor="middle" fill="#8b949e" font-size="9">mode = "search"</text>
+    <text x="180" y="140" text-anchor="middle" fill="#8b949e" font-size="9">does NOT affect strength</text>
+    <text x="180" y="155" text-anchor="middle" fill="#f85149" font-size="9" font-weight="600">≠ learning</text>
+
+    <!-- Used path (right) -->
+    <rect x="380" y="50" width="280" height="110" rx="10" fill="#161b22" stroke="#3fb950" stroke-width="2"/>
+    <text x="520" y="75" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="600">USED (reinforcement)</text>
+    <text x="520" y="95" text-anchor="middle" fill="#3fb950" font-size="10">used_count++, last_used updated</text>
+    <line x1="400" y1="108" x2="640" y2="108" stroke="#30363d" stroke-width="1"/>
+    <text x="520" y="125" text-anchor="middle" fill="#3fb950" font-size="9">mode = "inject"</text>
+    <text x="520" y="140" text-anchor="middle" fill="#3fb950" font-size="9">strength ↑ via Ebbinghaus</text>
+    <text x="520" y="155" text-anchor="middle" fill="#3fb950" font-size="9" font-weight="600">= learning</text>
+
+    <!-- Convergence: consolidation -->
+    <line x1="180" y1="160" x2="320" y2="200" stroke="#30363d" stroke-width="1" stroke-dasharray="3,2"/>
+    <line x1="520" y1="160" x2="380" y2="200" stroke="#3fb950" stroke-width="1.5"/>
+
+    <rect x="260" y="195" width="180" height="50" rx="8" fill="#161b22" stroke="#d29922" stroke-width="2"/>
+    <text x="350" y="215" text-anchor="middle" fill="#d29922" font-size="11" font-weight="600">CONSOLIDATION</text>
+    <text x="350" y="232" text-anchor="middle" fill="#8b949e" font-size="9">every 5 uses → decay slows</text>
+
+    <!-- Decay note -->
+    <rect x="40" y="260" width="620" height="30" rx="6" fill="#161b22" stroke="#30363d"/>
+    <text x="350" y="280" text-anchor="middle" fill="#8b949e" font-size="10">
+      A memory that appears in 100 searches but is never injected <tspan fill="#3fb950" font-weight="600">should decay</tspan>, not rise.
+      Retrieval is exposure. Only use is learning.
+    </text>
+  </svg>
+  <div class="footnote">Contract 4: "Retrieval is not reinforcement." This is what makes Moneta a memory system, not a search engine.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- OVERVIEW: the product at a glance -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div class="card">
+  <div class="card-title">The Product at a Glance</div>
+  <div class="card-desc">Five dimensions, one memory system. The product's shape is defined by how these dimensions interact.</div>
+
+  <svg viewBox="0 0 700 380" width="100%">
+    <!-- Central node: Moneta -->
+    <circle cx="350" cy="190" r="40" fill="#161b22" stroke="#58a6ff" stroke-width="3"/>
+    <text x="350" y="188" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="700">MONETA</text>
+    <text x="350" y="202" text-anchor="middle" fill="#8b949e" font-size="9">She who reminds</text>
+
+    <!-- 5 dimension spokes -->
+    <!-- Depth (top) -->
+    <line x1="350" y1="150" x2="350" y2="60" stroke="#58a6ff" stroke-width="1.5"/>
+    <rect x="280" y="20" width="140" height="40" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+    <text x="350" y="38" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="600">DEPTH</text>
+    <text x="350" y="52" text-anchor="middle" fill="#8b949e" font-size="9">anchor → body → source</text>
+
+    <!-- Lifecycle (right) -->
+    <line x1="390" y1="190" x2="580" y2="190" stroke="#3fb950" stroke-width="1.5"/>
+    <rect x="530" y="170" width="140" height="40" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+    <text x="600" y="188" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">LIFECYCLE</text>
+    <text x="600" y="202" text-anchor="middle" fill="#8b949e" font-size="9">born → used → retired</text>
+
+    <!-- Authority (bottom) -->
+    <line x1="350" y1="230" x2="350" y2="320" stroke="#d29922" stroke-width="1.5"/>
+    <rect x="270" y="320" width="160" height="40" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+    <text x="350" y="338" text-anchor="middle" fill="#d29922" font-size="11" font-weight="600">AUTHORITY</text>
+    <text x="350" y="352" text-anchor="middle" fill="#8b949e" font-size="9">current → superseded → stale</text>
+
+    <!-- Layers (left) -->
+    <line x1="310" y1="190" x2="120" y2="190" stroke="#39d2c0" stroke-width="1.5"/>
+    <rect x="30" y="170" width="140" height="40" rx="6" fill="#161b22" stroke="#39d2c0" stroke-width="1.5"/>
+    <text x="100" y="188" text-anchor="middle" fill="#39d2c0" font-size="11" font-weight="600">LAYERS</text>
+    <text x="100" y="202" text-anchor="middle" fill="#8b949e" font-size="9">L1 code · L2 history · L3 distilled · L4 dispatch</text>
+
+    <!-- Reinforcement (top-right diagonal) -->
+    <line x1="378" y1="162" x2="530" y2="70" stroke="#bc8cff" stroke-width="1.5"/>
+    <rect x="480" y="40" width="140" height="40" rx="6" fill="#161b22" stroke="#bc8cff" stroke-width="1.5"/>
+    <text x="550" y="58" text-anchor="middle" fill="#bc8cff" font-size="11" font-weight="600">REINFORCEMENT</text>
+    <text x="550" y="72" text-anchor="middle" fill="#8b949e" font-size="9">seen ≠ used ≠ learned</text>
+
+    <!-- Current state badges -->
+    <g font-size="8">
+      <rect x="200" y="70" width="60" height="16" rx="3" fill="#3fb950" opacity="0.2"/>
+      <text x="230" y="82" text-anchor="middle" fill="#3fb950">working</text>
+
+      <rect x="450" y="70" width="70" height="16" rx="3" fill="#d29922" opacity="0.2"/>
+      <text x="485" y="82" text-anchor="middle" fill="#d29922">59% NULL</text>
+
+      <rect x="450" y="295" width="60" height="16" rx="3" fill="#d29922" opacity="0.2"/>
+      <text x="480" y="307" text-anchor="middle" fill="#d29922">no tier signal</text>
+
+      <rect x="180" y="240" width="80" height="16" rx="3" fill="#3fb950" opacity="0.2"/>
+      <text x="220" y="252" text-anchor="middle" fill="#3fb950">lexical default</text>
+
+      <rect x="180" y="120" width="60" height="16" rx="3" fill="#3fb950" opacity="0.2"/>
+      <text x="210" y="132" text-anchor="middle" fill="#3fb950">contract 4</text>
+    </g>
+  </svg>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div>Depth — how far you can drill</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3fb950"></div>Lifecycle — metabolism over time</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d29922"></div>Authority — who wins when memories conflict</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#39d2c0"></div>Layers — four intelligence sources</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#bc8cff"></div>Reinforcement — exposure vs learning</div>
+  </div>
+</div>
+
+</div>
+</body>
+
+<defs>
+  <marker id="arrowRight" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L9,3 z" fill="#30363d"/>
+  </marker>
+  <marker id="arrowDown" markerWidth="10" markerHeight="10" refX="5" refY="9" orient="auto">
+    <path d="M0,0 L6,0 L3,9 z" fill="#30363d"/>
+  </marker>
+  <marker id="arrowLeftRed" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+    <path d="M9,0 L9,6 L0,3 z" fill="#f85149"/>
+  </marker>
+  <marker id="arrowLeftYellow" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+    <path d="M9,0 L9,6 L0,3 z" fill="#d29922"/>
+  </marker>
+</defs>
+</html>

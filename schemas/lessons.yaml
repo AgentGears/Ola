@@ -1,0 +1,204 @@
+# lessons.yaml — Ola Layer 3
+# Clean-room v2: governed operational-memory schema.
+# Conceptual inspiration: typed memory schemas, cognitive task analysis.
+# This implementation is original to Ola. No third-party expression derived.
+#
+# Mental model: a lesson is what one task taught. Numerous, specific, immutable.
+# Lessons feed playbooks through the promotion pipeline.
+# Use a lesson when the agent needs to recall how a specific task was done.
+
+memory_type: lessons
+schema_version: 2
+
+description: |
+  An immutable operation contract distilled from a concrete multi-step
+  agent execution. Captures the task shape, decision boundaries, procedure,
+  tools, verification steps, and anti-patterns. Used to guide similar future
+  execution without replaying the full transcript.
+
+directory: "ola://lessons"
+filename_template: "{{ lesson_name }}_{{ timestamp }}.md"
+enabled: true
+operation_mode: add_only
+agent_only: true
+
+identity:
+  primary_key: generated_filename
+  dedupe_strategy: allow_near_duplicates_if_boundary_differs
+  supersession_allowed: false
+
+fields:
+  - name: lesson_name
+    type: string
+    required: true
+    merge_op: immutable
+    constraints:
+      format: lowercase_snake_case
+      max_words: 5
+      max_chars: 64
+    description: |
+      Name the reusable task path directly and stably.
+      Good: "spreadsheet_artifact_generation", "gmail_draft_revision"
+      Bad: "user_asked_for_file", "june_26_debugging"
+
+  - name: outcome
+    type: enum
+    required: true
+    allowed_values:
+      - success
+      - partial
+      - failure
+      - unfinished
+      - unknown
+    merge_op: immutable
+    description: |
+      Final task outcome from the agent execution.
+
+  - name: stage_anchor
+    type: enum
+    required: true
+    allowed_values:
+      - opening
+      - pre_tool
+      - before_write
+      - terminal
+    merge_op: immutable
+    description: |
+      Stage where this lesson is most useful to retrieve.
+
+  - name: retrieval_anchor
+    type: string
+    required: true
+    merge_op: immutable
+    description: |
+      Positive semantic retrieval text optimized for embedding.
+      Format:
+      "Stage: <opening|pre_tool|before_write|terminal>; Boundary: <verified condition>; Capability: <operation this guides>"
+
+  - name: not_applicable_when
+    type: string
+    required: true
+    merge_op: immutable
+    description: |
+      Negative boundary. Conditions where this lesson should not guide
+      future behavior.
+
+  - name: domain
+    type: string
+    required: true
+    merge_op: immutable
+    description: |
+      Operational domain.
+      Examples: artifact_generation, email_workflow, calendar_scheduling,
+      code_debugging, security_analysis, document_analysis.
+
+  - name: tools_used
+    type: list
+    item_type: string
+    required: false
+    default: []
+    merge_op: immutable
+    description: |
+      Tool names only when they are structurally important to the reusable
+      path. Do not include incidental tools.
+
+  - name: verification_boundary
+    type: string
+    required: true
+    merge_op: immutable
+    description: |
+      The condition that proved the task was complete, safe, or ready to
+      answer. This should be concrete and reusable.
+
+  - name: quality_notes
+    type: string
+    required: false
+    default: ""
+    merge_op: immutable
+    description: |
+      Brief note on what made the lesson reusable or limited.
+
+  - name: content
+    type: string
+    required: true
+    merge_op: immutable
+    description: |
+      Procedure-like operation contract in exactly this format:
+
+      # <lesson_name>
+
+      - Domain: <task domain>
+      - Trigger: <reusable task situation>
+      - Preconditions: <what must be true before using this lesson>
+      - Decision Points: <key branches and how to choose>
+      - Procedure: <step-by-step future-agent instructions>
+      - Verification: <checks before final answer or write>
+      - Anti-patterns: <mistakes to avoid>
+      - Result: <final outcome and reusable takeaway>
+
+      Generalize identifiers, file names, user names, private values, and
+      one-off paths. Keep tool names only when they are part of the reusable
+      execution route.
+
+quality_gates:
+  store_only_if:
+    - task_had_multi_step_execution
+    - task_involved_decisions_or_tools_or_validation
+    - procedure_can_guide_future_execution
+    - verification_boundary_is_clear
+
+  reject_if:
+    - simple_question_answer
+    - pure_chitchat
+    - no_reusable_execution_shape
+    - merely_restates_user_request
+    - contains_private_instance_details_without_generalization
+    - duplicates_existing_lesson_without_new_boundary_condition
+
+retrieval_policy:
+  preferred_stage:
+    - stage_anchor
+
+  ranking_factors:
+    - semantic_similarity_to_retrieval_anchor
+    - domain_match
+    - stage_match
+    - outcome_success_over_partial
+    - verification_boundary_match
+    - newer_when_tools_or_platforms_change
+
+  injection_rule: |
+    Inject only when the current task matches the stage, boundary, and
+    capability in retrieval_anchor. Do not inject solely because the topic
+    is similar.
+
+promotion_policy:
+  promote_to_playbook_when:
+    - multiple_lessons_share_same_failure_mode
+    - multiple_lessons_share_same_successful_tactic
+    - a_lesson_exposes_a_stable_rule_beyond_the_original_workflow
+    - a_repeated_verification_boundary_should_become_a_durable_guardrail
+
+  do_not_promote_when:
+    - behavior_was_tool_version_specific
+    - success_depended_on_one_off_user_context
+
+# ── Sidecar stats contract ──────────────────────────────────────────
+# Lesson records are IMMUTABLE. The following tracking fields do NOT
+# appear in the lesson file itself — they live in a sidecar SQLite store
+# (~/.ola/data/memory-stats.sqlite), keyed by canonical memory_id.
+#
+# memory_id format: "lesson/<slug>.md"
+#
+# Tracked fields (all mutable, updated by recall_memory + maintain.cjs):
+#   confidence          — initial: success=0.8, partial=0.5, failure=0.3, others=0.5
+#   last_seen           — last time it appeared in a search result set (does NOT affect strength)
+#   last_used           — last time it was injected/used (DOES affect strength)
+#   seen_count          — how many times it appeared in any result set
+#   used_count          — how many times it was actually used
+#   consolidation_count — incremented every 5 uses (slows future decay)
+#   strength            — computed: confidence × exp(−0.1 × daysSinceUse / (1 + 0.2 × consolidationCount))
+#   lifecycle           — active → archived → tombstoned → deleted
+#
+# See ARCHITECTURE.md for the full contract (Contracts 3, 4, 5, 6).
+    - pattern_is_already_covered_by_active_playbook

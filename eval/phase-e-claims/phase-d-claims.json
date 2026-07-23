@@ -1,0 +1,71 @@
+{
+  "phase": "D",
+  "closeout_doc": "docs/phase-d-d6-d7.md",
+  "description": "Phase D closeout claims to verify against raw artifacts. Each claim defines how to compute truth from raw data, not a hand-entered expected value.",
+  "claims": [
+    {
+      "id": "active_count",
+      "kind": "active_memory_count",
+      "source": "stats_db",
+      "derivation": "SELECT COUNT(*) FROM memory_stats WHERE lifecycle='active'",
+      "asserted_in": "docs/phase-d-d6-d7.md",
+      "assertion_pattern": "active_records:\\s*(\\d+)",
+      "description": "Active memory count in Phase D closeout must match stats DB"
+    },
+    {
+      "id": "tombstoned_count",
+      "kind": "tombstoned_memory_count",
+      "source": "stats_db",
+      "derivation": "SELECT COUNT(*) FROM memory_stats WHERE lifecycle='tombstoned'",
+      "asserted_in": "docs/project-status.md",
+      "assertion_pattern": "Tombstoned:\\s*(\\d+)",
+      "description": "Tombstoned count in project-status must match stats DB"
+    },
+    {
+      "id": "content_bearing_count",
+      "kind": "content_bearing_count",
+      "source": "inbox+stats",
+      "derivation": "count inbox records where fields.content.trim().length > 0 AND stats.lifecycle = 'active'",
+      "asserted_in": "docs/phase-d-d6-d7.md",
+      "assertion_pattern": "content_bearing_records:\\s*(\\d+)",
+      "description": "Content-bearing count must match active records with non-empty body"
+    },
+    {
+      "id": "content_density",
+      "kind": "content_density_percentage",
+      "source": "computed",
+      "derivation": "content_bearing_count / active_count * 100, rounded to 1 decimal",
+      "asserted_in": "docs/phase-d-d6-d7.md",
+      "assertion_pattern": "content_density_after_D4B:\\s*([\\d.]+)%",
+      "description": "Content density percentage must match computed ratio"
+    },
+    {
+      "id": "inbox_line_count",
+      "kind": "inbox_line_count",
+      "source": "inbox",
+      "derivation": "line count of memory-inbox.jsonl, non-empty lines",
+      "asserted_in": "docs/project-status.md",
+      "assertion_pattern": "Inbox lines:\\s*(\\d+)",
+      "description": "Inbox line count (informational, not blocking)"
+    },
+    {
+      "id": "stats_row_count",
+      "kind": "stats_row_count",
+      "source": "stats_db",
+      "derivation": "SELECT COUNT(*) FROM memory_stats",
+      "asserted_in": "implicit",
+      "assertion_pattern": null,
+      "description": "Total stats rows (computed, not asserted — informational)"
+    }
+  ],
+  "manual_claims": [
+    {
+      "id": "self_referentiality",
+      "kind": "manual_value_not_rederived",
+      "value": "100.0",
+      "last_computed": "2026-07-07",
+      "method": "manual classification (Phase C C1 + Phase D D6)",
+      "note": "Six-bucket classification requires content judgment. Not mechanically reproducible by keyword matching. See docs/project-status.md self-referentiality section."
+    }
+  ]
+}

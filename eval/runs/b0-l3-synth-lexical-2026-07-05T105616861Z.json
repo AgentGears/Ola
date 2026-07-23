@@ -1,0 +1,536 @@
+{
+  "schema_version": "b0.run.v1",
+  "run_id": "b0-l3-synth-lexical-2026-07-05T105616861Z",
+  "surface": "l3-synth",
+  "mode": "lexical",
+  "timestamp": "2026-07-05T10:56:16.861Z",
+  "code": {
+    "git_sha": "norepo",
+    "dirty": false
+  },
+  "dataset_file": "eval\\datasets\\l3-synthetic-queries.jsonl",
+  "dataset_sha256": "b43032c5396394e2e5861b5db8ca34e2bb5786816b6dcd07b9cdeab38a82e965",
+  "corpus_id": "l3-synthetic-corpus",
+  "corpus_sha256": "84657cd4ccfa4036fb48342c1ee302644636aa9b96f719c8ebf6f1b31397f70b",
+  "retrieval_config": {
+    "weights": {
+      "relevance": 0.65,
+      "structural": 0.2,
+      "strength": 0.15
+    },
+    "top_k": 10,
+    "candidate_policy": "full_corpus",
+    "candidate_policy_description": "All records in the surface corpus are ranked. No pre-filter.",
+    "candidate_limit": null,
+    "exact_match_override": true,
+    "production_read_occurred": false
+  },
+  "embedding_config": {
+    "enabled": false,
+    "reason": "lexical mode does not embed"
+  },
+  "metric_config": {
+    "version": "b0.metrics.v1",
+    "grades": {
+      "ideal": 3,
+      "strong": 2,
+      "weak": 1,
+      "irrelevant": 0,
+      "harmful": -1
+    },
+    "negative_policy": "penalize_harmful_retrieval"
+  },
+  "query_count": 5,
+  "results": [
+    {
+      "query_id": "l3_synth_001",
+      "query": "auth_token_refresh",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 5,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "relevance": 1,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": true
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/unrelated_http_retry.md",
+          "rank": 2,
+          "score": 0.65,
+          "grade": 0,
+          "components": {
+            "final": 0.65,
+            "relevance": 1,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 3,
+          "score": 0,
+          "grade": 0,
+          "components": {
+            "final": 0,
+            "relevance": 0,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 4,
+          "score": 0,
+          "grade": 0,
+          "components": {
+            "final": 0,
+            "relevance": 0,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 5,
+          "score": 0,
+          "grade": 0,
+          "components": {
+            "final": 0,
+            "relevance": 0,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 5,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 0
+    },
+    {
+      "query_id": "l3_synth_002",
+      "query": "how do I refresh an expired JWT before calling the API",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/unrelated_http_retry.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 5,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 0.58,
+          "grade": 3,
+          "components": {
+            "final": 0.58,
+            "relevance": 0.8,
+            "structural": 0.3,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 2,
+          "score": 0.325,
+          "grade": 0,
+          "components": {
+            "final": 0.325,
+            "relevance": 0.5,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_http_retry.md",
+          "rank": 3,
+          "score": 0.26,
+          "grade": -1,
+          "components": {
+            "final": 0.26,
+            "relevance": 0.4,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.195,
+          "grade": 0,
+          "components": {
+            "final": 0.195,
+            "relevance": 0.3,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 5,
+          "score": 0.195,
+          "grade": 0,
+          "components": {
+            "final": 0.195,
+            "relevance": 0.3,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 5,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 0
+    },
+    {
+      "query_id": "l3_synth_003",
+      "query": "config_patch_transactional",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 5,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "relevance": 1,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": true
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 2,
+          "score": 0,
+          "grade": 0,
+          "components": {
+            "final": 0,
+            "relevance": 0,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 3,
+          "score": 0,
+          "grade": 0,
+          "components": {
+            "final": 0,
+            "relevance": 0,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 4,
+          "score": 0,
+          "grade": 0,
+          "components": {
+            "final": 0,
+            "relevance": 0,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_http_retry.md",
+          "rank": 5,
+          "score": 0,
+          "grade": 0,
+          "components": {
+            "final": 0,
+            "relevance": 0,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 5,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 0
+    },
+    {
+      "query_id": "l3_synth_004",
+      "query": "what is the safe way to mutate host agent config json",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 5,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 0.568,
+          "grade": 3,
+          "components": {
+            "final": 0.568,
+            "relevance": 0.818,
+            "structural": 0.182,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/unrelated_http_retry.md",
+          "rank": 2,
+          "score": 0.236,
+          "grade": 0,
+          "components": {
+            "final": 0.236,
+            "relevance": 0.364,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 3,
+          "score": 0.177,
+          "grade": 0,
+          "components": {
+            "final": 0.177,
+            "relevance": 0.273,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.177,
+          "grade": 0,
+          "components": {
+            "final": 0.177,
+            "relevance": 0.273,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 5,
+          "score": 0.177,
+          "grade": 0,
+          "components": {
+            "final": 0.177,
+            "relevance": 0.273,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 5,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 0
+    },
+    {
+      "query_id": "l3_synth_005",
+      "query": "how do I know if a chatgpt response is cached or fresh",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 5,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 0.54,
+          "grade": 3,
+          "components": {
+            "final": 0.54,
+            "relevance": 0.8,
+            "structural": 0.1,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 2,
+          "score": 0.325,
+          "grade": 0,
+          "components": {
+            "final": 0.325,
+            "relevance": 0.5,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_http_retry.md",
+          "rank": 3,
+          "score": 0.325,
+          "grade": 0,
+          "components": {
+            "final": 0.325,
+            "relevance": 0.5,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 4,
+          "score": 0.26,
+          "grade": 0,
+          "components": {
+            "final": 0.26,
+            "relevance": 0.4,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 5,
+          "score": 0.195,
+          "grade": 0,
+          "components": {
+            "final": 0.195,
+            "relevance": 0.3,
+            "structural": 0,
+            "strength": 0,
+            "exact_match": false
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 5,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 1
+    }
+  ],
+  "aggregate": {
+    "recall@5": 1,
+    "recall@10": 1,
+    "mrr": 1,
+    "ndcg": 1,
+    "p50_ms": 0,
+    "p95_ms": 1,
+    "mean_ms": 0.2,
+    "empty_rate": 0
+  },
+  "errors": {
+    "query_failures": 0,
+    "embedding_failures": 0,
+    "empty_queries": 0
+  },
+  "candidate_count": 5
+}

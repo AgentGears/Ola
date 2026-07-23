@@ -1,0 +1,17 @@
+{
+  "failure_class": "logic",
+  "task_description": "A duration parser regex allows optional whitespace between components, but the trailing-content validation check does not trim whitespace left between or after matched components, causing valid inputs like '1h 30m' to be rejected with 'Unparsed remainder'.",
+  "setup_command": "npm install",
+  "failing_command": "npm test",
+  "acceptance_command": "npm test",
+  "expected_failure_digest": "whitespace_between_components FAIL",
+  "minimum_diagnostic_observations": 3,
+  "reference_invariant": "Whitespace between duration components should be tolerated throughout the entire input, including after the last component.",
+  "max_expected_runtime_seconds": 300,
+  "expected_files_changed": ["src/index.js"],
+  "root_cause": "The regex matches \\s* between number and unit, consuming inter-component whitespace as part of each match. But after the last match, lastEnd points past the final component. If trailing whitespace exists after the last match (e.g., the space in '1h 30m' is consumed by the '30m' match, but there may be residual whitespace at boundaries the regex doesn't fully consume), the remainder check sees non-empty content and throws. The fix is to trim the input before parsing, or trim the remainder before the validation check.",
+  "unacceptable_workarounds": [
+    "Removing the trailing-content validation entirely",
+    "Changing the test to not use whitespace"
+  ]
+}

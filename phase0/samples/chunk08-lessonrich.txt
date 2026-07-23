@@ -1,0 +1,93 @@
+You are a memory-extraction engine for an AI coding agent. Your job: read a transcript chunk from a past coding session and extract DURABLE, REUSABLE lessons — not a process record.
+
+Output ZERO OR MORE "experiences". An experience is a generalizable pattern the agent could reuse in future sessions: what situation triggers it, what approach works, and what to avoid.
+
+Each experience MUST follow EXACTLY this format:
+
+## <experience_name>
+- lowercase_snake_case, max 5 words, names the PATTERN not the instance
+
+### Situation
+- <markdown bullets: the generalized context/trigger that makes this whole rule relevant>
+
+### Approach
+- <markdown bullets: active execution steps (imperative voice: "Do X", "Call tool Y"). IF/THEN/ELSE for conditionals. The efficient optimized path ONLY — strip conversational noise, retries, false starts.>
+
+### Reflect
+- <markdown bullets: hard guardrails / "DON'Ts" / failure-prevention heuristics derived from mistakes in the transcript>
+
+SELECTION RULES (critical — this is where extraction goes wrong):
+- ATOMIC SCOPE: each experience covers exactly ONE user intent + its tool sequence. Multiple distinct intents -> separate experiences. If Approach would exceed 8 bullets, split.
+- GENERALIZE: strip specific file paths, IDs, counts, names, error strings. The lesson must apply universally. "audit_repository() scoring failed on empty repo" -> "validate input is non-empty before scoring".
+- ONLY extract if the lesson is genuinely reusable across sessions. Skip: one-off bug fixes with no pattern, chitchat, pure exploration with no conclusion, tool-output paraphrasing.
+- FAILURE INTEGRATION: when the transcript shows a mistake/retry/failure, capture the NEGATIVE rule in Reflect, not as a positive Approach step.
+- Do NOT invent lessons not supported by the transcript. If a chunk is pure exploration or chitchat, output NOTHING (an empty response is correct and preferred over fabrication).
+- Do NOT produce a "summary of the session". Produce discrete, reusable experiences or nothing.
+
+Output ONLY the experience blocks (## headings), nothing else. If nothing reusable, output exactly: NO_EXPERIENCES
+
+--- TRANSCRIPT CHUNK ---
+
+# Session Transcript
+session_id: sess_d6715bdf-2dd6-434c-99fb-2bac136694a1
+title: Study This Project
+dir: C:\Next-Era\Ampify
+created: 2026-06-18T13:55:22.112Z
+parts: 2168
+
+
+
+[ASSISTANT] Waves 94 and 95 committed. Now Wave 96 — the beta refresh (version bumps + release docs + self-assessment + export inventory test). Let me run its tests, then stage all the version-bump files and docs together.
+  [TOOL Bash] python -m pytest tests/test_acceptance_wave_96.py tests/test_export_inventory_wave96.py -q 2>&1 | tail -4
+  -> fixturefunc = resolve_fixture_function(fixturedef, request) -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html 74 passed, 1 warning in 2.37s
+
+[ASSISTANT] Wave 96 tests pass (74). Now let me stage all the version-bump and release-doc files for Wave 96. I need to verify the remaining modified tests are version/export-count adjustments (belonging to W96) before bundling them.
+  [TOOL Bash] for f in test_acceptance_wave_54 test_acceptance_wave_76 test_acceptance_wave_80 test_acceptance_wave_81 test_acceptance_wave_83 test_acceptance_wave_89 test_acceptance_wave_90 test_cli_contract_gover ...[truncated]
+  -> test_acceptance_wave_54: - assert "0.1.0b1" in text test_acceptance_wave_76: - assert len(data["supported_exports"]) == 43 test_acceptance_wave_80: - assert len(SUPPORTED_ADVANCED_EXPORT_FLAGS) == 43 test_acceptance_wave_81: - assert len(SUPPORTED_ADVANCED_EXPORT_FLAGS) == 43 test_acceptance_wave_83: - assert len(SUPPORTED_ADVANCED_EXPORT_FLAGS) == 43 test_acceptance_wave_89: - assert ledger.overall_precision >= 0.86 test_acceptance_wave_90: - assert ledger.overall_precision >= 0.87 test_cli_contract_governance: - assert len(pkg["supported_exports"]) == 43 test_cli_contract_governance_models:  ...[truncated]
+
+[ASSISTANT] Every remaining test diff is a version (`b1`→`b2`) or export-count (`43`→`44`) or precision-threshold adjustment — all consistent with the Wave 96 beta refresh (and the cumulative effect of W92's new export + W93's metric changes). These all belong to Wave 96. Let me stage everything for W96 and commit.
+  [TOOL Bash] git add pyproject.toml src/ampify_discovery/github_fetch.py src/ampify_discovery/supported_beta_release_packet.py CHANGELOG.md README.md BETA_RELEASE_NOTES.md RELEASE_CANDIDATE_CHECKLIST.md examples/r ...[truncated]
+  -> warning: in the working copy of 'tests/test_acceptance_wave_96.py', LF will be replaced by CRLF the next time Git touches it warning: in the working copy of 'tests/test_export_inventory_wave96.py', LF will be replaced by CRLF the next time Git touches it === staged === tests/test_wave_88_export_rewire_regression.py | 6 +- tests/test_weak_checker_ledger_export.py | 2 +- 30 files changed, 680 insertions(+), 53 deletions(-)
+  [TOOL Bash] git commit -m "Wave 96: Release Candidate / Beta Refresh (0.1.0b2) Version bump 0.1.0b1 -> 0.1.0b2 across pyproject, User-Agent, release packet artifacts, and release docs (CHANGELOG, README, BETA_REL ...[truncated]
+  -> create mode 100644 tests/test_acceptance_wave_96.py create mode 100644 tests/test_export_inventory_wave96.py
+
+[ASSISTANT] Wave 96 committed. Now the final wave, Wave 97 — the operator documentation guide (the `docs/` tree) + its tests. Let me run those tests and commit.
+  [TOOL Bash] python -m pytest tests/test_acceptance_wave_97.py tests/test_operator_guide_docs.py tests/test_operator_guide_export_docs.py tests/test_operator_guide_code_analysis_docs.py -q 2>&1 | tail -4
+  -> ........................................................................ [ 53%] .............................................................. [100%] 134 passed in 3.84s
+
+[ASSISTANT] Wave 97 tests pass (134). Let me stage and commit.
+  [TOOL Bash] git add docs/ quality/checkpoints/WAVE_97_ACCEPTED.json tests/test_acceptance_wave_97.py tests/test_operator_guide_docs.py tests/test_operator_guide_export_docs.py tests/test_operator_guide_code_analy ...[truncated]
+  -> warning: in the working copy of 'tests/test_operator_guide_docs.py', LF will be replaced by CRLF the next time Git touches it warning: in the working copy of 'tests/test_operator_guide_export_docs.py', LF will be replaced by CRLF the next time Git touches it === staged === tests/test_acceptance_wave_97.py | 132 +++++ tests/test_operator_guide_code_analysis_docs.py | 213 ++++++++ tests/test_operator_guide_docs.py | 200 +++++++ tests/test_operator_guide_export_docs.py | 217 ++++++++ 16 files changed, 2513 insertions(+)
+  [TOOL Bash] git commit -m "Wave 97: Operator Documentation Guide Adds docs/operator_guide/ with 11 pages covering the supported surface: index, concepts, quickstart, glossary, exports (44-export catalog), trust-d ...[truncated]
+  -> create mode 100644 tests/test_operator_guide_docs.py create mode 100644 tests/test_operator_guide_export_docs.py
+
+[USER] <system-reminder> The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable. Here are the existing contents of your todo list: [1. [completed] Verify offline test suite is green (pytest -q) 2. [in_progress] 0.1 Review dirty/untracked files and commit Wave 91–97 work with proper wave-seal messages 3. [pending] 0.2 Audit Cloud credential history (was .env ever committed?) and report rotation needs 4. [pending] 0.3 Reconcile dashboard drift between dashboard/index.html and embedded DASHBOARD_HTML 5. [pending] Test & evaluate: re-run both test suites, summarize Phase 0 outcomes] </system-reminder>
+
+[ASSISTANT] All 7 waves committed. Let me verify the tree is clean and Phase 0.1 is complete.
+  [TOOL Bash] echo "=== working tree ===" && git status --short 2>&1 | grep -v "^warning:" | head && echo "=== commit history ===" && git log --oneline -8
+  -> === working tree === === commit history === 97097c4 Wave 97: Operator Documentation Guide 375ae41 Wave 96: Release Candidate / Beta Refresh (0.1.0b2) 5ef3a10 Wave 95: Tier 3 Strategy / Deferral Policy 7936cda Wave 94: Final Tier 2 Gap Decision — Accepted Review-Only Limitation bed2288 Wave 93: Lightweight Tier 2 False-Negative Recovery 28a71e6 Wave 92: Code Analysis Gap Plan 1f58454 Wave 91: Trust Dashboard Evidence Closure a614821 Wave 90: Lightweight Flow-Aware Weak Checker Foundations
+
+[ASSISTANT] Working tree is clean and all 7 waves (91–97) are committed with proper wave-seal messages. Phase 0.1 is complete. Let me update the todo and move to Phase 0.2 — the Cloud credential audit.
+  [TOOL TodoWrite] {"todos":[{"content":"Verify offline test suite is green (pytest -q)","priority":"high","status":"completed"},{"content":"0.1 Review dirty/untracked files and commit Wave 91–97 work with proper wave-s ...[truncated]
+  -> {"oldTodos":[{"content":"Verify offline test suite is green (pytest -q)","status":"completed","priority":"high"},{"content":"0.1 Review dirty/untracked files and commit Wave 91–97 work with proper wave-seal messages","status":"in_progress","priority":"high"},{"content":"0.2 Audit Cloud credential history (was .env ever committed?) and report rotation needs","status":"pending","priority":"high"},{"content":"0.3 Reconcile dashboard drift between dashboard/index.html and embedded DASHBOARD_HTML","status":"pending","priority":"medium"},{"content":"Test & evaluate: re-run both test suites, summariz ...[truncated]
+
+[ASSISTANT] Now the credential audit. I need to check: (1) was `.env` ever committed to Cloud's history, (2) are there hardcoded secrets anywhere in the tracked files, (3) how is `GITHUB_TOKEN` actually supplied to the worker (it's referenced via `self.env.GITHUB_TOKEN` — that's a Wrangler binding/secret, which is correct, but I should confirm `.env` isn't the mechanism).
+  [TOOL Bash] cd /c/Next-Era/Ampify-Cloud && echo "=== Was .env ever committed? ===" && git log --all --full-history -- .env 2>&1 | head -5 && echo "=== Is .env in any commit's tree? ===" && git log --all --oneline ...[truncated]
+  -> === Was .env ever committed? === === Is .env in any commit's tree? === (empty above = never tracked) === .env in .gitignore? === .gitignore:1:.env .env Shell cwd was reset to C:\Next-Era\Ampify
+
+[ASSISTANT] Good news: `.env` was **never committed** to Cloud's git history, and it's properly gitignored. Now let me verify there are no hardcoded secrets in the tracked files, and confirm how secrets are actually bound to the worker.
+  [TOOL Grep] C:\Next-Era\Ampify-Cloud\src
+  -> No matches found
+  [TOOL Grep] C:\Next-Era\Ampify-Cloud
+  -> No matches found
+
+[ASSISTANT] No hardcoded secrets in source. Let me confirm the secret-binding mechanism (Wrangler secrets, not `.env` runtime) and check the full tracked history for any secrets that might have been committed and removed.
+  [TOOL Bash] cd /c/Next-Era/Ampify-Cloud && echo "=== How GITHUB_TOKEN/CLOUDFLARE_* are referenced in code ===" && grep -rn "self.env\.\|os.environ\|os.getenv\|getenv" src/ 2>&1 | grep -iE "token|cloudflare|accoun ...[truncated]
+  -> === How GITHUB_TOKEN/CLOUDFLARE_* are referenced in code === src/worker.py:1645: _ = self.env.GITHUB_TOKEN src/worker.py:1684: _ = self.env.GITHUB_TOKEN src/worker.py:1698: gh_token = self.env.GITHUB_TOKEN src/worker.py:1933: gh_token = self.env.GITHUB_TOKEN === secrets via wrangler? (look for .dev.vars or secret bindings) === ls: cannot access '.dev.vars': No such file or directory === Full history secret scan (token-like strings ever committed) === + for forbidden in ["ghp_", "gho_", "github_pat_", "authorization", "bearer", "token_"]: (empty above = clean history) Shell cwd was reset to C:\ ...[truncated]
+
+[ASSISTANT] The credential audit is clean. Key findings: - **`.env` never committed** — gitignored from the start, absent from all history. - **No hardcoded secrets** in source — `GITHUB_TOKEN` is correctly accessed via `self.env.GITHUB_TOKEN` (Wrangler secret binding), never literal. - **Full history scan clean** — the only "token" matches are the *forbidden-substring list* the project itself uses to reject secrets (good defensive coding). - **No `.dev.vars`** present. The only credential concern is that `.env` sits on disk with **live Cloudflare credentials** (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`). Since it was never committed, there's no leak to remediate — but I should note it's only needed for `wrangler` CLI auth, and confirm whether `GITHUB_TOKEN` is actually stored there too (the worker needs it as a binding). Let me verify the actual `.env` contents (already saw it has Cloudflare creds; check if GitHub token is there) and how `wrangler.toml` expects secrets.
+  [TOOL Bash] cd /c/Next-Era/Ampify-Cloud && echo "=== .env keys present (values redacted) ===" && sed 's/=.*/=<value>/' .env 2>&1 && echo "=== wrangler.toml secrets declared? ===" && grep -iE "secrets|\[vars\]|GIT ...[truncated]
+  -> === .env keys present (values redacted) === # Cloudflare Account Credentials CLOUDFLARE_ACCOUNT_ID=<value> CLOUDFLARE_API_TOKEN=<value> === wrangler.toml secrets declared? === (no [vars] or secret section in wrangler.toml) Shell cwd was reset to C:\Next-Era\Ampify
+  [TOOL Grep] C:\Next-Era\Ampify-Cloud
+  -> C:\Next-Era\Ampify-Cloud\quality\waves\WAVE_104_RECON.md:88:- **GitHub PAT**: Stored as Cloudflare Worker secret `GITHUB_TOKEN` C:\Next-Era\Ampify-Cloud\quality\waves\WAVE_106_RECON.md:44:| `_fetch_github` token read | Missing env.GITHUB_TOKEN | Proceeds without token | C:\Next-Era\Ampify-Cloud\src\worker.py:814: gh_token = env.GITHUB_TOKEN C:\Next-Era\Ampify-Cloud\src\worker.py:1645: _ = self.env.GITHUB_TOKEN C:\Next-Era\Ampify-Cloud\src\worker.py:1684: _ = self.env.GITHUB_TOKEN C:\Next-Era\Ampify-Cloud\src\worker.py:1698: gh_token = self.env.GITHUB_TOKEN C:\Next-Era\Ampify-Cloud\src\worker.p ...[truncated]
+

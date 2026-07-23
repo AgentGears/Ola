@@ -1,0 +1,67 @@
+{
+  "$schema": "ola.rename.inventory.v1",
+  "generated_at": "2026-07-17T20:00:00Z",
+  "baseline": {
+    "test_suites": 18,
+    "test_suites_passed": 18,
+    "assertions_passed": 206,
+    "exit_code": 0
+  },
+  "summary": {
+    "total_moneta_matches_case_insensitive": 625,
+    "files_with_matches": 138
+  },
+  "by_category": {
+    "env_var": 133,
+    "schema_version": 53,
+    "data_dir_path": 26,
+    "capability_prefix": 17,
+    "plugin_id": 8,
+    "uri_scheme": 3,
+    "mcp_tool_prefix": 1,
+    "generic_moneta": 384
+  },
+  "distinct_schema_versions": [
+    "moneta.offload.attestation.v1",
+    "moneta.offload.capability.v1",
+    "moneta.offload.job.v1",
+    "moneta.offload.observation.v1",
+    "moneta.offload.ops-result.v1",
+    "moneta.offload.rehydration.v1",
+    "moneta.offload.sample-task.v1",
+    "moneta.offload.session-index.v1",
+    "moneta.offload.task-state.v1",
+    "moneta.offload.verification/1"
+  ],
+  "distinct_env_vars": [
+    "MONETA_DATA_DIR",
+    "MONETA_DIR",
+    "MONETA_EMBEDDINGS_DB",
+    "MONETA_EMBEDDING_API_KEY",
+    "MONETA_EMBEDDING_MODEL",
+    "MONETA_EMBEDDING_URL",
+    "MONETA_EMBED_FIXTURE",
+    "MONETA_HOST_CONFIG",
+    "MONETA_HYBRID_RETRIEVAL",
+    "MONETA_LMSTUDIO_URL",
+    "MONETA_MIGRATION_MODE",
+    "MONETA_OFFLOAD_DIR",
+    "MONETA_OFFLOAD_ENABLED",
+    "MONETA_PLUGIN_ROOT",
+    "MONETA_RETRIEVAL_FUSION",
+    "MONETA_TRANSCRIPT_DB",
+    "MONETA_ZAI_API_KEY"
+  ],
+  "top_files_by_match_count": [
+    [41, "hooks/lib/shared.js"],
+    [32, "docs/tencentdb-agent-memory-review.md"],
+    [25, "phase-c-corpus.json"],
+    [24, "STORE.md"],
+    [24, "tests/test-resolver-ignores-zcode-plugin-data.cjs"],
+    [17, "bin/wire-moneta.cjs"],
+    [17, "docs/beta-plus-spec.md"],
+    [17, "docs/corpus-growth-gate.md"],
+    [15, "tests/embed-observability.test.cjs"],
+    [14, "docs/phase-w-start.md"]
+  ]
+}

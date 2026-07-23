@@ -1,0 +1,85 @@
+{
+  "$schema": "ola.security.scan.v1",
+  "generated_at": "2026-07-17T20:00:00Z",
+  "description": "Pre-rename security and absolute-path scan. All findings categorized as ACTION_REQUIRED or SAFE.",
+  "patterns_scanned": [
+    "private_ip_100.64",
+    "abs_path_next_era",
+    "abs_path_users",
+    "bearer_token",
+    "private_key_header",
+    "github_pat",
+    "openai_key",
+    "chatgpt_gizmo_id",
+    "zai_api_url"
+  ],
+  "findings": {
+    "private_ip_100.64": {
+      "total_hits": 40,
+      "status": "ACTION_REQUIRED",
+      "production_code": [
+        {"file": "hooks/lib/shared.js", "line_note": "resolveEmbeddingUrl() fallback default + comment example", "action": "R1: remove hardcoded fallback. Use OLA_EMBEDDING_URL only when configured; otherwise disable dense features and preserve lexical operation."},
+        {"file": ".zcode-plugin/plugin.json", "line_note": "MONETA_LMSTUDIO_URL env value", "action": "R1: set to empty string, document in README"}
+      ],
+      "eval_artifacts": "eval/runs/*.json — 30+ hits in frozen eval run data. Excluded from public export (R5).",
+      "docs": "docs/phase-c-*.md — 4 hits in eval reports. Excluded from public export (R5).",
+      "bin": "bin/_extract-sample.cjs — dev script. Excluded from public export (R5)."
+    },
+    "abs_path_next_era": {
+      "total_hits": 28,
+      "status": "ACTION_REQUIRED",
+      "items": [
+        {"file": ".chatgpt-collaboration.json", "action": "DELETE before publication (personal IDs + bound repo path)"},
+        {"file": "STORE.md", "action": "R5: replace with <your-install-path>"},
+        {"file": "clear-cdmcp-lock.ps1", "action": "DELETE or exclude (personal dev tooling)"},
+        {"file": "surrogate-repro-harness.html", "action": "DELETE or exclude (bug repro artifact)"},
+        {"file": "docs/tencentdb-agent-memory-review.md", "action": "Exclude from public export (internal review)"},
+        {"file": "phase0/samples/chunk*.txt", "action": "Exclude from public export (dev extraction data)"}
+      ]
+    },
+    "abs_path_users": {
+      "total_hits": 1,
+      "status": "ACTION_REQUIRED",
+      "items": [
+        {"file": "docs/phase-c-start.md", "context": "~/.moneta/data example path", "action": "R5: exclude doc from public export or scrub"}
+      ]
+    },
+    "github_pat": {
+      "total_hits": 3,
+      "status": "SAFE",
+      "note": "All hits are fake test fixtures (ghp_1234567890abcdefghijklmnopqrstuvwxyz) in tests/offload-secrets.test.cjs, used to verify the secret scanner catches GitHub tokens. Not real tokens."
+    },
+    "private_key_header": {
+      "total_hits": 1,
+      "status": "SAFE",
+      "note": "Fake RSA private key header in tests/offload-secrets.test.cjs, used to verify the secret scanner catches private keys. Not a real key."
+    },
+    "zai_api_url": {
+      "total_hits": 1,
+      "status": "SAFE",
+      "note": "Comment example in hooks/lib/shared.js showing possible embedding endpoint formats. Documentation only, not a secret."
+    },
+    "bearer_token": {
+      "total_hits": 0,
+      "status": "CLEAN"
+    },
+    "openai_key": {
+      "total_hits": 0,
+      "status": "CLEAN"
+    },
+    "chatgpt_gizmo_id": {
+      "total_hits": 0,
+      "status": "CLEAN"
+    }
+  },
+  "r1_actions": [
+    "Remove the hardcoded fallback from hooks/lib/shared.js resolveEmbeddingUrl(). Use OLA_EMBEDDING_URL only when configured; otherwise disable dense features and preserve lexical operation. Embeddings are optional — lexical/default retrieval must remain healthy without an endpoint.",
+    "Set MONETA_LMSTUDIO_URL (→ OLA_EMBEDDING_URL) to empty string in plugin.json"
+  ],
+  "r5_actions": [
+    "Delete .chatgpt-collaboration.json",
+    "Scrub C:\\Next-Era\\ paths from STORE.md → replace with <your-install-path>",
+    "Exclude phase0/, eval/runs/, internal docs, dev scripts from public export",
+    "Clean public export via allowlisted file list, not gitignore alone"
+  ]
+}

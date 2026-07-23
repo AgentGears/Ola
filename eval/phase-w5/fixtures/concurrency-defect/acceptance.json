@@ -1,0 +1,18 @@
+{
+  "failure_class": "concurrency",
+  "task_description": "An atomic counter store uses file-based locking to serialize concurrent increments. However, when a process crashes and leaves a stale lock file containing a dead PID, the store cannot recover — acquireLock spins indefinitely because it never detects or reclaims stale locks. The releaseLock function also conditionally unlinks only if the PID matches, which prevents cleanup of locks left by other processes.",
+  "setup_command": "npm install",
+  "failing_command": "npm test",
+  "acceptance_command": "npm test",
+  "expected_failure_digest": "stale_lock_recovery FAIL",
+  "minimum_diagnostic_observations": 3,
+  "reference_invariant": "The lock acquisition path must detect stale locks (where the owning PID is no longer alive) and reclaim them, so that a crashed process does not permanently block all future operations.",
+  "max_expected_runtime_seconds": 300,
+  "expected_files_changed": ["src/index.js"],
+  "root_cause": "The acquireLock function uses wx (exclusive create) without any stale-lock detection. When a lock file exists from a crashed process, acquireLock always returns false, causing the spin loop to exhaust all attempts. The fix is to add stale-lock reclamation: when acquireLock encounters an existing lock, check if the PID in the lock file is still alive using process.kill(pid, 0). If the PID is dead, unlink the stale lock and retry. Optionally, releaseLock should also be fixed to unconditionally unlink rather than checking PID ownership.",
+  "unacceptable_workarounds": [
+    "Removing the lock mechanism entirely",
+    "Using a timeout that skips locking after N attempts without reclaiming the stale lock",
+    "Changing the test to skip the stale-lock recovery scenario"
+  ]
+}

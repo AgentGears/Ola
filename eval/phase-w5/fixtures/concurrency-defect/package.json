@@ -1,0 +1,9 @@
+{
+  "name": "atomic-counter",
+  "version": "1.0.0",
+  "description": "Atomic counter store with file-based locking for concurrent increment safety",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node tests/counter.test.js"
+  }
+}

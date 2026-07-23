@@ -1,0 +1,9 @@
+{
+  "name": "duration-parser",
+  "version": "1.0.0",
+  "description": "Parse and format human-readable duration strings",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node tests/duration.test.js"
+  }
+}

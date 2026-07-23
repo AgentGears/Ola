@@ -1,0 +1,185 @@
+{
+  "schema_version": "moneta.offload.sample-task.v1",
+  "description": "Reference fixture for Phase U context-offload. Demonstrates a complete diagnostic task matching the U0 workload: single-repo fault localization and repair, beginning with a reproducible failing command and ending with a verified passing command.",
+  "workload": "single-repo fault localization and repair",
+  "task": {
+    "schema_version": "moneta.offload.task-state.v1",
+    "task_id": "task_01EXAMPLE00000000000000000A",
+    "revision": 6,
+    "status": "completed",
+    "created_at": "2026-07-12T10:00:00.000Z",
+    "updated_at": "2026-07-12T10:45:33.000Z",
+    "description": "Fix parser null-deref in run.cjs when input is null",
+    "observations": [
+      {
+        "observation_id": "obs_01EXAMPLE0000000000000000001",
+        "role": "reproduction"
+      },
+      {
+        "observation_id": "obs_01EXAMPLE0000000000000000002",
+        "role": "verification"
+      }
+    ],
+    "claims": [
+      {
+        "claim_id": "C01",
+        "status": "verified",
+        "assertion": "Parser test fails with null-deref on null input",
+        "claim_type": "command_outcome",
+        "derivation": {
+          "type": "exit_code_not_equals",
+          "observation_id": "obs_01EXAMPLE0000000000000000001",
+          "expected": 0
+        },
+        "evidence_refs": [
+          {
+            "observation_id": "obs_01EXAMPLE0000000000000000001",
+            "ref_id": "sha256:5c9f6f85f1e7a3b2c8d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+            "selector": {
+              "type": "line_range",
+              "start": 3,
+              "end": 6
+            },
+            "role": "supports",
+            "label": "stack trace showing null-deref"
+          }
+        ]
+      },
+      {
+        "claim_id": "C02",
+        "status": "rejected",
+        "assertion": "Parser fails because configuration is missing",
+        "claim_type": "hypothesis",
+        "evidence_refs": []
+      },
+      {
+        "claim_id": "C03",
+        "status": "verified",
+        "assertion": "Parser test passes after the fix",
+        "claim_type": "command_outcome",
+        "derivation": {
+          "type": "exit_code_equals",
+          "observation_id": "obs_01EXAMPLE0000000000000000002",
+          "expected": 0
+        },
+        "evidence_refs": [
+          {
+            "observation_id": "obs_01EXAMPLE0000000000000000002",
+            "ref_id": "sha256:a81d2c74e3f5b6a7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1",
+            "selector": {
+              "type": "whole"
+            },
+            "role": "verified_by",
+            "label": "full passing test output"
+          }
+        ]
+      }
+    ],
+    "trace": [
+      { "type": "observation", "id": "obs_01EXAMPLE0000000000000000001" },
+      { "type": "claim", "id": "C01" },
+      { "type": "claim", "id": "C02" },
+      { "type": "observation", "id": "obs_01EXAMPLE0000000000000000002" },
+      { "type": "claim", "id": "C03" }
+    ]
+  },
+  "observation_manifests": [
+    {
+      "schema_version": "moneta.offload.observation.v1",
+      "observation_id": "obs_01EXAMPLE0000000000000000001",
+      "task_id": "task_01EXAMPLE00000000000000000A",
+      "capture": {
+        "tool": "shell",
+        "command": "node tests/parser.test.cjs",
+        "cwd": ".",
+        "exit_code": 1,
+        "started_at": "2026-07-12T10:05:00.000Z",
+        "finished_at": "2026-07-12T10:05:03.456Z",
+        "stdout_stderr_mode": "separate"
+      },
+      "repository_context": {
+        "root": "/abs/path/to/repo",
+        "head_commit": "abc1234",
+        "branch": "main",
+        "dirty": false
+      },
+      "artifacts": [
+        {
+          "ref_id": "sha256:5c9f6f85f1e7a3b2c8d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6",
+          "relative_path": "stdout.log",
+          "media_type": "text/plain",
+          "encoding": "utf-8",
+          "byte_length": 312
+        }
+      ],
+      "integrity": {
+        "capture_complete": true,
+        "truncated": false,
+        "transformed": false
+      },
+      "presentation": {
+        "label": "failing parser test before fix"
+      },
+      "lifecycle": {
+        "status": "active",
+        "created_at": "2026-07-12T10:05:03.500Z",
+        "retired_at": null,
+        "retirement_reason": null
+      }
+    },
+    {
+      "schema_version": "moneta.offload.observation.v1",
+      "observation_id": "obs_01EXAMPLE0000000000000000002",
+      "task_id": "task_01EXAMPLE00000000000000000A",
+      "capture": {
+        "tool": "shell",
+        "command": "node tests/parser.test.cjs",
+        "cwd": ".",
+        "exit_code": 0,
+        "started_at": "2026-07-12T10:40:00.000Z",
+        "finished_at": "2026-07-12T10:40:02.123Z",
+        "stdout_stderr_mode": "separate"
+      },
+      "repository_context": {
+        "root": "/abs/path/to/repo",
+        "head_commit": "abc1234",
+        "branch": "fix/parser-null-deref",
+        "dirty": true
+      },
+      "artifacts": [
+        {
+          "ref_id": "sha256:a81d2c74e3f5b6a7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1",
+          "relative_path": "stdout.log",
+          "media_type": "text/plain",
+          "encoding": "utf-8",
+          "byte_length": 198
+        }
+      ],
+      "integrity": {
+        "capture_complete": true,
+        "truncated": false,
+        "transformed": false
+      },
+      "presentation": {
+        "label": "passing parser test after fix"
+      },
+      "lifecycle": {
+        "status": "active",
+        "created_at": "2026-07-12T10:40:02.200Z",
+        "retired_at": null,
+        "retirement_reason": null
+      }
+    }
+  ],
+  "canvas": "flowchart TD\n    O01[\"Observation - reproduction\"]\n    C01[\"Verified - Parser test fails with null-deref on null input\"]\n    C02[\"Rejected - Parser fails because configuration is missing\"]\n    O02[\"Observation - verification\"]\n    C03[\"Verified - Parser test passes after the fix\"]\n    O01 --> C01\n    C01 --> C02\n    C02 --> O02\n    O02 --> C03\n",
+  "audit_events": [
+    { "event": "task_created", "task_id": "task_01EXAMPLE00000000000000000A", "timestamp": "2026-07-12T10:00:00.000Z" },
+    { "event": "observation_captured", "observation_id": "obs_01EXAMPLE0000000000000000001", "task_id": "task_01EXAMPLE00000000000000000A", "artifact_count": 1, "timestamp": "2026-07-12T10:05:03.500Z" },
+    { "event": "claim_proposed", "claim_id": "C01", "task_id": "task_01EXAMPLE00000000000000000A", "timestamp": "2026-07-12T10:10:00.000Z" },
+    { "event": "claim_verified", "claim_id": "C01", "derivation": "exit_code_not_equals", "timestamp": "2026-07-12T10:10:05.000Z" },
+    { "event": "claim_rejected", "claim_id": "C02", "reason": "hypothesis_not_supported", "timestamp": "2026-07-12T10:20:00.000Z" },
+    { "event": "observation_captured", "observation_id": "obs_01EXAMPLE0000000000000000002", "task_id": "task_01EXAMPLE00000000000000000A", "artifact_count": 1, "timestamp": "2026-07-12T10:40:02.200Z" },
+    { "event": "claim_verified", "claim_id": "C03", "derivation": "exit_code_equals", "timestamp": "2026-07-12T10:41:00.000Z" },
+    { "event": "task_completed", "task_id": "task_01EXAMPLE00000000000000000A", "timestamp": "2026-07-12T10:45:33.000Z" }
+  ]
+}

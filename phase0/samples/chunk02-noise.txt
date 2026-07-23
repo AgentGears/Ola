@@ -1,0 +1,79 @@
+You are a memory-extraction engine for an AI coding agent. Your job: read a transcript chunk from a past coding session and extract DURABLE, REUSABLE lessons — not a process record.
+
+Output ZERO OR MORE "experiences". An experience is a generalizable pattern the agent could reuse in future sessions: what situation triggers it, what approach works, and what to avoid.
+
+Each experience MUST follow EXACTLY this format:
+
+## <experience_name>
+- lowercase_snake_case, max 5 words, names the PATTERN not the instance
+
+### Situation
+- <markdown bullets: the generalized context/trigger that makes this whole rule relevant>
+
+### Approach
+- <markdown bullets: active execution steps (imperative voice: "Do X", "Call tool Y"). IF/THEN/ELSE for conditionals. The efficient optimized path ONLY — strip conversational noise, retries, false starts.>
+
+### Reflect
+- <markdown bullets: hard guardrails / "DON'Ts" / failure-prevention heuristics derived from mistakes in the transcript>
+
+SELECTION RULES (critical — this is where extraction goes wrong):
+- ATOMIC SCOPE: each experience covers exactly ONE user intent + its tool sequence. Multiple distinct intents -> separate experiences. If Approach would exceed 8 bullets, split.
+- GENERALIZE: strip specific file paths, IDs, counts, names, error strings. The lesson must apply universally. "audit_repository() scoring failed on empty repo" -> "validate input is non-empty before scoring".
+- ONLY extract if the lesson is genuinely reusable across sessions. Skip: one-off bug fixes with no pattern, chitchat, pure exploration with no conclusion, tool-output paraphrasing.
+- FAILURE INTEGRATION: when the transcript shows a mistake/retry/failure, capture the NEGATIVE rule in Reflect, not as a positive Approach step.
+- Do NOT invent lessons not supported by the transcript. If a chunk is pure exploration or chitchat, output NOTHING (an empty response is correct and preferred over fabrication).
+- Do NOT produce a "summary of the session". Produce discrete, reusable experiences or nothing.
+
+Output ONLY the experience blocks (## headings), nothing else. If nothing reusable, output exactly: NO_EXPERIENCES
+
+--- TRANSCRIPT CHUNK ---
+
+# Session Transcript
+session_id: sess_d6715bdf-2dd6-434c-99fb-2bac136694a1
+title: Study This Project
+dir: C:\Next-Era\Ampify
+created: 2026-06-18T13:55:22.112Z
+parts: 2168
+
+
+
+[ASSISTANT] Let me look at the core models (briefly — it's huge), the local repo intake, and the recent trust dashboard work.
+  [TOOL Read] C:\Next-Era\Ampify\src\ampify_discovery\models.py
+  -> 1 from __future__ import annotations 2 3 from dataclasses import dataclass, field, asdict 4 from enum import Enum 5 from typing import Any, Literal, Mapping 6 7 8 ScoreName = Literal[ 9 "repo_clarity", 10 "readme_quality", 11 "demo_presence", 12 "installation_friction", 13 "metadata_quality", 14 "trust_signals", 15 "differentiation", 16 "launch_channel_fit", 17 "overall_discovery_readiness", 18 ] 19 20 21 class Priority(str, Enum): 22 BLOCKER = "blocker" 23 HIGH = "high" 24 MEDIUM = "medium" 25 LOW = "low" 26 27 28 class SnapshotSource(str, Enum): 29 JSON = "json" 30 LOCAL_REPO = "local_repo"  ...[truncated]
+  [TOOL Read] C:\Next-Era\Ampify\src\ampify_discovery\local_repo.py
+  -> 1 """Read-only local repository scanner — builds a RepoSnapshot from a directory path.""" 2 3 from __future__ import annotations 4 5 import json 6 import re 7 import tomllib 8 from pathlib import Path 9 10 from ampify_discovery.models import LocalRepoScanOptions, RepoSnapshot 11 12 13 # --------------------------------------------------------------------------- 14 # Helpers 15 # --------------------------------------------------------------------------- 16 17 def _safe_read_text(path: Path, *, max_bytes: int) -> str: 18 """Read text file content bounded by max_bytes. Returns empty string on fa ...[truncated]
+  [TOOL Read] C:\Next-Era\Ampify\src\ampify_discovery\trust_dashboard.py
+  -> 1 """Trust Dashboard — unified composition of Code Analysis Trust and Release Artifact Trust. 2 3 Wave 90: Combines existing evidence streams into one qualitative, deterministic, 4 review-only dashboard. Does NOT introduce scanner heuristics, metric changes, 5 readiness-gate changes, numeric scoring, or any forbidden capability. 6 7 Deterministic, stdlib-only, review-only. 8 """ 9 from __future__ import annotations 10 11 import enum 12 from dataclasses import dataclass, field 13 from pathlib import Path 14 from typing import Any 15 16 17 # ------------------------------------------------------ ...[truncated]
+
+[ASSISTANT] I have a thorough understanding now. Let me do a final check on the project's overall scale and verification status.
+  [TOOL Bash] cd /c/Next-Era/Ampify && echo "=== Source LOC ===" && find src -name "*.py" | xargs wc -l 2>/dev/null | tail -1 && echo "=== Test LOC ===" && find tests -name "*.py" | xargs wc -l 2>/dev/null | tail - ...[truncated]
+  -> === Source LOC === 70836 total === Test LOC === 77367 total === Wave count (tests) === 105 === Accepted checkpoints === 14 === Git state === 73 total changed files === Last commit === a614821 Wave 90: Lightweight Flow-Aware Weak Checker Foundations (2026-06-03 03:21:40 +0300)
+
+[ASSISTANT] I've studied the project thoroughly. Here's my assessment. ## Ampify Discovery — Project Study **What it is:** An offline-first CLI tool that audits whether a GitHub repository is ready for open-source launch/discovery. It scores a repo across 8 dimensions, extracts evidence, generates recommendations, and produces ~44 different review-only export packages. Python, **zero runtime dependencies**, MIT, public beta (`0.1.0b2`). ### Scale & state - **118 source modules** (~70.8k LOC) under `src/ampify_discovery/` - **331 test files** (~77.4k LOC) under `tests/` — tests *exceed* source code - Development is organized in numbered **"Waves"**: 105 wave-acceptance test files; last commit is **Wave 90**, with **Waves 91–97 uncommitted** in the working tree (73 changed files) - Wave 97 self-checkpoint: **7766 passed / 651 skipped / 0 failures** - The two largest files dominate: `models.py` (368k bytes) and `export.py` (219k bytes) ### Architecture ``` cli.py ──► 6 subcommands: audit | fix | prepare-launch | review | outcome | advanced │ (golden path) (advanced = full legacy flag surface) ▼ audit_repository() → evidence.extract_evidence() → scoring.score_all() + compute_weighted_overall() → r ...[truncated]
+
+[USER] check this C:\Next-Era\Ampify-Cloud
+  [TOOL Bash] cd /c/Next-Era/Ampify-Cloud && ls -la 2>&1 | head -60
+  -> total 44 drwxr-xr-x 1 USER 197609 0 Jun 13 22:49 . drwxr-xr-x 1 USER 197609 0 Jun 17 23:01 .. drwxr-xr-x 1 USER 197609 0 Jun 13 22:49 .Orqestra drwxr-xr-x 1 USER 197609 0 Jun 5 03:06 .benchmarks -rw-r--r-- 1 USER 197609 163 Jun 4 02:32 .env drwxr-xr-x 1 USER 197609 0 Jun 7 02:20 .git -rw-r--r-- 1 USER 197609 43 Jun 7 00:10 .gitignore drwxr-xr-x 1 USER 197609 0 Jun 5 03:06 .pytest_cache drwxr-xr-x 1 USER 197609 0 Jun 4 19:11 .wrangler drwxr-xr-x 1 USER 197609 0 Jun 4 02:14 dashboard drwxr-xr-x 1 USER 197609 0 Jun 6 23:20 docs -rw-r--r-- 1 USER 197609 240 Jun 4 02:08 pyproject.toml drwxr-xr-x 1  ...[truncated]
+
+[ASSISTANT] Let me explore this project in parallel — structure, key configs, and docs.
+  [TOOL Read] C:\Next-Era\Ampify-Cloud\pyproject.toml
+  -> 1 [project] 2 name = "ampify-cloud" 3 version = "0.1.0" 4 description = "Team repo intelligence platform on Cloudflare Workers" 5 requires-python = ">=3.11" 6 dependencies = [] 7 8 [build-system] 9 requires = ["hatchling"] 10 build-backend = "hatchling.build" 11
+  [TOOL Read] C:\Next-Era\Ampify-Cloud\wrangler.toml
+  -> 1 #:schema node_modules/wrangler/config-schema.json 2 name = "ampify" 3 main = "src/worker.py" 4 compatibility_date = "2025-04-01" 5 compatibility_flags = ["python_workers"] 6 7 [observability] 8 enabled = true 9 10 [[d1_databases]] 11 binding = "DB" 12 database_name = "ampify-db" 13 database_id = "c702e8be-94ca-43cb-b7d2-b635dcb977a9" 14 15 [[kv_namespaces]] 16 binding = "KV" 17 id = "b98c5ad615d04342842bc2462a7125e3" 18 19 # Cron triggers require paid plan — trigger manually via /api/cron/reanalyze 20 # [triggers] 21 # crons = ["0 2 * * 0"] 22
+  [TOOL Read] C:\Next-Era\Ampify-Cloud\schema.sql
+  -> 1 -- Ampify Cloud D1 Schema 2 3 -- Users (GitHub OAuth) 4 CREATE TABLE IF NOT EXISTS users ( 5 id TEXT PRIMARY KEY, 6 github_id INTEGER NOT NULL UNIQUE, 7 login TEXT NOT NULL, 8 name TEXT, 9 avatar_url TEXT, 10 access_token TEXT, 11 created_at TEXT NOT NULL DEFAULT (datetime('now')) 12 ); 13 14 -- Organizations tracked 15 CREATE TABLE IF NOT EXISTS orgs ( 16 id TEXT PRIMARY KEY, 17 github_login TEXT NOT NULL UNIQUE, 18 name TEXT, 19 avatar_url TEXT, 20 last_synced TEXT, 21 created_at TEXT NOT NULL DEFAULT (datetime('now')) 22 ); 23 24 -- Repos analyzed 25 CREATE TABLE IF NOT EXISTS repos ( 26  ...[truncated]
+  [TOOL Read] C:\Next-Era\Ampify-Cloud\.gitignore
+  -> 1 .env 2 node_modules/ 3 __pycache__/ 4 .wrangler/ 5
+  [TOOL Bash] cd /c/Next-Era/Ampify-Cloud && ls -la src/ tests/ dashboard/ scripts/ docs/ quality/ .Orqestra/ 2>&1
+  -> .Orqestra/: total 4 drwxr-xr-x 1 USER 197609 0 Jun 13 22:49 . drwxr-xr-x 1 USER 197609 0 Jun 13 22:49 .. drwxr-xr-x 1 USER 197609 0 Jun 13 22:49 graph dashboard/: total 28 drwxr-xr-x 1 USER 197609 0 Jun 4 02:14 . drwxr-xr-x 1 USER 197609 0 Jun 13 22:49 .. -rw-r--r-- 1 USER 197609 23767 Jun 4 15:34 index.html docs/: total 16 drwxr-xr-x 1 USER 197609 0 Jun 6 23:20 . drwxr-xr-x 1 USER 197609 0 Jun 13 22:49 .. -rw-r--r-- 1 USER 197609 3770 Jun 7 02:19 BETA_1_1_RELEASE_NOTES.md -rw-r--r-- 1 USER 197609 6959 Jun 6 05:40 BETA_RELEASE_NOTES.md drwxr-xr-x 1 USER 197609 0 Jun 5 03:03 operations quality/ ...[truncated]
+
+[USER] <system-reminder> The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable. </system-reminder>
+
+[ASSISTANT] This is a study/research task, so a todo list isn't needed. Let me continue exploring the Cloud project — the worker, engine, and release notes.
+  [TOOL Read] C:\Next-Era\Ampify-Cloud\docs\BETA_1_1_RELEASE_NOTES.md
+  -> 1 # Ampify Cloud — Beta 1.1 Release Notes 2 3 **Release**: BETA_1_1 4 **Date**: 2026-06-07 5 **Based on**: Beta 1 (Wave 115) 6 **Production URL**: https://ampify.ampify-cloud.workers.dev/ 7 8 --- 9 10 ## What Changed in Beta 1.1 11 12 Beta 1.1 is a **correction + identity migration release** — no new features, no engine changes, no scoring changes. Two production-observed defects were fixed, and a durable identity spine was introduced. 13 14 ### C-1: Degraded API Response Guard 15 16 **Problem**: When GitHub API calls partially fail during analysis, the resulting scores could be misleadingly l ...[truncated]
+  [TOOL Bash] cd /c/Next-Era/Ampify-Cloud && ls -la src/engine/ && echo "=== ENGINE FILES ===" && wc -l src/engine/*.py 2>/dev/null && echo "=== WORKER SIZE ===" && wc -l src/worker.py && echo "=== TESTS ===" && wc ...[truncated]
+  -> total 128 drwxr-xr-x 1 USER 197609 0 Jun 10 17:44 . drwxr-xr-x 1 USER 197609 0 Jun 10 17:44 .. -rw-r--r-- 1 USER 197609 0 Jun 4 02:11 __init__.py drwxr-xr-x 1 USER 197609 0 Jun 4 02:11 analysis -rw-r--r-- 1 USER 197609 3014 Jun 4 19:01 audit.py -rw-r--r-- 1 USER 197609 7733 Jun 4 02:11 audit_compare.py -rw-r--r-- 1 USER 197609 18953 Jun 4 02:11 discovery_surface.py drwxr-xr-x 1 USER 197609 0 Jun 4 02:11 ecosystem drwxr-xr-x 1 USER 197609 0 Jun 10 17:44 evidence drwxr-xr-x 1 USER 197609 0 Jun 4 02:11 fixes drwxr-xr-x 1 USER 197609 0 Jun 4 02:11 flow drwxr-xr-x 1 USER 197609 0 Jun 4 02:11 growth ...[truncated]
+  [TOOL Bash] cd /c/Next-Era/Ampify-Cloud && git log --oneline -20 2>&1 && echo "=== STATUS ===" && git status --short 2>&1 | head -30
+  -> 2214a9e Wave 122: Beta 1.1 Release Seal c62b72a Wave 121: Identity Regression & Rename Monitoring (seal) 964fce9 Wave 121: Identity regression monitoring (implementation) 98ea202 Fix: broken onclick handlers in dashboard ac58b87 Wave 120: GitHub ID Backfill & Legacy Data Reconciliation (seal) d3336b1 Wave 119: GitHub ID Migration (seal) 7c733af Wave 119: GitHub ID migration (implementation) 5ea2aea Rename Elephant-Rock-Lab → Octo-Lex in tests and dashboard placeholder bba71bb Wave 118: Beta 1.1 Release Seal 132a4b9 Wave 117: Beta 1.1 Corrections (seal) ea4e133 Fix: skip portfolio test on trans ...[truncated]
+

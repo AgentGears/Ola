@@ -1,0 +1,9 @@
+{
+  "name": "score-calculator",
+  "version": "1.0.0",
+  "description": "Student score calculation utility",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node tests/score.test.js"
+  }
+}
