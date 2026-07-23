@@ -1,0 +1,51 @@
+# Private agent/runtime state
+/.ouroboros/
+/.zcode/
+/.zcode-plugin/
+/.playwright-mcp/
+/.chatgpt-collaboration.json
+/.ola/
+/.moneta/
+
+# Local phase evidence and reports
+/phase-*.json
+/phase-d-inventory.json
+/bug-reports/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.token
+*.secret
+credentials.json
+
+# Local databases and evidence stores
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.wal
+*.shm
+
+# Logs, backups and temporary artifacts
+*.log
+/backups/
+/tmp/
+/temp/
+
+# Common build/runtime output
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+dist/
+build/
+coverage/
+.cache/
