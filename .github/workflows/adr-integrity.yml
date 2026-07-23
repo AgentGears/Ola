@@ -3,10 +3,12 @@ name: ADR package integrity
 on:
   pull_request:
     paths:
+      - '.gitattributes'
       - 'docs/architecture/adr-0001/**'
       - '.github/workflows/adr-integrity.yml'
   push:
     paths:
+      - '.gitattributes'
       - 'docs/architecture/adr-0001/**'
       - '.github/workflows/adr-integrity.yml'
 
