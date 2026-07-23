@@ -1,0 +1,42 @@
+name: ADR package integrity
+
+on:
+  pull_request:
+    paths:
+      - 'docs/architecture/adr-0001/**'
+      - '.github/workflows/adr-integrity.yml'
+  push:
+    paths:
+      - 'docs/architecture/adr-0001/**'
+      - '.github/workflows/adr-integrity.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-adr-package:
+    name: Verify ADR-0001 package integrity
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs/architecture/adr-0001
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run ADR package verifier
+        run: python verify_adr_package.py
+
+      - name: Confirm frozen candidate package root
+        run: |
+          set -euo pipefail
+          expected="94c68edcceec5b8cd6b6b8a188e0f067a242b221dbcc423d70ebabb4e8090bf9"
+          actual="$(awk '{print $1}' PACKAGE-ROOT.sha256)"
+          echo "expected=$expected"
+          echo "actual  =$actual"
+          [ "$actual" = "$expected" ]
