@@ -77,6 +77,8 @@ function scanDir(dir) {
       if (relPath === "tests/schema-alias-completeness.test.cjs") continue;
       // Skip the env.js detection module (it maps MONETA_* names)
       if (relPath === "hooks/lib/env.js") continue;
+      // Skip CI workflow definition files (R5 scope)
+      if (relPath.startsWith(".github/workflows/")) continue;
 
       const text = fs.readFileSync(fullPath, "utf8");
       const lines = text.split("\n");
