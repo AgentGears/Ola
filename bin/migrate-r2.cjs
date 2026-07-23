@@ -9964,8 +9964,11 @@ function defaultBootstrapDeps() {
   return {
     now: () => new Date(),
     generateRunId: (now) => {
-      const iso = (now || new Date()).toISOString();
-      return isoForPath(iso) + "-" + crypto.randomBytes(8).toString("hex").slice(0, 16);
+      // Truncate to seconds (strip milliseconds) so isoForPath produces
+      // a YYYYMMDDTHHMMSSZ prefix that matches RUN_ID_RE.
+      const d = now || new Date();
+      const isoSec = d.toISOString().replace(/\.\d{3}Z$/, "Z");
+      return isoForPath(isoSec) + "-" + crypto.randomBytes(8).toString("hex").slice(0, 16);
     },
     loadAndVerifyPlan: (planPath) => loadAndVerifyPlan(planPath),
     assertPlanExecutable: (plan) => assertPlanExecutable(plan),
