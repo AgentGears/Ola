@@ -33,7 +33,7 @@ const offload = require("../hooks/lib/offload");
 const spool = require("../hooks/lib/spool");
 const admission = require("../hooks/lib/offload-admission");
 const dispatch = require("../hooks/lib/offload-dispatch");
-const mwc = require("./helpers/managed-offload-worker");
+const mwc = require("./helpers/managed-offload-worker.cjs");
 
 // ── FROZEN BOUNDED SAMPLE COUNT ──────────────────────────────────
 const PAYLOAD_CLASSES = 4;

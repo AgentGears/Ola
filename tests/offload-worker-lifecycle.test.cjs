@@ -34,7 +34,7 @@ const offload = require("../hooks/lib/offload");
 const spool = require("../hooks/lib/spool");
 const admission = require("../hooks/lib/offload-admission");
 const dispatch = require("../hooks/lib/offload-dispatch");
-const mwc = require("./helpers/managed-offload-worker");
+const mwc = require("./helpers/managed-offload-worker.cjs");
 
 const RUNS = 10;
 const WORKER_TIMEOUT_MS = 15000;
