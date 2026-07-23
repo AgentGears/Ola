@@ -4,14 +4,14 @@
 // the canonical ~/.ola/data/ store, rebind transcript-DB rows from the old
 // directory/project binding to the new one, and neutralize the legacy root.
 //
-// Scope of this file (Steps 3-4 of the R2 build sequence):
+// Scope of this file (Steps 3-5 of the R2 build sequence):
 //   - inventory         (read-only; complete relevant-tree scan)
 //   - preview           (read-only; operator-facing summary, NOT executable)
 //   - plan              (writes ONLY the plan artifact; requires --confirm-quiescent)
 //   - plan verification (loadAndVerifyPlan; digest + structural checks)
+//   - backup            (Step 5; CLI wiring for createVerifiedBackup)
 //
 // NOT YET IMPLEMENTED (later steps):
-//   - backup            (Step 5)
 //   - db-rebind         (Step 6)
 //   - merge-logs        (Step 7)
 //   - port-moneta-only  (Step 8)
@@ -11378,6 +11378,138 @@ function cmdPlan(args, paths) {
   return { plan: written, outputPath: outPath };
 }
 
+// ── Step 5: Backup ────────────────────────────────────────────────────────
+//
+// cmdBackup is the CLI entry point for the standalone backup subcommand.
+// It loads and verifies a frozen plan, bootstraps a migration run (creating
+// the sentinel and run-state), then calls createVerifiedBackup to produce
+// a rollback-complete backup of all pre-migration artifacts.
+//
+// The backup library (createVerifiedBackup and all helpers) was already
+// implemented for the execute coordinator. This command makes it available
+// as a standalone step so an operator can create a verified backup without
+// running the full execute pipeline.
+//
+// Usage:
+//   node bin/migrate-r2.cjs backup --plan <path> --confirm <plan_digest>
+
+async function cmdBackup(args, paths) {
+  // Require --plan and --confirm flags.
+  const planPath = args.flags.plan;
+  if (!planPath) {
+    throw new R2Error("PLAN_PATH_REQUIRED",
+      "backup requires --plan <path> (the frozen plan file)");
+  }
+  const confirmDigest = args.flags.confirm;
+  if (!confirmDigest) {
+    throw new R2Error("PLAN_CONFIRMATION_REQUIRED",
+      "backup requires --confirm <plan_digest> (must match plan.plan_digest exactly)");
+  }
+
+  // 1. Load and verify the plan.
+  const plan = loadAndVerifyPlan(path.resolve(planPath));
+
+  // 2. Assert the plan is executable.
+  assertPlanExecutable(plan);
+
+  // 3. Exact digest confirmation.
+  if (confirmDigest !== plan.plan_digest) {
+    throw new R2Error("PLAN_CONFIRMATION_MISMATCH",
+      "--confirm must exactly match plan.plan_digest");
+  }
+
+  // 4. Reconstruct paths from the plan (ensures consistency with plan-time).
+  const planPaths = reconstructPathsFromPlan(plan, {});
+
+  // 5. Recheck quiescence independently (same as cmdPlan).
+  const evidence = collectQuiescenceEvidence(planPaths);
+  assertQuiescent(evidence, /*confirmation=*/ true);
+
+  // 6. Bootstrap the run (creates runId, run-state, sentinel).
+  //    We use bootstrapExecution's preflight + run-creation path, but
+  //    we stop before the forward coordinator and call createVerifiedBackup
+  //    directly.
+  const bsResult = bootstrapExecution({
+    externalPlanPath: path.resolve(planPath),
+    confirmDigest: confirmDigest,
+    options: {},
+    deps: defaultBootstrapDeps(),
+  });
+
+  if (!bsResult.ok) {
+    throw new R2Error(bsResult.code || "BACKUP_BOOTSTRAP_FAILED",
+      "backup bootstrap failed: " + bsResult.message);
+  }
+
+  const runId = bsResult.run_id;
+  const runState = bsResult.state;
+
+  // 7. Call createVerifiedBackup with the bootstrapped run.
+  let backupResult;
+  try {
+    backupResult = await createVerifiedBackup({
+      runId: runId,
+      planDigest: plan.plan_digest,
+      plan: plan,
+      paths: planPaths,
+    });
+  } catch (e) {
+    // Backup failed. Record the failure in run-state and release the sentinel
+    // so the system is not left in a blocked state.
+    try {
+      transitionState(planPaths.olaMigrationRoot, runId, {
+        status: "backup_failed",
+        error_code: e.code || "BACKUP_FAILED",
+        error_message: e.message,
+      });
+    } catch { /* best effort — state persistence may also fail */ }
+    try {
+      require("./hooks/lib/migration-sentinel").removeMigrationSentinel();
+    } catch { /* best effort */ }
+    throw e;
+  }
+
+  // 8. Record backup success in run-state.
+  const projected = projectBackupEvidence(backupResult);
+  try {
+    transitionState(planPaths.olaMigrationRoot, runId, {
+      status: "in_progress",
+      completed_steps: ["backup"],
+      backup: projected,
+    });
+  } catch { /* non-fatal — backup is valid even if state update fails */ }
+
+  // 9. Release the sentinel (standalone backup does not hold authority).
+  try {
+    require("./hooks/lib/migration-sentinel").removeMigrationSentinel();
+  } catch { /* best effort */ }
+
+  return {
+    run_id: runId,
+    backup_path: backupResult.backup_path,
+    manifest_digest: backupResult.manifest_digest,
+    entries_count: backupResult.entries_count,
+  };
+}
+
+function renderBackupSummary(result) {
+  const lines = [];
+  lines.push("********************************************************");
+  lines.push("* R2 MIGRATION BACKUP COMPLETE");
+  lines.push("********************************************************");
+  lines.push("");
+  lines.push("run_id:          " + result.run_id);
+  lines.push("backup_path:     " + result.backup_path);
+  lines.push("manifest_digest: " + result.manifest_digest);
+  lines.push("entries_count:   " + result.entries_count);
+  lines.push("");
+  lines.push("The backup has been verified (all artifacts reopened and hashed).");
+  lines.push("It is rollback-complete: every pre-migration artifact is preserved.");
+  lines.push("Incomplete attempts are left as .partial directories and are not");
+  lines.push("valid for execution.");
+  return lines.join("\n");
+}
+
 function assertInventoryStable(before, after) {
   const beforeMap = new Map(before.map((e) => [e.relative_path, e]));
   const afterMap = new Map(after.map((e) => [e.relative_path, e]));
@@ -11440,13 +11572,18 @@ function renderHelp() {
   return [
     "Usage: node bin/migrate-r2.cjs <subcommand> [options]",
     "",
-    "Subcommands (R2 Steps 3-4 scope):",
+    "Subcommands:",
     "  inventory                         Read-only scan of both stores + transcript DB.",
     "  preview                           Read-only operator summary. NOT executable.",
     "  plan --out <path> --confirm-quiescent",
     "                                    Generate an executable plan artifact.",
     "                                    Requires --confirm-quiescent operator assertion",
     "                                    AND independent quiescence checks to pass.",
+    "  backup --plan <path> --confirm <plan_digest>",
+    "                                    Step 5: create a verified rollback-complete backup.",
+    "                                    Requires a frozen, executable plan and exact digest",
+    "                                    confirmation. Bootstraps a migration run, creates the",
+    "                                    backup, verifies all artifacts, and releases the sentinel.",
     "",
     "Subcommands implemented in later steps:",
     "  execute --plan <path> --confirm <digest>   (Step 10)",
@@ -11501,6 +11638,14 @@ function main() {
       const result = cmdPlan(args, paths);
       process.stdout.write(renderPlanSummary(result) + "\n");
       return 0;
+    }
+    case "backup": {
+      // cmdBackup is async (createVerifiedBackup awaits sqlite.backup).
+      // Return a promise that the CLI bootstrap will await.
+      return cmdBackup(args, paths).then(function (result) {
+        process.stdout.write(renderBackupSummary(result) + "\n");
+        return 0;
+      });
     }
     case "execute":
     case "resume":
@@ -11616,12 +11761,29 @@ module.exports = {
   restoreTreeFromVerifiedBackup, deriveBackupAuthority,
   // Rendering
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
+  renderBackupSummary,
+  // CLI commands (for tests)
+  cmdInventory, cmdPreview, cmdPlan, cmdBackup,
 };
 
 if (require.main === module) {
   try {
-    const code = main();
-    process.exit(code || 0);
+    const result = main();
+    if (result && typeof result.then === "function") {
+      // Async subcommand (e.g., backup). Await the promise.
+      result.then(function (code) {
+        process.exit(code || 0);
+      }).catch(function (e) {
+        if (e instanceof R2Error) {
+          process.stderr.write("R2 migration error [" + e.code + "]: " + e.message + "\n");
+          process.exit(1);
+        }
+        process.stderr.write("Fatal: " + (e && e.stack ? e.stack : String(e)) + "\n");
+        process.exit(2);
+      });
+    } else {
+      process.exit(result || 0);
+    }
   } catch (e) {
     if (e instanceof R2Error) {
       process.stderr.write("R2 migration error [" + e.code + "]: " + e.message + "\n");
