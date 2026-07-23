@@ -31,14 +31,24 @@ function makeErr(code, message) {
   return e;
 }
 
-// Helper: build a fixture + plan + deps, with optional overrides
+// Helper: build a fixture + plan + deps, with optional overrides.
+// Sets process.env.HOME so the sentinel module resolves to the fixture's
+// synthetic tree (sentinel uses os.homedir(), not injected paths).
+var _origHome = process.env.HOME;
+
 function setupFixture(seed) {
   const fixture = fx.buildFixture({ seed: seed });
   const plan = fx.buildPlanFor(fixture);
   const paths = fixture.pathsFor();
   const planPath = path.join(paths.olaMigrationRoot, "plan.json");
   fs.writeFileSync(planPath, m.canonicalJson(plan) + "\n");
+  // Override HOME so sentinel/quiescence checks resolve to the fixture tree
+  process.env.HOME = paths.home;
   return { fixture, plan, paths, planPath };
+}
+
+function restoreHome() {
+  process.env.HOME = _origHome;
 }
 
 // Helper: make deps with one boundary overridden
@@ -97,6 +107,7 @@ async function main() {
       assert(found.state.sentinel.released_at !== null, "sentinel.released_at set");
     }
     try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
+    restoreHome();
   }
 
   // ── Scenario B: Phase 1 evidence write fails ─────────────────
@@ -136,6 +147,7 @@ async function main() {
     assert(fs.existsSync(sentinelFile) === true, "physical sentinel STILL PRESENT (authority retained)");
 
     try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
+    restoreHome();
   }
 
   // ── Scenario C: Phase 1.5 release-pending write fails ────────
@@ -165,6 +177,7 @@ async function main() {
       assert(found.state.failure.step === "release-intent", "failure.step=release-intent");
     }
     try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
+    restoreHome();
   }
 
   // ── Scenario D: sentinel removal fails ───────────────────────
@@ -191,6 +204,7 @@ async function main() {
     const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
     assert(fs.existsSync(sentinelFile) === true, "physical sentinel still present (removal failed)");
     try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
+    restoreHome();
   }
 
   // ── Scenario E: final state write fails after removal ────────
@@ -224,6 +238,7 @@ async function main() {
     const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
     assert(fs.existsSync(sentinelFile) === false, "physical sentinel absent (removal succeeded)");
     try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
+    restoreHome();
   }
 
   // ── Scenario F: happy-path status sequence ───────────────────
@@ -253,6 +268,7 @@ async function main() {
     assert(rpIdx < bcIdx, "backup_release_pending appears before backup_completed in sequence");
 
     try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
+    restoreHome();
   }
 
   console.log("");
