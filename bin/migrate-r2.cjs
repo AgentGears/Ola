@@ -8723,6 +8723,7 @@ const RUN_STATUSES = Object.freeze({
 const ROLLBACK_STATUSES = Object.freeze({
   not_started: "not_started",
   not_available: "not_available",       // no trusted backup to restore from
+  not_applicable: "not_applicable",     // rollback does not apply (e.g., standalone backup)
   in_progress: "in_progress",
   completed: "completed",
   failed: "failed",
