@@ -84,10 +84,13 @@ jobs:
           fi
           echo "PASS: no prohibited runtime-state paths"
 
-      - name: Run 19 deterministic registered suites
+      - name: Run 20 deterministic registered suites
         run: |
           set -euo pipefail
-          # All 20 registered suites EXCEPT offload-latency (issue #11).
+          # All 20 registered suites. offload-latency was repaired in issue #11
+          # and is now deterministic (real-spawn latency + eventual-state gate,
+          # no synchronous-mtime race). The structural assertion lives in the
+          # separate offload-hook-structural test.
           deterministic_tests=(
             "tests/test-sentinel-survives-canonical-destruction.cjs"
             "tests/test-resolver-ignores-zcode-plugin-data.cjs"
@@ -101,6 +104,7 @@ jobs:
             "tests/offload-secrets.test.cjs"
             "tests/offload-spool.test.cjs"
             "tests/offload-integration.test.cjs"
+            "tests/offload-latency.test.cjs"
             "tests/offload-session.test.cjs"
             "tests/offload-capability.test.cjs"
             "tests/offload-read.test.cjs"
@@ -108,6 +112,7 @@ jobs:
             "tests/offload-ops.test.cjs"
             "tests/schema-alias-completeness.test.cjs"
             "tests/rename-inventory.test.cjs"
+            "tests/offload-hook-structural.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
@@ -124,7 +129,7 @@ jobs:
             echo "::error::At least one deterministic suite failed"
             exit 1
           fi
-          echo "PASS: 19/19 deterministic suites"
+          echo "PASS: 21/21 deterministic suites"
 
       - name: Run 3 R2 aggregators independently
         run: |
@@ -151,31 +156,3 @@ jobs:
           echo "actual  =$actual"
           [ "$actual" = "$expected" ]
           echo "PASS: package root matches frozen candidate"
-
-  # ── Non-gating diagnostic ──────────────────────────────────────────
-  # offload-latency has a known test-harness race (issue #11). It runs
-  # here for diagnostic/log purposes only. It does NOT gate the PR.
-  # Do NOT retry until green or treat a pass here as deterministic evidence.
-  offload-latency-diagnostic:
-    name: offload-latency (diagnostic, non-gating — issue #11)
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22.17.0'
-
-      - name: Run offload-latency (diagnostic only)
-        run: |
-          echo "=== offload-latency diagnostic run ==="
-          echo "This test has a known test-harness race (issue #11)."
-          echo "A pass here is NOT deterministic evidence."
-          echo "A fail here does NOT gate this PR."
-          echo "=========================================="
-          node tests/offload-latency.test.cjs || {
-            echo ""
-            echo "DIAGNOSTIC: offload-latency failed (expected intermittently per issue #11)."
-            echo "This does not block the PR. See issue #11 for the required fix."
-          }

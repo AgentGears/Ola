@@ -1,0 +1,63 @@
+name: Offload latency/structural stability
+
+# Runs the repaired offload-latency and offload-hook-structural tests 10
+# consecutive times in one job. Proves determinism after issue #11.
+#
+# Rules:
+#   first failure fails the job
+#   no automatic rerun
+#   no allowed-failure count
+#   no continue-on-error
+#   all iteration logs retained
+
+on:
+  pull_request:
+    paths:
+      - 'hooks/lib/offload-dispatch.js'
+      - 'hooks/post-tool-use.js'
+      - 'tests/offload-latency.test.cjs'
+      - 'tests/offload-hook-structural.test.cjs'
+      - '.github/workflows/offload-stability.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'hooks/lib/offload-dispatch.js'
+      - 'hooks/post-tool-use.js'
+      - 'tests/offload-latency.test.cjs'
+      - 'tests/offload-hook-structural.test.cjs'
+      - '.github/workflows/offload-stability.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  stability-10x:
+    name: 10x stability (structural + latency)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.0'
+
+      - name: Run both tests 10 consecutive times
+        run: |
+          set -euo pipefail
+          echo "=== 10x stability proof (issue #11) ==="
+          echo "First failure fails the job. No reruns. No continue-on-error."
+          echo "================================================================"
+          for i in $(seq 1 10); do
+            echo ""
+            echo "::group::=== stability iteration $i/10 ==="
+            echo "--- structural (deterministic, blocked worker) ---"
+            node tests/offload-hook-structural.test.cjs
+            echo "--- latency (real spawn + eventual-state) ---"
+            node tests/offload-latency.test.cjs
+            echo "::endgroup::"
+            echo ">>> iteration $i/10: BOTH PASS"
+          done
+          echo ""
+          echo "================================================================"
+          echo "STABILITY: 10/10 PASS — both tests deterministic"
+          echo "================================================================"

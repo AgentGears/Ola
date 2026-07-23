@@ -26,14 +26,15 @@ const assess = require("./lib/assess");
 const { emit, emitEmpty, readStdin, resolveLabelsPath, resolveEventsPath, resolveOffloadDir } = shared;
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawn } = require("node:child_process");
 
 // Phase V offload modules (loaded lazily inside try/catch)
 let admission = null;
 let spool = null;
+let offloadDispatch = null;
 try {
   admission = require("./lib/offload-admission");
   spool = require("./lib/spool");
+  offloadDispatch = require("./lib/offload-dispatch");
 } catch {
   // Modules not available — offload path disabled
 }
@@ -95,10 +96,11 @@ readStdin((payload) => {
   //
   // The hook NEVER: runs Git, updates task state, regenerates projection,
   // invokes the verifier, or throws.
-  if (admission && spool && process.env.OLA_OFFLOAD_ENABLED === "1") {
+  if (admission && spool && offloadDispatch && process.env.OLA_OFFLOAD_ENABLED === "1") {
     try {
       const offloadDir = resolveOffloadDir();
-      const result = admission.admitPostToolPayload(payload, {
+      const dispatchResult = offloadDispatch.dispatchPostToolOffload(payload, {
+        offloadDir: offloadDir,
         getActiveTaskId: function () {
           try {
             const stateFile = path.join(offloadDir, "state", "task-state.json");
@@ -122,34 +124,18 @@ readStdin((payload) => {
           } catch { /* no active task */ }
           return null;
         },
+        // Production uses the real implementations (no injection).
+        deps: {
+          admit: admission.admitPostToolPayload,
+          enqueue: spool.enqueueJob,
+          tryAcquireWakeup: spool.tryAcquireWakeup,
+          releaseWakeup: spool.releaseWakeup,
+        },
       });
 
-      event.offload_decision = result.decision;
-      if (result.findings && result.findings.length > 0) {
-        event.offload_findings = result.findings.length;
-      }
-
-      if (result.decision === "enqueue" && result.job) {
-        // Durable enqueue — skip fsync on hook path to stay within latency budget.
-        // rename() is atomic on the same filesystem; worker-side uses full fsync.
-        spool.enqueueJob(result.job, { offloadDir, skipFsync: true });
-
-        // Best-effort worker spawn with coalescing
-        try {
-          if (spool.tryAcquireWakeup({ offloadDir })) {
-            const workerScript = path.join(__dirname, "..", "bin", "offload-drain.cjs");
-            const child = spawn("node", [workerScript], {
-              detached: true,
-              stdio: "ignore",
-              windowsHide: true,
-              env: { ...process.env, OLA_OFFLOAD_DIR: offloadDir },
-            });
-            child.unref();
-          }
-        } catch {
-          // spawn failure is non-fatal — the spool is durable
-          try { spool.releaseWakeup({ offloadDir }); } catch { /* best effort */ }
-        }
+      event.offload_decision = dispatchResult.decision;
+      if (dispatchResult.findings && dispatchResult.findings.length > 0) {
+        event.offload_findings = dispatchResult.findings.length;
       }
     } catch {
       // ALL offload errors are non-fatal to the host tool
