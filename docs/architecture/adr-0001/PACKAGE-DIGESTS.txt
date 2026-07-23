@@ -1,0 +1,16 @@
+# SHA-256 payload digests
+
+52c8be2b0012e2c20c4ae4fa0de9f6599efd797e08f6bdb81163174a0d59761f  ADR-0001-A-Programme-Status-and-Milestone-Semantics.md
+20e3ebb345a2998c20c562eead6776d1fb23da499fa8e7357b646728d7b838c8  ADR-0001-B-Transitional-Authority-and-Cutover-Protocol.md
+4cb370925f1c95f3cd0c648e155b94e277522b0cc98b7709d3930ce98b8864d2  ADR-0001-C-Runtime-Authority-and-Distributed-Failure-Semantics.md
+6826fc2b32c9a59eeb782fda1b88a98851483b8e80b2ca7582445af6d489918d  ADR-0001-D-Contract-Envelope-and-Versioning-Requirements.md
+ad777a813554279e34c13580284787d674a056b99379c4c9abb1be7614c653b8  ADR-0001-E-Memory-Subagent-Control-Cycle-Protocol.md
+7b09a1ddfb010f1642dbed1d181f8e7713d3f4cc996c72bbd390616ddcfe3dc2  ADR-0001-F-Minimum-Trust-Privacy-and-Retention-Prerequisites.md
+49ee211562cf450013e1e63c6f4cd8138c83c22d3d91b6888818e64a3c59b5a7  ADR-0001-Ola-Unified-Product-Architecture.md
+d07d64bc8155ec6ba7ac1cc4f2516edff49621ac2dbd6cef7c10341583a27a2a  ADR-0001-R-Ratification-Manifest.md
+57129a0abac37aa28b4d3d4a5bdea4d93e2a89ef7ed88852fa67a721107e70e2  ADR-0001-v1.4-Ola-Unified-Product-Architecture-Consolidated.md
+0367d66e270d750a88dc188dfbe9974de2d2ef8bebad3cd674e79ce7ce3d829d  CHANGELOG-v1.4.md
+93fb4bce6ef1abe0c72b5b4701a12df391e509d9dd281e845760c9d9e0b8a27a  PACKAGE-MANIFEST.json
+691e12274c3bf80543783fb1c199d23024738117848dab0de6aa4eb6875e1df8  README.md
+a4b827ae4e095365b301e48e222b34c57cd38b6f118793b23bfdd615705dcd1f  RESEARCH-EVIDENCE-0001-Long-Context-and-Memory-to-Skills.md
+c7ac21072d93b68f184f3e4d2478a2081a5ba2cfed5b3b3d052967a3591b8092  verify_adr_package.py
