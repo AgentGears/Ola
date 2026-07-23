@@ -119,6 +119,7 @@ jobs:
           # All suites EXCEPT offload-latency and offload-worker-lifecycle
           # (those run in Jobs B and C with managed workers).
           # offload-hook-structural and offload-spawn-contract are safe (zero processes).
+          # step5-backup-primitive uses temp fixtures only (no live data, no detached workers).
           deterministic_tests=(
             "tests/test-sentinel-survives-canonical-destruction.cjs"
             "tests/test-resolver-ignores-zcode-plugin-data.cjs"
@@ -141,6 +142,7 @@ jobs:
             "tests/rename-inventory.test.cjs"
             "tests/offload-hook-structural.test.cjs"
             "tests/offload-spawn-contract.test.cjs"
+            "tests/r2/step5-backup-primitive.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
