@@ -1,0 +1,6835 @@
+{
+  "schema_version": "b0.run.v1",
+  "run_id": "b0-l3-synth-hybrid-2026-07-05T235953404Z",
+  "surface": "l3-synth",
+  "mode": "hybrid",
+  "timestamp": "2026-07-05T23:59:53.404Z",
+  "code": {
+    "git_sha": "norepo",
+    "dirty": false
+  },
+  "dataset_file": "eval\\datasets\\l3-synthetic-queries.jsonl",
+  "dataset_sha256": "b17169b06d901c4894a55df203b511af63ea4613d392ebee464d8bc056988a37",
+  "corpus_id": "l3-synthetic-corpus",
+  "corpus_sha256": "10cdc666b6a350727a4332858e7faa8955c702abd0df174e1fbce951dd50c766",
+  "retrieval_config": {
+    "weights": {
+      "sparse": 0.3,
+      "dense": 0.55,
+      "strength": 0.15
+    },
+    "top_k": 10,
+    "candidate_policy": "full_corpus",
+    "candidate_policy_description": "All records in the surface corpus are ranked. No pre-filter.",
+    "candidate_limit": null,
+    "exact_match_override": true,
+    "production_read_occurred": false
+  },
+  "embedding_config": {
+    "enabled": true,
+    "endpoint": "http://100.64.0.2:1234/v1/embeddings",
+    "base_url": "http://100.64.0.2:1234",
+    "model": "text-embedding-qwen3-embedding-0.6b",
+    "api_key_set": false,
+    "cache_db": "C:\\Next-Era\\Moneta\\eval\\.cache\\embeddings.sqlite",
+    "cache_key_algorithm": "sha256(model + '\\0' + sha256(embedding_url) + '\\0' + sha256(exact_text_bytes))"
+  },
+  "metric_config": {
+    "version": "b0.metrics.v1",
+    "grades": {
+      "ideal": 3,
+      "strong": 2,
+      "weak": 1,
+      "irrelevant": 0,
+      "harmful": -1
+    },
+    "negative_policy": "penalize_harmful_retrieval"
+  },
+  "query_count": 20,
+  "results": [
+    {
+      "query_id": "l3_synth_001",
+      "query": "auth_token_refresh",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.694,
+            "exact_match": true,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 2,
+          "score": 0.641,
+          "grade": -1,
+          "components": {
+            "final": 0.641,
+            "sparse": 0.65,
+            "dense": 0.811,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 3,
+          "score": 0.52,
+          "grade": 0,
+          "components": {
+            "final": 0.52,
+            "sparse": 0.732,
+            "dense": 0.397,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.4,
+          "grade": 0,
+          "components": {
+            "final": 0.4,
+            "sparse": 0.112,
+            "dense": 0.464,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.329,
+          "grade": 0,
+          "components": {
+            "final": 0.329,
+            "sparse": 0.102,
+            "dense": 0.356,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 6,
+          "score": 0.299,
+          "grade": 0,
+          "components": {
+            "final": 0.299,
+            "sparse": 0.113,
+            "dense": 0.278,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 7,
+          "score": 0.288,
+          "grade": 0,
+          "components": {
+            "final": 0.288,
+            "sparse": 0.128,
+            "dense": 0.22,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 8,
+          "score": 0.243,
+          "grade": 0,
+          "components": {
+            "final": 0.243,
+            "sparse": 0.006,
+            "dense": 0.428,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 9,
+          "score": 0.238,
+          "grade": 0,
+          "components": {
+            "final": 0.238,
+            "sparse": 0.075,
+            "dense": 0.256,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 10,
+          "score": 0.237,
+          "grade": 0,
+          "components": {
+            "final": 0.237,
+            "sparse": 0.04,
+            "dense": 0.335,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 11,
+          "score": 0.206,
+          "grade": 0,
+          "components": {
+            "final": 0.206,
+            "sparse": 0.02,
+            "dense": 0.328,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 12,
+          "score": 0.119,
+          "grade": 0,
+          "components": {
+            "final": 0.119,
+            "sparse": 0.004,
+            "dense": 0.208,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.111,
+          "grade": 0,
+          "components": {
+            "final": 0.111,
+            "sparse": 0.067,
+            "dense": 0.044,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.064,
+          "grade": 0,
+          "components": {
+            "final": 0.064,
+            "sparse": 0,
+            "dense": 0.115,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.057,
+          "grade": 0,
+          "components": {
+            "final": 0.057,
+            "sparse": 0.041,
+            "dense": 0.006,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.036,
+          "grade": 0,
+          "components": {
+            "final": 0.036,
+            "sparse": 0.028,
+            "dense": 0,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 22
+    },
+    {
+      "query_id": "l3_synth_002",
+      "query": "config_patch_transactional",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.752,
+            "exact_match": true,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 2,
+          "score": 0.731,
+          "grade": 0,
+          "components": {
+            "final": 0.731,
+            "sparse": 0.69,
+            "dense": 0.879,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 3,
+          "score": 0.547,
+          "grade": -1,
+          "components": {
+            "final": 0.547,
+            "sparse": 0.65,
+            "dense": 0.639,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 4,
+          "score": 0.457,
+          "grade": 0,
+          "components": {
+            "final": 0.457,
+            "sparse": 0.02,
+            "dense": 0.783,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 5,
+          "score": 0.431,
+          "grade": 0,
+          "components": {
+            "final": 0.431,
+            "sparse": 0.112,
+            "dense": 0.52,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 6,
+          "score": 0.396,
+          "grade": 0,
+          "components": {
+            "final": 0.396,
+            "sparse": 0.102,
+            "dense": 0.478,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 7,
+          "score": 0.39,
+          "grade": 0,
+          "components": {
+            "final": 0.39,
+            "sparse": 0.104,
+            "dense": 0.464,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.381,
+          "grade": 0,
+          "components": {
+            "final": 0.381,
+            "sparse": 0.075,
+            "dense": 0.515,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 9,
+          "score": 0.323,
+          "grade": 0,
+          "components": {
+            "final": 0.323,
+            "sparse": 0.128,
+            "dense": 0.284,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 10,
+          "score": 0.269,
+          "grade": 0,
+          "components": {
+            "final": 0.269,
+            "sparse": 0.082,
+            "dense": 0.296,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 11,
+          "score": 0.266,
+          "grade": 0,
+          "components": {
+            "final": 0.266,
+            "sparse": 0.006,
+            "dense": 0.469,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 12,
+          "score": 0.251,
+          "grade": 0,
+          "components": {
+            "final": 0.251,
+            "sparse": 0.004,
+            "dense": 0.448,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.242,
+          "grade": 0,
+          "components": {
+            "final": 0.242,
+            "sparse": 0.067,
+            "dense": 0.282,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 14,
+          "score": 0.177,
+          "grade": 0,
+          "components": {
+            "final": 0.177,
+            "sparse": 0,
+            "dense": 0.322,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.127,
+          "grade": 0,
+          "components": {
+            "final": 0.127,
+            "sparse": 0.028,
+            "dense": 0.166,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.053,
+          "grade": 0,
+          "components": {
+            "final": 0.053,
+            "sparse": 0.041,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_003",
+      "query": "regex_quota_escaping",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.274,
+            "exact_match": true,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 2,
+          "score": 0.35,
+          "grade": 0,
+          "components": {
+            "final": 0.35,
+            "sparse": 0.04,
+            "dense": 0.541,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 3,
+          "score": 0.35,
+          "grade": 0,
+          "components": {
+            "final": 0.35,
+            "sparse": 0.028,
+            "dense": 0.572,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.329,
+          "grade": 0,
+          "components": {
+            "final": 0.329,
+            "sparse": 0.104,
+            "dense": 0.352,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.327,
+          "grade": 0,
+          "components": {
+            "final": 0.327,
+            "sparse": 0.102,
+            "dense": 0.352,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 6,
+          "score": 0.319,
+          "grade": 0,
+          "components": {
+            "final": 0.319,
+            "sparse": 0.113,
+            "dense": 0.313,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 7,
+          "score": 0.299,
+          "grade": 0,
+          "components": {
+            "final": 0.299,
+            "sparse": 0.112,
+            "dense": 0.279,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 8,
+          "score": 0.291,
+          "grade": 0,
+          "components": {
+            "final": 0.291,
+            "sparse": 0.02,
+            "dense": 0.482,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 9,
+          "score": 0.268,
+          "grade": 0,
+          "components": {
+            "final": 0.268,
+            "sparse": 0.128,
+            "dense": 0.183,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.24,
+          "grade": 0,
+          "components": {
+            "final": 0.24,
+            "sparse": 0.075,
+            "dense": 0.259,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 11,
+          "score": 0.221,
+          "grade": 0,
+          "components": {
+            "final": 0.221,
+            "sparse": 0.082,
+            "dense": 0.208,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 12,
+          "score": 0.217,
+          "grade": 0,
+          "components": {
+            "final": 0.217,
+            "sparse": 0.006,
+            "dense": 0.38,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.087,
+          "grade": 0,
+          "components": {
+            "final": 0.087,
+            "sparse": 0.067,
+            "dense": 0,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 14,
+          "score": 0.065,
+          "grade": 0,
+          "components": {
+            "final": 0.065,
+            "sparse": 0,
+            "dense": 0.118,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.065,
+          "grade": 0,
+          "components": {
+            "final": 0.065,
+            "sparse": 0.004,
+            "dense": 0.11,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.049,
+          "grade": 0,
+          "components": {
+            "final": 0.049,
+            "sparse": 0,
+            "dense": 0.087,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 23
+    },
+    {
+      "query_id": "l3_synth_004",
+      "query": "ebbinghaus_decay_calibrated",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.682,
+            "exact_match": true,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.729,
+          "grade": -1,
+          "components": {
+            "final": 0.729,
+            "sparse": 0.778,
+            "dense": 0.668,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 3,
+          "score": 0.429,
+          "grade": 0,
+          "components": {
+            "final": 0.429,
+            "sparse": 0.02,
+            "dense": 0.732,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.394,
+          "grade": 0,
+          "components": {
+            "final": 0.394,
+            "sparse": 0.112,
+            "dense": 0.452,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 5,
+          "score": 0.351,
+          "grade": 0,
+          "components": {
+            "final": 0.351,
+            "sparse": 0.104,
+            "dense": 0.393,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 6,
+          "score": 0.329,
+          "grade": 0,
+          "components": {
+            "final": 0.329,
+            "sparse": 0.04,
+            "dense": 0.504,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 7,
+          "score": 0.321,
+          "grade": 0,
+          "components": {
+            "final": 0.321,
+            "sparse": 0.006,
+            "dense": 0.57,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 8,
+          "score": 0.296,
+          "grade": 0,
+          "components": {
+            "final": 0.296,
+            "sparse": 0.082,
+            "dense": 0.344,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 9,
+          "score": 0.266,
+          "grade": 0,
+          "components": {
+            "final": 0.266,
+            "sparse": 0.113,
+            "dense": 0.216,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 10,
+          "score": 0.252,
+          "grade": 0,
+          "components": {
+            "final": 0.252,
+            "sparse": 0.004,
+            "dense": 0.45,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 11,
+          "score": 0.249,
+          "grade": 0,
+          "components": {
+            "final": 0.249,
+            "sparse": 0.075,
+            "dense": 0.275,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 12,
+          "score": 0.147,
+          "grade": 0,
+          "components": {
+            "final": 0.147,
+            "sparse": 0.067,
+            "dense": 0.108,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 13,
+          "score": 0.118,
+          "grade": 0,
+          "components": {
+            "final": 0.118,
+            "sparse": 0,
+            "dense": 0.214,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 14,
+          "score": 0.105,
+          "grade": 0,
+          "components": {
+            "final": 0.105,
+            "sparse": 0.041,
+            "dense": 0.093,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.098,
+          "grade": 0,
+          "components": {
+            "final": 0.098,
+            "sparse": 0.028,
+            "dense": 0.113,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0,
+          "grade": 0,
+          "components": {
+            "final": 0,
+            "sparse": 0,
+            "dense": 0,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_005",
+      "query": "cached_response_detection",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.745,
+            "exact_match": true,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 2,
+          "score": 0.652,
+          "grade": -1,
+          "components": {
+            "final": 0.652,
+            "sparse": 0.656,
+            "dense": 0.817,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 3,
+          "score": 0.469,
+          "grade": 0,
+          "components": {
+            "final": 0.469,
+            "sparse": 0.102,
+            "dense": 0.611,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.44,
+          "grade": 0,
+          "components": {
+            "final": 0.44,
+            "sparse": 0.104,
+            "dense": 0.554,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 5,
+          "score": 0.41,
+          "grade": 0,
+          "components": {
+            "final": 0.41,
+            "sparse": 0.128,
+            "dense": 0.442,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 6,
+          "score": 0.366,
+          "grade": 0,
+          "components": {
+            "final": 0.366,
+            "sparse": 0.082,
+            "dense": 0.471,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 7,
+          "score": 0.349,
+          "grade": 0,
+          "components": {
+            "final": 0.349,
+            "sparse": 0.04,
+            "dense": 0.538,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 8,
+          "score": 0.348,
+          "grade": 0,
+          "components": {
+            "final": 0.348,
+            "sparse": 0.113,
+            "dense": 0.367,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 9,
+          "score": 0.324,
+          "grade": 0,
+          "components": {
+            "final": 0.324,
+            "sparse": 0.02,
+            "dense": 0.542,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.286,
+          "grade": 0,
+          "components": {
+            "final": 0.286,
+            "sparse": 0.075,
+            "dense": 0.343,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 11,
+          "score": 0.271,
+          "grade": 0,
+          "components": {
+            "final": 0.271,
+            "sparse": 0.067,
+            "dense": 0.335,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 12,
+          "score": 0.258,
+          "grade": 0,
+          "components": {
+            "final": 0.258,
+            "sparse": 0,
+            "dense": 0.469,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.232,
+          "grade": 0,
+          "components": {
+            "final": 0.232,
+            "sparse": 0.004,
+            "dense": 0.412,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.127,
+          "grade": 0,
+          "components": {
+            "final": 0.127,
+            "sparse": 0.028,
+            "dense": 0.166,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.094,
+          "grade": 0,
+          "components": {
+            "final": 0.094,
+            "sparse": 0,
+            "dense": 0.17,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.053,
+          "grade": 0,
+          "components": {
+            "final": 0.053,
+            "sparse": 0.041,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 15
+    },
+    {
+      "query_id": "l3_synth_006",
+      "query": "how do I refresh an expired JWT before calling the API",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 0.954,
+          "grade": 3,
+          "components": {
+            "final": 0.954,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 2,
+          "score": 0.525,
+          "grade": 1,
+          "components": {
+            "final": 0.525,
+            "sparse": 0.384,
+            "dense": 0.745,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 3,
+          "score": 0.475,
+          "grade": -1,
+          "components": {
+            "final": 0.475,
+            "sparse": 0.415,
+            "dense": 0.489,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.411,
+          "grade": 0,
+          "components": {
+            "final": 0.411,
+            "sparse": 0.196,
+            "dense": 0.437,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.373,
+          "grade": 0,
+          "components": {
+            "final": 0.373,
+            "sparse": 0.178,
+            "dense": 0.395,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 6,
+          "score": 0.372,
+          "grade": 0,
+          "components": {
+            "final": 0.372,
+            "sparse": 0.316,
+            "dense": 0.298,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 7,
+          "score": 0.371,
+          "grade": 0,
+          "components": {
+            "final": 0.371,
+            "sparse": 0.344,
+            "dense": 0.255,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.331,
+          "grade": 0,
+          "components": {
+            "final": 0.331,
+            "sparse": 0.365,
+            "dense": 0.265,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 9,
+          "score": 0.268,
+          "grade": 0,
+          "components": {
+            "final": 0.268,
+            "sparse": 0.184,
+            "dense": 0.313,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 10,
+          "score": 0.224,
+          "grade": 0,
+          "components": {
+            "final": 0.224,
+            "sparse": 0.147,
+            "dense": 0.291,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 11,
+          "score": 0.201,
+          "grade": 0,
+          "components": {
+            "final": 0.201,
+            "sparse": 0.233,
+            "dense": 0.117,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 12,
+          "score": 0.194,
+          "grade": 0,
+          "components": {
+            "final": 0.194,
+            "sparse": 0.004,
+            "dense": 0.34,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 13,
+          "score": 0.168,
+          "grade": 0,
+          "components": {
+            "final": 0.168,
+            "sparse": 0.422,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.142,
+          "grade": 0,
+          "components": {
+            "final": 0.142,
+            "sparse": 0.111,
+            "dense": 0.197,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.125,
+          "grade": 0,
+          "components": {
+            "final": 0.125,
+            "sparse": 0.28,
+            "dense": 0.024,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 16,
+          "score": 0.094,
+          "grade": 0,
+          "components": {
+            "final": 0.094,
+            "sparse": 0,
+            "dense": 0.164,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_007",
+      "query": "what is the safe way to mutate host agent config json",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 0.963,
+          "grade": 3,
+          "components": {
+            "final": 0.963,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 2,
+          "score": 0.704,
+          "grade": 1,
+          "components": {
+            "final": 0.704,
+            "sparse": 0.791,
+            "dense": 0.848,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 3,
+          "score": 0.464,
+          "grade": 0,
+          "components": {
+            "final": 0.464,
+            "sparse": 0.736,
+            "dense": 0.321,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 4,
+          "score": 0.439,
+          "grade": 0,
+          "components": {
+            "final": 0.439,
+            "sparse": 0.421,
+            "dense": 0.433,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 5,
+          "score": 0.389,
+          "grade": 0,
+          "components": {
+            "final": 0.389,
+            "sparse": 0.252,
+            "dense": 0.381,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 6,
+          "score": 0.374,
+          "grade": -1,
+          "components": {
+            "final": 0.374,
+            "sparse": 0.245,
+            "dense": 0.472,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 7,
+          "score": 0.363,
+          "grade": 0,
+          "components": {
+            "final": 0.363,
+            "sparse": 0.428,
+            "dense": 0.39,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 8,
+          "score": 0.312,
+          "grade": 0,
+          "components": {
+            "final": 0.312,
+            "sparse": 0.157,
+            "dense": 0.278,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.29,
+          "grade": 0,
+          "components": {
+            "final": 0.29,
+            "sparse": 0.321,
+            "dense": 0.203,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 10,
+          "score": 0.286,
+          "grade": 0,
+          "components": {
+            "final": 0.286,
+            "sparse": 0.299,
+            "dense": 0.124,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 11,
+          "score": 0.255,
+          "grade": 0,
+          "components": {
+            "final": 0.255,
+            "sparse": 0.028,
+            "dense": 0.262,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 12,
+          "score": 0.163,
+          "grade": 0,
+          "components": {
+            "final": 0.163,
+            "sparse": 0.069,
+            "dense": 0.248,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 13,
+          "score": 0.124,
+          "grade": 0,
+          "components": {
+            "final": 0.124,
+            "sparse": 0.058,
+            "dense": 0.193,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 14,
+          "score": 0.097,
+          "grade": 0,
+          "components": {
+            "final": 0.097,
+            "sparse": 0.065,
+            "dense": 0.134,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.082,
+          "grade": 0,
+          "components": {
+            "final": 0.082,
+            "sparse": 0.135,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.057,
+          "grade": 0,
+          "components": {
+            "final": 0.057,
+            "sparse": 0,
+            "dense": 0.053,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_008",
+      "query": "how do I know if a chatgpt response is cached or fresh",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "grade": 1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 0.962,
+          "grade": 3,
+          "components": {
+            "final": 0.962,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 2,
+          "score": 0.585,
+          "grade": 1,
+          "components": {
+            "final": 0.585,
+            "sparse": 0.385,
+            "dense": 0.842,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 3,
+          "score": 0.534,
+          "grade": 0,
+          "components": {
+            "final": 0.534,
+            "sparse": 0.512,
+            "dense": 0.503,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 4,
+          "score": 0.439,
+          "grade": 0,
+          "components": {
+            "final": 0.439,
+            "sparse": 0.449,
+            "dense": 0.417,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 5,
+          "score": 0.413,
+          "grade": 0,
+          "components": {
+            "final": 0.413,
+            "sparse": 0.28,
+            "dense": 0.364,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 6,
+          "score": 0.398,
+          "grade": 0,
+          "components": {
+            "final": 0.398,
+            "sparse": 0.081,
+            "dense": 0.493,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 7,
+          "score": 0.37,
+          "grade": 0,
+          "components": {
+            "final": 0.37,
+            "sparse": 0.322,
+            "dense": 0.348,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 8,
+          "score": 0.355,
+          "grade": 0,
+          "components": {
+            "final": 0.355,
+            "sparse": 0.328,
+            "dense": 0.43,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 9,
+          "score": 0.348,
+          "grade": 0,
+          "components": {
+            "final": 0.348,
+            "sparse": 0.247,
+            "dense": 0.293,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 10,
+          "score": 0.321,
+          "grade": 0,
+          "components": {
+            "final": 0.321,
+            "sparse": 0.23,
+            "dense": 0.384,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 11,
+          "score": 0.259,
+          "grade": 0,
+          "components": {
+            "final": 0.259,
+            "sparse": 0.142,
+            "dense": 0.393,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 12,
+          "score": 0.259,
+          "grade": 0,
+          "components": {
+            "final": 0.259,
+            "sparse": 0.289,
+            "dense": 0.191,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.251,
+          "grade": 0,
+          "components": {
+            "final": 0.251,
+            "sparse": 0.293,
+            "dense": 0.29,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.106,
+          "grade": 0,
+          "components": {
+            "final": 0.106,
+            "sparse": 0.204,
+            "dense": 0.032,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.09,
+          "grade": 0,
+          "components": {
+            "final": 0.09,
+            "sparse": 0,
+            "dense": 0.162,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.068,
+          "grade": 0,
+          "components": {
+            "final": 0.068,
+            "sparse": 0.09,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 27
+    },
+    {
+      "query_id": "l3_synth_009",
+      "query": "what formula should I use for memory decay over time",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 1,
+          "score": 0.952,
+          "grade": 3,
+          "components": {
+            "final": 0.952,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.761,
+          "grade": -1,
+          "components": {
+            "final": 0.761,
+            "sparse": 0.894,
+            "dense": 0.663,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 3,
+          "score": 0.414,
+          "grade": 0,
+          "components": {
+            "final": 0.414,
+            "sparse": 0.543,
+            "dense": 0.42,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.36,
+          "grade": 0,
+          "components": {
+            "final": 0.36,
+            "sparse": 0.255,
+            "dense": 0.313,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 5,
+          "score": 0.354,
+          "grade": 0,
+          "components": {
+            "final": 0.354,
+            "sparse": 0.589,
+            "dense": 0.118,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.33,
+          "grade": 0,
+          "components": {
+            "final": 0.33,
+            "sparse": 0.237,
+            "dense": 0.281,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 7,
+          "score": 0.314,
+          "grade": 0,
+          "components": {
+            "final": 0.314,
+            "sparse": 0.257,
+            "dense": 0.357,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 8,
+          "score": 0.287,
+          "grade": 0,
+          "components": {
+            "final": 0.287,
+            "sparse": 0.186,
+            "dense": 0.272,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 9,
+          "score": 0.274,
+          "grade": 0,
+          "components": {
+            "final": 0.274,
+            "sparse": 0.338,
+            "dense": 0.178,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 10,
+          "score": 0.273,
+          "grade": 0,
+          "components": {
+            "final": 0.273,
+            "sparse": 0.179,
+            "dense": 0.387,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 11,
+          "score": 0.268,
+          "grade": 0,
+          "components": {
+            "final": 0.268,
+            "sparse": 0.338,
+            "dense": 0.296,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 12,
+          "score": 0.169,
+          "grade": 0,
+          "components": {
+            "final": 0.169,
+            "sparse": 0.425,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.164,
+          "grade": 0,
+          "components": {
+            "final": 0.164,
+            "sparse": 0.317,
+            "dense": 0.003,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 14,
+          "score": 0.157,
+          "grade": 0,
+          "components": {
+            "final": 0.157,
+            "sparse": 0.166,
+            "dense": 0.195,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.096,
+          "grade": 0,
+          "components": {
+            "final": 0.096,
+            "sparse": 0.228,
+            "dense": 0,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.023,
+          "grade": 0,
+          "components": {
+            "final": 0.023,
+            "sparse": 0,
+            "dense": 0.041,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 20
+    },
+    {
+      "query_id": "l3_synth_010",
+      "query": "how do I handle backslash paths when opening sqlite on windows",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "grade": 1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 1,
+          "score": 0.878,
+          "grade": 3,
+          "components": {
+            "final": 0.878,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 2,
+          "score": 0.327,
+          "grade": 0,
+          "components": {
+            "final": 0.327,
+            "sparse": 0.22,
+            "dense": 0.401,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 3,
+          "score": 0.327,
+          "grade": 1,
+          "components": {
+            "final": 0.327,
+            "sparse": 0.494,
+            "dense": 0.25,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.296,
+          "grade": 0,
+          "components": {
+            "final": 0.296,
+            "sparse": 0.49,
+            "dense": 0.081,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 5,
+          "score": 0.295,
+          "grade": 0,
+          "components": {
+            "final": 0.295,
+            "sparse": 0.429,
+            "dense": 0.166,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 6,
+          "score": 0.293,
+          "grade": 0,
+          "components": {
+            "final": 0.293,
+            "sparse": 0.236,
+            "dense": 0.199,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 7,
+          "score": 0.274,
+          "grade": 0,
+          "components": {
+            "final": 0.274,
+            "sparse": 0.28,
+            "dense": 0.339,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 8,
+          "score": 0.264,
+          "grade": 0,
+          "components": {
+            "final": 0.264,
+            "sparse": 0.213,
+            "dense": 0.178,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 9,
+          "score": 0.259,
+          "grade": 0,
+          "components": {
+            "final": 0.259,
+            "sparse": 0.234,
+            "dense": 0.14,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 10,
+          "score": 0.254,
+          "grade": 0,
+          "components": {
+            "final": 0.254,
+            "sparse": 0.314,
+            "dense": 0.254,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 11,
+          "score": 0.247,
+          "grade": 0,
+          "components": {
+            "final": 0.247,
+            "sparse": 0.308,
+            "dense": 0.133,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 12,
+          "score": 0.209,
+          "grade": 0,
+          "components": {
+            "final": 0.209,
+            "sparse": 0.268,
+            "dense": 0,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.185,
+          "grade": 0,
+          "components": {
+            "final": 0.185,
+            "sparse": 0.276,
+            "dense": 0.064,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 14,
+          "score": 0.111,
+          "grade": 0,
+          "components": {
+            "final": 0.111,
+            "sparse": 0.013,
+            "dense": 0.183,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 15,
+          "score": 0.104,
+          "grade": 0,
+          "components": {
+            "final": 0.104,
+            "sparse": 0.272,
+            "dense": 0.04,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.076,
+          "grade": 0,
+          "components": {
+            "final": 0.076,
+            "sparse": 0,
+            "dense": 0.136,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 0.9639404333166532
+      },
+      "latency_ms": 21
+    },
+    {
+      "query_id": "l3_synth_011",
+      "query": "which session debugged the unbounded async hang",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 1,
+          "score": 0.917,
+          "grade": 3,
+          "components": {
+            "final": 0.917,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 2,
+          "score": 0.512,
+          "grade": 0,
+          "components": {
+            "final": 0.512,
+            "sparse": 0.16,
+            "dense": 0.641,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 3,
+          "score": 0.493,
+          "grade": 0,
+          "components": {
+            "final": 0.493,
+            "sparse": 0.253,
+            "dense": 0.61,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 4,
+          "score": 0.422,
+          "grade": 0,
+          "components": {
+            "final": 0.422,
+            "sparse": 0.321,
+            "dense": 0.359,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.398,
+          "grade": 0,
+          "components": {
+            "final": 0.398,
+            "sparse": 0.145,
+            "dense": 0.459,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 6,
+          "score": 0.39,
+          "grade": 0,
+          "components": {
+            "final": 0.39,
+            "sparse": 0.434,
+            "dense": 0.267,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 7,
+          "score": 0.379,
+          "grade": 0,
+          "components": {
+            "final": 0.379,
+            "sparse": 0.285,
+            "dense": 0.345,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.354,
+          "grade": 0,
+          "components": {
+            "final": 0.354,
+            "sparse": 0.517,
+            "dense": 0.225,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 9,
+          "score": 0.353,
+          "grade": 0,
+          "components": {
+            "final": 0.353,
+            "sparse": 0.14,
+            "dense": 0.555,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 10,
+          "score": 0.336,
+          "grade": 0,
+          "components": {
+            "final": 0.336,
+            "sparse": 0.298,
+            "dense": 0.412,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 11,
+          "score": 0.279,
+          "grade": 0,
+          "components": {
+            "final": 0.279,
+            "sparse": 0.053,
+            "dense": 0.405,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 12,
+          "score": 0.21,
+          "grade": 0,
+          "components": {
+            "final": 0.21,
+            "sparse": 0.131,
+            "dense": 0.31,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.125,
+          "grade": 0,
+          "components": {
+            "final": 0.125,
+            "sparse": 0,
+            "dense": 0.22,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.113,
+          "grade": 0,
+          "components": {
+            "final": 0.113,
+            "sparse": 0.131,
+            "dense": 0.134,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.099,
+          "grade": 0,
+          "components": {
+            "final": 0.099,
+            "sparse": 0.192,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.087,
+          "grade": 0,
+          "components": {
+            "final": 0.087,
+            "sparse": 0.035,
+            "dense": 0.089,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 17
+    },
+    {
+      "query_id": "l3_synth_012",
+      "query": "how was the roasting prompt migrated to a skill",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 1,
+          "score": 0.925,
+          "grade": 3,
+          "components": {
+            "final": 0.925,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 2,
+          "score": 0.514,
+          "grade": 0,
+          "components": {
+            "final": 0.514,
+            "sparse": 0.205,
+            "dense": 0.62,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 3,
+          "score": 0.436,
+          "grade": 0,
+          "components": {
+            "final": 0.436,
+            "sparse": 0.345,
+            "dense": 0.415,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 4,
+          "score": 0.426,
+          "grade": 0,
+          "components": {
+            "final": 0.426,
+            "sparse": 0.159,
+            "dense": 0.677,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 5,
+          "score": 0.401,
+          "grade": 0,
+          "components": {
+            "final": 0.401,
+            "sparse": 0.39,
+            "dense": 0.282,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 6,
+          "score": 0.39,
+          "grade": 0,
+          "components": {
+            "final": 0.39,
+            "sparse": 0.186,
+            "dense": 0.571,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 7,
+          "score": 0.374,
+          "grade": 0,
+          "components": {
+            "final": 0.374,
+            "sparse": 0.36,
+            "dense": 0.278,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 8,
+          "score": 0.369,
+          "grade": 0,
+          "components": {
+            "final": 0.369,
+            "sparse": 0.187,
+            "dense": 0.382,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.345,
+          "grade": 0,
+          "components": {
+            "final": 0.345,
+            "sparse": 0.301,
+            "dense": 0.315,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 10,
+          "score": 0.322,
+          "grade": 0,
+          "components": {
+            "final": 0.322,
+            "sparse": 0.581,
+            "dense": 0.147,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 11,
+          "score": 0.292,
+          "grade": 0,
+          "components": {
+            "final": 0.292,
+            "sparse": 0.07,
+            "dense": 0.419,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 12,
+          "score": 0.241,
+          "grade": 0,
+          "components": {
+            "final": 0.241,
+            "sparse": 0.301,
+            "dense": 0.274,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.193,
+          "grade": 0,
+          "components": {
+            "final": 0.193,
+            "sparse": 0,
+            "dense": 0.344,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.158,
+          "grade": 0,
+          "components": {
+            "final": 0.158,
+            "sparse": 0.301,
+            "dense": 0.123,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.109,
+          "grade": 0,
+          "components": {
+            "final": 0.109,
+            "sparse": 0.225,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.091,
+          "grade": 0,
+          "components": {
+            "final": 0.091,
+            "sparse": 0.045,
+            "dense": 0.09,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 18
+    },
+    {
+      "query_id": "l3_synth_013",
+      "query": "walk me through the safe sequence for patching config json",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 0.963,
+          "grade": 3,
+          "components": {
+            "final": 0.963,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 2,
+          "score": 0.629,
+          "grade": -1,
+          "components": {
+            "final": 0.629,
+            "sparse": 0.654,
+            "dense": 0.786,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 3,
+          "score": 0.454,
+          "grade": 0,
+          "components": {
+            "final": 0.454,
+            "sparse": 0.402,
+            "dense": 0.533,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.406,
+          "grade": 0,
+          "components": {
+            "final": 0.406,
+            "sparse": 0.4,
+            "dense": 0.33,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 5,
+          "score": 0.391,
+          "grade": 0,
+          "components": {
+            "final": 0.391,
+            "sparse": 0.489,
+            "dense": 0.407,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 6,
+          "score": 0.357,
+          "grade": 0,
+          "components": {
+            "final": 0.357,
+            "sparse": 0.454,
+            "dense": 0.28,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 7,
+          "score": 0.328,
+          "grade": 0,
+          "components": {
+            "final": 0.328,
+            "sparse": 0.344,
+            "dense": 0.272,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 8,
+          "score": 0.314,
+          "grade": 0,
+          "components": {
+            "final": 0.314,
+            "sparse": 0.163,
+            "dense": 0.278,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.276,
+          "grade": 0,
+          "components": {
+            "final": 0.276,
+            "sparse": 0.357,
+            "dense": 0.158,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 10,
+          "score": 0.272,
+          "grade": 0,
+          "components": {
+            "final": 0.272,
+            "sparse": 0.27,
+            "dense": 0.162,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 11,
+          "score": 0.262,
+          "grade": 0,
+          "components": {
+            "final": 0.262,
+            "sparse": 0.447,
+            "dense": 0,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 12,
+          "score": 0.191,
+          "grade": 0,
+          "components": {
+            "final": 0.191,
+            "sparse": 0.21,
+            "dense": 0.222,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 13,
+          "score": 0.179,
+          "grade": 0,
+          "components": {
+            "final": 0.179,
+            "sparse": 0.198,
+            "dense": 0.216,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 14,
+          "score": 0.126,
+          "grade": 0,
+          "components": {
+            "final": 0.126,
+            "sparse": 0.278,
+            "dense": 0.002,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.116,
+          "grade": 0,
+          "components": {
+            "final": 0.116,
+            "sparse": 0.206,
+            "dense": 0.093,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.049,
+          "grade": 0,
+          "components": {
+            "final": 0.049,
+            "sparse": 0,
+            "dense": 0.039,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 18
+    },
+    {
+      "query_id": "l3_synth_014",
+      "query": "what steps verify a chatgpt send actually landed in the conversation",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 0.962,
+          "grade": 3,
+          "components": {
+            "final": 0.962,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 2,
+          "score": 0.6,
+          "grade": -1,
+          "components": {
+            "final": 0.6,
+            "sparse": 0.249,
+            "dense": 0.943,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 3,
+          "score": 0.458,
+          "grade": 0,
+          "components": {
+            "final": 0.458,
+            "sparse": 0.344,
+            "dense": 0.508,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.447,
+          "grade": 0,
+          "components": {
+            "final": 0.447,
+            "sparse": 0.274,
+            "dense": 0.473,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 5,
+          "score": 0.423,
+          "grade": 0,
+          "components": {
+            "final": 0.423,
+            "sparse": 0.364,
+            "dense": 0.534,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 6,
+          "score": 0.367,
+          "grade": 0,
+          "components": {
+            "final": 0.367,
+            "sparse": 0.232,
+            "dense": 0.393,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 7,
+          "score": 0.359,
+          "grade": 0,
+          "components": {
+            "final": 0.359,
+            "sparse": 0.292,
+            "dense": 0.288,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 8,
+          "score": 0.349,
+          "grade": 0,
+          "components": {
+            "final": 0.349,
+            "sparse": 0.321,
+            "dense": 0.226,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 9,
+          "score": 0.325,
+          "grade": 0,
+          "components": {
+            "final": 0.325,
+            "sparse": 0.144,
+            "dense": 0.327,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 10,
+          "score": 0.266,
+          "grade": 0,
+          "components": {
+            "final": 0.266,
+            "sparse": 0.329,
+            "dense": 0.182,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 11,
+          "score": 0.251,
+          "grade": 0,
+          "components": {
+            "final": 0.251,
+            "sparse": 0.023,
+            "dense": 0.371,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 12,
+          "score": 0.25,
+          "grade": 0,
+          "components": {
+            "final": 0.25,
+            "sparse": 0.198,
+            "dense": 0.347,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.163,
+          "grade": 0,
+          "components": {
+            "final": 0.163,
+            "sparse": 0.08,
+            "dense": 0.246,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 14,
+          "score": 0.087,
+          "grade": 0,
+          "components": {
+            "final": 0.087,
+            "sparse": 0.152,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.068,
+          "grade": 0,
+          "components": {
+            "final": 0.068,
+            "sparse": 0.072,
+            "dense": 0.083,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.047,
+          "grade": 0,
+          "components": {
+            "final": 0.047,
+            "sparse": 0,
+            "dense": 0.035,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_015",
+      "query": "how do I compute memory strength from confidence and last_used timestamp",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 1,
+          "score": 0.952,
+          "grade": 3,
+          "components": {
+            "final": 0.952,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.703,
+          "grade": -1,
+          "components": {
+            "final": 0.703,
+            "sparse": 0.67,
+            "dense": 0.679,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 3,
+          "score": 0.523,
+          "grade": 0,
+          "components": {
+            "final": 0.523,
+            "sparse": 0.473,
+            "dense": 0.49,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 4,
+          "score": 0.458,
+          "grade": 0,
+          "components": {
+            "final": 0.458,
+            "sparse": 0.602,
+            "dense": 0.299,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 5,
+          "score": 0.422,
+          "grade": 0,
+          "components": {
+            "final": 0.422,
+            "sparse": 0.42,
+            "dense": 0.502,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.396,
+          "grade": 0,
+          "components": {
+            "final": 0.396,
+            "sparse": 0.33,
+            "dense": 0.351,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 7,
+          "score": 0.376,
+          "grade": 0,
+          "components": {
+            "final": 0.376,
+            "sparse": 0.332,
+            "dense": 0.428,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.366,
+          "grade": 0,
+          "components": {
+            "final": 0.366,
+            "sparse": 0.654,
+            "dense": 0.172,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.3,
+          "grade": 0,
+          "components": {
+            "final": 0.3,
+            "sparse": 0.287,
+            "dense": 0.241,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 10,
+          "score": 0.297,
+          "grade": 0,
+          "components": {
+            "final": 0.297,
+            "sparse": 0.139,
+            "dense": 0.453,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 11,
+          "score": 0.265,
+          "grade": 0,
+          "components": {
+            "final": 0.265,
+            "sparse": 0.508,
+            "dense": 0.204,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 12,
+          "score": 0.236,
+          "grade": 0,
+          "components": {
+            "final": 0.236,
+            "sparse": 0.258,
+            "dense": 0.167,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.233,
+          "grade": 0,
+          "components": {
+            "final": 0.233,
+            "sparse": 0.262,
+            "dense": 0.274,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.174,
+          "grade": 0,
+          "components": {
+            "final": 0.174,
+            "sparse": 0.309,
+            "dense": 0.099,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.141,
+          "grade": 0,
+          "components": {
+            "final": 0.141,
+            "sparse": 0.334,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.072,
+          "grade": 0,
+          "components": {
+            "final": 0.072,
+            "sparse": 0,
+            "dense": 0.13,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 17
+    },
+    {
+      "query_id": "l3_synth_016",
+      "query": "what verification confirms the token was actually refreshed",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 0.954,
+          "grade": 3,
+          "components": {
+            "final": 0.954,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 2,
+          "score": 0.804,
+          "grade": 0,
+          "components": {
+            "final": 0.804,
+            "sparse": 0.951,
+            "dense": 0.739,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 3,
+          "score": 0.713,
+          "grade": 0,
+          "components": {
+            "final": 0.713,
+            "sparse": 0.938,
+            "dense": 0.784,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 4,
+          "score": 0.569,
+          "grade": 0,
+          "components": {
+            "final": 0.569,
+            "sparse": 0.873,
+            "dense": 0.411,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 5,
+          "score": 0.546,
+          "grade": 0,
+          "components": {
+            "final": 0.546,
+            "sparse": 0.734,
+            "dense": 0.388,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 6,
+          "score": 0.504,
+          "grade": 0,
+          "components": {
+            "final": 0.504,
+            "sparse": 0.488,
+            "dense": 0.464,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 7,
+          "score": 0.473,
+          "grade": 0,
+          "components": {
+            "final": 0.473,
+            "sparse": 0.705,
+            "dense": 0.439,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 8,
+          "score": 0.47,
+          "grade": 0,
+          "components": {
+            "final": 0.47,
+            "sparse": 0.558,
+            "dense": 0.316,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 9,
+          "score": 0.425,
+          "grade": 0,
+          "components": {
+            "final": 0.425,
+            "sparse": 0.634,
+            "dense": 0.289,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 10,
+          "score": 0.395,
+          "grade": 0,
+          "components": {
+            "final": 0.395,
+            "sparse": 0.832,
+            "dense": 0.143,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 11,
+          "score": 0.362,
+          "grade": 0,
+          "components": {
+            "final": 0.362,
+            "sparse": 0.32,
+            "dense": 0.411,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 12,
+          "score": 0.347,
+          "grade": 0,
+          "components": {
+            "final": 0.347,
+            "sparse": 0.225,
+            "dense": 0.496,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 13,
+          "score": 0.191,
+          "grade": 0,
+          "components": {
+            "final": 0.191,
+            "sparse": 0.431,
+            "dense": 0.111,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 14,
+          "score": 0.141,
+          "grade": 0,
+          "components": {
+            "final": 0.141,
+            "sparse": 0.32,
+            "dense": 0.007,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.113,
+          "grade": 0,
+          "components": {
+            "final": 0.113,
+            "sparse": 0.285,
+            "dense": 0,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 16,
+          "score": 0.09,
+          "grade": 0,
+          "components": {
+            "final": 0.09,
+            "sparse": 0,
+            "dense": 0.157,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 17
+    },
+    {
+      "query_id": "l3_synth_017",
+      "query": "which memory governs token refresh before API calls: retry on 401 or refresh first",
+      "query_type": "conflict",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 0.914,
+          "grade": 3,
+          "components": {
+            "final": 0.914,
+            "sparse": 1,
+            "dense": 0.927,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 2,
+          "score": 0.765,
+          "grade": 1,
+          "components": {
+            "final": 0.765,
+            "sparse": 0.715,
+            "dense": 1,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 3,
+          "score": 0.638,
+          "grade": -1,
+          "components": {
+            "final": 0.638,
+            "sparse": 0.639,
+            "dense": 0.662,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.533,
+          "grade": 0,
+          "components": {
+            "final": 0.533,
+            "sparse": 0.289,
+            "dense": 0.609,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.488,
+          "grade": 0,
+          "components": {
+            "final": 0.488,
+            "sparse": 0.359,
+            "dense": 0.506,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 6,
+          "score": 0.472,
+          "grade": 0,
+          "components": {
+            "final": 0.472,
+            "sparse": 0.435,
+            "dense": 0.388,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 7,
+          "score": 0.404,
+          "grade": 0,
+          "components": {
+            "final": 0.404,
+            "sparse": 0.378,
+            "dense": 0.324,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 8,
+          "score": 0.279,
+          "grade": 0,
+          "components": {
+            "final": 0.279,
+            "sparse": 0.154,
+            "dense": 0.349,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 9,
+          "score": 0.253,
+          "grade": 0,
+          "components": {
+            "final": 0.253,
+            "sparse": 0,
+            "dense": 0.449,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.244,
+          "grade": 0,
+          "components": {
+            "final": 0.244,
+            "sparse": 0.131,
+            "dense": 0.235,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 11,
+          "score": 0.215,
+          "grade": 0,
+          "components": {
+            "final": 0.215,
+            "sparse": 0.027,
+            "dense": 0.34,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 12,
+          "score": 0.185,
+          "grade": 0,
+          "components": {
+            "final": 0.185,
+            "sparse": 0.116,
+            "dense": 0.151,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 13,
+          "score": 0.138,
+          "grade": 0,
+          "components": {
+            "final": 0.138,
+            "sparse": 0.217,
+            "dense": 0.083,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 14,
+          "score": 0.116,
+          "grade": 0,
+          "components": {
+            "final": 0.116,
+            "sparse": 0.084,
+            "dense": 0.159,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.114,
+          "grade": 0,
+          "components": {
+            "final": 0.114,
+            "sparse": 0.243,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.103,
+          "grade": 0,
+          "components": {
+            "final": 0.103,
+            "sparse": 0.078,
+            "dense": 0.143,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 18
+    },
+    {
+      "query_id": "l3_synth_018",
+      "query": "should memories decay over time or be retained at full strength forever",
+      "query_type": "conflict",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 1,
+          "score": 0.931,
+          "grade": 1,
+          "components": {
+            "final": 0.931,
+            "sparse": 1,
+            "dense": 0.913,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 2,
+          "score": 0.806,
+          "grade": 3,
+          "components": {
+            "final": 0.806,
+            "sparse": 0.514,
+            "dense": 1,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 3,
+          "score": 0.429,
+          "grade": -1,
+          "components": {
+            "final": 0.429,
+            "sparse": 0.116,
+            "dense": 0.513,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 4,
+          "score": 0.391,
+          "grade": 0,
+          "components": {
+            "final": 0.391,
+            "sparse": 0.195,
+            "dense": 0.532,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 5,
+          "score": 0.388,
+          "grade": 0,
+          "components": {
+            "final": 0.388,
+            "sparse": 0.349,
+            "dense": 0.309,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.376,
+          "grade": 0,
+          "components": {
+            "final": 0.376,
+            "sparse": 0.216,
+            "dense": 0.376,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 7,
+          "score": 0.366,
+          "grade": 0,
+          "components": {
+            "final": 0.366,
+            "sparse": 0.268,
+            "dense": 0.483,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 8,
+          "score": 0.332,
+          "grade": 0,
+          "components": {
+            "final": 0.332,
+            "sparse": 0.122,
+            "dense": 0.525,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.291,
+          "grade": 0,
+          "components": {
+            "final": 0.291,
+            "sparse": 0.167,
+            "dense": 0.289,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.258,
+          "grade": 0,
+          "components": {
+            "final": 0.258,
+            "sparse": 0.039,
+            "dense": 0.311,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 11,
+          "score": 0.245,
+          "grade": 0,
+          "components": {
+            "final": 0.245,
+            "sparse": 0,
+            "dense": 0.438,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 12,
+          "score": 0.217,
+          "grade": 0,
+          "components": {
+            "final": 0.217,
+            "sparse": 0.225,
+            "dense": 0.271,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.198,
+          "grade": 0,
+          "components": {
+            "final": 0.198,
+            "sparse": 0.135,
+            "dense": 0.166,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.129,
+          "grade": 0,
+          "components": {
+            "final": 0.129,
+            "sparse": 0.109,
+            "dense": 0.174,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.1,
+          "grade": 0,
+          "components": {
+            "final": 0.1,
+            "sparse": 0.197,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.094,
+          "grade": 0,
+          "components": {
+            "final": 0.094,
+            "sparse": 0.051,
+            "dense": 0.092,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 0.7967075809905066
+      },
+      "latency_ms": 15
+    },
+    {
+      "query_id": "l3_synth_019",
+      "query": "what color should the dashboard background be",
+      "query_type": "negative",
+      "gold": [
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 1,
+          "score": 0.87,
+          "grade": 0,
+          "components": {
+            "final": 0.87,
+            "sparse": 1,
+            "dense": 1,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 2,
+          "score": 0.737,
+          "grade": 0,
+          "components": {
+            "final": 0.737,
+            "sparse": 0.492,
+            "dense": 0.886,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 3,
+          "score": 0.696,
+          "grade": 0,
+          "components": {
+            "final": 0.696,
+            "sparse": 0.485,
+            "dense": 0.991,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 4,
+          "score": 0.691,
+          "grade": 0,
+          "components": {
+            "final": 0.691,
+            "sparse": 0.799,
+            "dense": 0.586,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 5,
+          "score": 0.669,
+          "grade": 0,
+          "components": {
+            "final": 0.669,
+            "sparse": 0.662,
+            "dense": 0.718,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.665,
+          "grade": 0,
+          "components": {
+            "final": 0.665,
+            "sparse": 0.737,
+            "dense": 0.618,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 7,
+          "score": 0.665,
+          "grade": 0,
+          "components": {
+            "final": 0.665,
+            "sparse": 0.278,
+            "dense": 0.855,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 8,
+          "score": 0.635,
+          "grade": 0,
+          "components": {
+            "final": 0.635,
+            "sparse": 0.758,
+            "dense": 0.536,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 9,
+          "score": 0.583,
+          "grade": 0,
+          "components": {
+            "final": 0.583,
+            "sparse": 0.332,
+            "dense": 0.805,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 10,
+          "score": 0.546,
+          "grade": 0,
+          "components": {
+            "final": 0.546,
+            "sparse": 0.881,
+            "dense": 0.391,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 11,
+          "score": 0.499,
+          "grade": -1,
+          "components": {
+            "final": 0.499,
+            "sparse": 0,
+            "dense": 0.9,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 12,
+          "score": 0.456,
+          "grade": 0,
+          "components": {
+            "final": 0.456,
+            "sparse": 0.441,
+            "dense": 0.441,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 13,
+          "score": 0.312,
+          "grade": 0,
+          "components": {
+            "final": 0.312,
+            "sparse": 0.299,
+            "dense": 0.355,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.236,
+          "grade": 0,
+          "components": {
+            "final": 0.236,
+            "sparse": 0.469,
+            "dense": 0.173,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.214,
+          "grade": 0,
+          "components": {
+            "final": 0.214,
+            "sparse": 0.575,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 16,
+          "score": 0.192,
+          "grade": 0,
+          "components": {
+            "final": 0.192,
+            "sparse": 0.229,
+            "dense": 0.223,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": null,
+        "recall@10": null,
+        "rr": 0,
+        "ndcg": null
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_020",
+      "query": "who won the world series in 1998",
+      "query_type": "negative",
+      "gold": [
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 0.849,
+          "grade": 0,
+          "components": {
+            "final": 0.849,
+            "sparse": 0.889,
+            "dense": 0.87,
+            "strength": 0.694,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 2,
+          "score": 0.811,
+          "grade": 0,
+          "components": {
+            "final": 0.811,
+            "sparse": 0.498,
+            "dense": 1,
+            "strength": 0.745,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 3,
+          "score": 0.756,
+          "grade": 0,
+          "components": {
+            "final": 0.756,
+            "sparse": 1,
+            "dense": 0.596,
+            "strength": 0.856,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 4,
+          "score": 0.723,
+          "grade": 0,
+          "components": {
+            "final": 0.723,
+            "sparse": 0.452,
+            "dense": 0.882,
+            "strength": 0.682,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 5,
+          "score": 0.665,
+          "grade": 0,
+          "components": {
+            "final": 0.665,
+            "sparse": 0.783,
+            "dense": 0.634,
+            "strength": 0.545,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 6,
+          "score": 0.656,
+          "grade": -1,
+          "components": {
+            "final": 0.656,
+            "sparse": 0.502,
+            "dense": 0.882,
+            "strength": 0.134,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 7,
+          "score": 0.629,
+          "grade": 0,
+          "components": {
+            "final": 0.629,
+            "sparse": 0.438,
+            "dense": 0.894,
+            "strength": 0.041,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 8,
+          "score": 0.613,
+          "grade": 0,
+          "components": {
+            "final": 0.613,
+            "sparse": 0.926,
+            "dense": 0.404,
+            "strength": 0.752,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 9,
+          "score": 0.592,
+          "grade": 0,
+          "components": {
+            "final": 0.592,
+            "sparse": 0.756,
+            "dense": 0.528,
+            "strength": 0.502,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 10,
+          "score": 0.471,
+          "grade": 0,
+          "components": {
+            "final": 0.471,
+            "sparse": 0.719,
+            "dense": 0.342,
+            "strength": 0.446,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 11,
+          "score": 0.461,
+          "grade": 0,
+          "components": {
+            "final": 0.461,
+            "sparse": 0.41,
+            "dense": 0.615,
+            "strength": 0.001,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 12,
+          "score": 0.411,
+          "grade": 0,
+          "components": {
+            "final": 0.411,
+            "sparse": 0.166,
+            "dense": 0.584,
+            "strength": 0.27,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 13,
+          "score": 0.288,
+          "grade": 0,
+          "components": {
+            "final": 0.288,
+            "sparse": 0.106,
+            "dense": 0.416,
+            "strength": 0.184,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 14,
+          "score": 0.26,
+          "grade": 0,
+          "components": {
+            "final": 0.26,
+            "sparse": 0,
+            "dense": 0.466,
+            "strength": 0.025,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.221,
+          "grade": 0,
+          "components": {
+            "final": 0.221,
+            "sparse": 0.599,
+            "dense": 0,
+            "strength": 0.274,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.127,
+          "grade": 0,
+          "components": {
+            "final": 0.127,
+            "sparse": 0.41,
+            "dense": 0.006,
+            "strength": 0.003,
+            "exact_match": false,
+            "hybrid_weights": {
+              "sparse": 0.3,
+              "dense": 0.55,
+              "strength": 0.15
+            }
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": null,
+        "recall@10": null,
+        "rr": 0,
+        "ndcg": null
+      },
+      "latency_ms": 16
+    }
+  ],
+  "aggregate": {
+    "recall@5": 1,
+    "recall@10": 1,
+    "mrr": 0.9,
+    "ndcg": 0.9867026674615088,
+    "p50_ms": 17,
+    "p95_ms": 27,
+    "mean_ms": 18,
+    "empty_rate": 0,
+    "slices": {
+      "exact_anchor": {
+        "n": 5,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 1,
+        "ndcg": 1
+      },
+      "negative_leakage": {
+        "n": 13,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 0.8461538461538461,
+        "ndcg": 0.981518870999137
+      },
+      "lexical_distractor": {
+        "n": 11,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 1,
+        "ndcg": 0.981518870999137
+      },
+      "semantic_win": {
+        "n": 11,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 1,
+        "ndcg": 0.9967218575742411
+      },
+      "conflict_resolution": {
+        "n": 2,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 1,
+        "ndcg": 0.8983537904952533
+      }
+    },
+    "exact_anchor_regressions": {
+      "regressions_top1": 0,
+      "regressions_top5": 0,
+      "total_exact_anchor_queries": 5
+    },
+    "negative_leakage": [
+      {
+        "query_id": "l3_synth_001",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/auth_retry_on_401.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_002",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/config_write_naive.md"
+        ],
+        "worst_rank": 3
+      },
+      {
+        "query_id": "l3_synth_004",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/memory_never_forget.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_005",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/chatgpt_blind_trust_streamed.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_006",
+        "query_type": "semantic_episode",
+        "leaked_ids": [
+          "lesson/http_5xx_retry.md"
+        ],
+        "worst_rank": 3
+      },
+      {
+        "query_id": "l3_synth_009",
+        "query_type": "semantic_episode",
+        "leaked_ids": [
+          "lesson/memory_never_forget.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_013",
+        "query_type": "procedure",
+        "leaked_ids": [
+          "lesson/config_write_naive.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_014",
+        "query_type": "procedure",
+        "leaked_ids": [
+          "lesson/chatgpt_blind_trust_streamed.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_015",
+        "query_type": "procedure",
+        "leaked_ids": [
+          "lesson/memory_never_forget.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_017",
+        "query_type": "conflict",
+        "leaked_ids": [
+          "lesson/http_5xx_retry.md"
+        ],
+        "worst_rank": 3
+      },
+      {
+        "query_id": "l3_synth_018",
+        "query_type": "conflict",
+        "leaked_ids": [
+          "lesson/cached_response_detection.md"
+        ],
+        "worst_rank": 3
+      }
+    ],
+    "embedding_cache": {
+      "entries": 45,
+      "db": "C:\\Next-Era\\Moneta\\eval\\.cache\\embeddings.sqlite"
+    }
+  },
+  "errors": {
+    "query_failures": 0,
+    "embedding_failures": 0,
+    "empty_queries": 0
+  },
+  "candidate_count": 16
+}

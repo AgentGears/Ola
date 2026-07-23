@@ -7,6 +7,17 @@
 /.ola/
 /.moneta/
 
+# Generated evaluation output (caches, smoke results, task checkpoints)
+# NOTE: eval/runs/ contains BASELINE run-records required by the test suite
+#       (exact-anchor-override, negative-leakage) and is NOT excluded.
+/eval/.cache/
+/eval/smoke/results/
+/eval/phase-w5/offload-task-*/
+/eval/phase-w5/tasks/
+
+# Stray dev artifacts
+/x
+
 # Local phase evidence and reports
 /phase-*.json
 /phase-d-inventory.json

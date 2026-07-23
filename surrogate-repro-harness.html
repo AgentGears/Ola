@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    Surrogate-split repro harness for chrome-devtools-mcp truncateTitle bug.
+    Each sub-page below has a <title> engineered so that truncateTitle(title, 50)
+    calls title.slice(0,47), which splits the emoji surrogate pair (high at index 46,
+    low at index 47 dropped) -> produces a lone \ud83e -> non-conforming JSON in the
+    rollout log -> later breaks context-retrieval/handoff with 'surrogates not allowed'.
+
+    Usage: open THIS page with chrome-devtools-mcp new_page, then list_pages.
+    The "## Pages" output of list_pages runs each visible tab's title through
+    truncateTitle. Click a link to open it in a new tab, then call list_pages.
+    The positive cases (TRIGGERS) will corrupt; the negative controls (safe) won't.
+
+    Diagnosis in this project: zcode.cjs p5o() = JSON.stringify with no sanitization;
+    chrome-devtools-mcp McpResponse.ts:1357 truncateTitle uses String.prototype.slice
+    on UTF-16 code units.
+  -->
+  <meta charset="utf-8">
+  <title>Surrogate repro harness (this page is safe — title is short)</title>
+  <style>
+    body { font: 14px/1.5 -apple-system, Segoe UI, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    .case { border: 1px solid #ddd; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+    .triggers { border-color: #d33; background: #fff5f5; }
+    .safe { border-color: #3a3; background: #f5fff5; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; color: white; }
+    .badge-t { background: #d33; }
+    .badge-s { background: #3a3; }
+    code { background: #f4f4f4; padding: 1px 4px; border-radius: 3px; }
+    .meta { color: #666; font-size: 12px; }
+    a { color: #0066cc; }
+  </style>
+</head>
+<body>
+  <h1>chrome-devtools-mcp <code>truncateTitle</code> surrogate-split repro harness</h1>
+  <p class="meta">
+    Open each linked sub-page in a new tab (click the link), then call
+    <code>list_pages</code>. Positive cases (red) will produce a lone
+    <code>\ud83e</code> in the truncated title; negative controls (green) won't.
+  </p>
+
+  <div class="case triggers">
+    <span class="badge badge-t">TRIGGERS</span>
+    <strong>pos-1: 46×'x' + 🤖 + "tail"</strong>
+    <div class="meta">emoji high surrogate at UTF-16 index 46; slice(0,47) splits the pair.</div>
+    <p><a href="pos1.html" target="_blank">Open pos1.html</a></p>
+  </div>
+
+  <div class="case triggers">
+    <span class="badge badge-t">TRIGGERS</span>
+    <strong>pos-2: 46×'x' + 😀 + "xyz"</strong>
+    <div class="meta">different emoji (U+1F600), same index-46 split.</div>
+    <p><a href="pos2.html" target="_blank">Open pos2.html</a></p>
+  </div>
+
+  <div class="case triggers">
+    <span class="badge badge-t">TRIGGERS</span>
+    <strong>pos-3: 46×'x' + 🚀 + " suffix here"</strong>
+    <div class="meta">rocket emoji (U+1F680), same split.</div>
+    <p><a href="pos3.html" target="_blank">Open pos3.html</a></p>
+  </div>
+
+  <div class="case triggers">
+    <span class="badge badge-t">TRIGGERS</span>
+    <strong>pos-4: realistic repo title + 🤖 + suffix</strong>
+    <div class="meta">"GitHub - shanebishop1/opencode-command-hooks: " is exactly 46 UTF-16 units; emoji lands at index 46.</div>
+    <p><a href="pos4.html" target="_blank">Open pos4.html</a></p>
+  </div>
+
+  <div class="case safe">
+    <span class="badge badge-s">safe</span>
+    <strong>neg-1: short title (≤50, no truncation)</strong>
+    <div class="meta">truncateTitle returns the title unchanged; no slicing.</div>
+    <p><a href="neg1.html" target="_blank">Open neg1.html</a></p>
+  </div>
+
+  <div class="case safe">
+    <span class="badge badge-s">safe</span>
+    <strong>neg-2: emoji at index 0 (full pair survives)</strong>
+    <div class="meta">slice(0,47) keeps both surrogate halves; no lone surrogate.</div>
+    <p><a href="neg2.html" target="_blank">Open neg2.html</a></p>
+  </div>
+
+  <hr>
+  <p class="meta">
+    Generated for the Moneta project surrogate-bug RCA. See
+    <code>C:\Next-Era\Moneta\</code> for the hook fix and DB-cleaning scripts.
+  </p>
+</body>
+</html>

@@ -1,0 +1,4619 @@
+{
+  "schema_version": "b0.run.v1",
+  "run_id": "b0-l3-synth-dense-2026-07-05T235952934Z",
+  "surface": "l3-synth",
+  "mode": "dense",
+  "timestamp": "2026-07-05T23:59:52.935Z",
+  "code": {
+    "git_sha": "norepo",
+    "dirty": false
+  },
+  "dataset_file": "eval\\datasets\\l3-synthetic-queries.jsonl",
+  "dataset_sha256": "b17169b06d901c4894a55df203b511af63ea4613d392ebee464d8bc056988a37",
+  "corpus_id": "l3-synthetic-corpus",
+  "corpus_sha256": "10cdc666b6a350727a4332858e7faa8955c702abd0df174e1fbce951dd50c766",
+  "retrieval_config": {
+    "weights": {
+      "relevance": 0.65,
+      "structural": 0.2,
+      "strength": 0.15
+    },
+    "top_k": 10,
+    "candidate_policy": "full_corpus",
+    "candidate_policy_description": "All records in the surface corpus are ranked. No pre-filter.",
+    "candidate_limit": null,
+    "exact_match_override": true,
+    "production_read_occurred": false
+  },
+  "embedding_config": {
+    "enabled": true,
+    "endpoint": "http://100.64.0.2:1234/v1/embeddings",
+    "base_url": "http://100.64.0.2:1234",
+    "model": "text-embedding-qwen3-embedding-0.6b",
+    "api_key_set": false,
+    "cache_db": "C:\\Next-Era\\Moneta\\eval\\.cache\\embeddings.sqlite",
+    "cache_key_algorithm": "sha256(model + '\\0' + sha256(embedding_url) + '\\0' + sha256(exact_text_bytes))"
+  },
+  "metric_config": {
+    "version": "b0.metrics.v1",
+    "grades": {
+      "ideal": 3,
+      "strong": 2,
+      "weak": 1,
+      "irrelevant": 0,
+      "harmful": -1
+    },
+    "negative_policy": "penalize_harmful_retrieval"
+  },
+  "query_count": 20,
+  "results": [
+    {
+      "query_id": "l3_synth_001",
+      "query": "auth_token_refresh",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 0.868,
+          "grade": 3,
+          "components": {
+            "final": 0.868,
+            "dense": 0.868,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 2,
+          "score": 0.74,
+          "grade": -1,
+          "components": {
+            "final": 0.74,
+            "dense": 0.74,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 3,
+          "score": 0.505,
+          "grade": 0,
+          "components": {
+            "final": 0.505,
+            "dense": 0.505,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 4,
+          "score": 0.481,
+          "grade": 0,
+          "components": {
+            "final": 0.481,
+            "dense": 0.481,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 5,
+          "score": 0.46,
+          "grade": 0,
+          "components": {
+            "final": 0.46,
+            "dense": 0.46,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 6,
+          "score": 0.432,
+          "grade": 0,
+          "components": {
+            "final": 0.432,
+            "dense": 0.432,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 7,
+          "score": 0.418,
+          "grade": 0,
+          "components": {
+            "final": 0.418,
+            "dense": 0.418,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 8,
+          "score": 0.413,
+          "grade": 0,
+          "components": {
+            "final": 0.413,
+            "dense": 0.413,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 9,
+          "score": 0.379,
+          "grade": 0,
+          "components": {
+            "final": 0.379,
+            "dense": 0.379,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.364,
+          "grade": 0,
+          "components": {
+            "final": 0.364,
+            "dense": 0.364,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 11,
+          "score": 0.34,
+          "grade": 0,
+          "components": {
+            "final": 0.34,
+            "dense": 0.34,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 12,
+          "score": 0.332,
+          "grade": 0,
+          "components": {
+            "final": 0.332,
+            "dense": 0.332,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 13,
+          "score": 0.269,
+          "grade": 0,
+          "components": {
+            "final": 0.269,
+            "dense": 0.269,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 14,
+          "score": 0.221,
+          "grade": 0,
+          "components": {
+            "final": 0.221,
+            "dense": 0.221,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.195,
+          "grade": 0,
+          "components": {
+            "final": 0.195,
+            "dense": 0.195,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.191,
+          "grade": 0,
+          "components": {
+            "final": 0.191,
+            "dense": 0.191,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 21
+    },
+    {
+      "query_id": "l3_synth_002",
+      "query": "config_patch_transactional",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 0.662,
+          "grade": 3,
+          "components": {
+            "final": 0.662,
+            "dense": 0.662,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 2,
+          "score": 0.61,
+          "grade": 0,
+          "components": {
+            "final": 0.61,
+            "dense": 0.61,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 3,
+          "score": 0.569,
+          "grade": 0,
+          "components": {
+            "final": 0.569,
+            "dense": 0.569,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 4,
+          "score": 0.507,
+          "grade": -1,
+          "components": {
+            "final": 0.507,
+            "dense": 0.507,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 5,
+          "score": 0.456,
+          "grade": 0,
+          "components": {
+            "final": 0.456,
+            "dense": 0.456,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 6,
+          "score": 0.454,
+          "grade": 0,
+          "components": {
+            "final": 0.454,
+            "dense": 0.454,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 7,
+          "score": 0.438,
+          "grade": 0,
+          "components": {
+            "final": 0.438,
+            "dense": 0.438,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 8,
+          "score": 0.434,
+          "grade": 0,
+          "components": {
+            "final": 0.434,
+            "dense": 0.434,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 9,
+          "score": 0.432,
+          "grade": 0,
+          "components": {
+            "final": 0.432,
+            "dense": 0.432,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 10,
+          "score": 0.425,
+          "grade": 0,
+          "components": {
+            "final": 0.425,
+            "dense": 0.425,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 11,
+          "score": 0.371,
+          "grade": 0,
+          "components": {
+            "final": 0.371,
+            "dense": 0.371,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 12,
+          "score": 0.36,
+          "grade": 0,
+          "components": {
+            "final": 0.36,
+            "dense": 0.36,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 13,
+          "score": 0.355,
+          "grade": 0,
+          "components": {
+            "final": 0.355,
+            "dense": 0.355,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 14,
+          "score": 0.354,
+          "grade": 0,
+          "components": {
+            "final": 0.354,
+            "dense": 0.354,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.304,
+          "grade": 0,
+          "components": {
+            "final": 0.304,
+            "dense": 0.304,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.233,
+          "grade": 0,
+          "components": {
+            "final": 0.233,
+            "dense": 0.233,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_003",
+      "query": "regex_quota_escaping",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 1,
+          "score": 0.624,
+          "grade": 3,
+          "components": {
+            "final": 0.624,
+            "dense": 0.624,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 2,
+          "score": 0.472,
+          "grade": 0,
+          "components": {
+            "final": 0.472,
+            "dense": 0.472,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 3,
+          "score": 0.461,
+          "grade": 0,
+          "components": {
+            "final": 0.461,
+            "dense": 0.461,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 4,
+          "score": 0.44,
+          "grade": 0,
+          "components": {
+            "final": 0.44,
+            "dense": 0.44,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 5,
+          "score": 0.404,
+          "grade": 0,
+          "components": {
+            "final": 0.404,
+            "dense": 0.404,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.394,
+          "grade": 0,
+          "components": {
+            "final": 0.394,
+            "dense": 0.394,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 7,
+          "score": 0.394,
+          "grade": 0,
+          "components": {
+            "final": 0.394,
+            "dense": 0.394,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 8,
+          "score": 0.38,
+          "grade": 0,
+          "components": {
+            "final": 0.38,
+            "dense": 0.38,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 9,
+          "score": 0.368,
+          "grade": 0,
+          "components": {
+            "final": 0.368,
+            "dense": 0.368,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.361,
+          "grade": 0,
+          "components": {
+            "final": 0.361,
+            "dense": 0.361,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 11,
+          "score": 0.343,
+          "grade": 0,
+          "components": {
+            "final": 0.343,
+            "dense": 0.343,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 12,
+          "score": 0.334,
+          "grade": 0,
+          "components": {
+            "final": 0.334,
+            "dense": 0.334,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 13,
+          "score": 0.311,
+          "grade": 0,
+          "components": {
+            "final": 0.311,
+            "dense": 0.311,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 14,
+          "score": 0.308,
+          "grade": 0,
+          "components": {
+            "final": 0.308,
+            "dense": 0.308,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.3,
+          "grade": 0,
+          "components": {
+            "final": 0.3,
+            "dense": 0.3,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 16,
+          "score": 0.269,
+          "grade": 0,
+          "components": {
+            "final": 0.269,
+            "dense": 0.269,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_004",
+      "query": "ebbinghaus_decay_calibrated",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 1,
+          "score": 0.674,
+          "grade": 3,
+          "components": {
+            "final": 0.674,
+            "dense": 0.674,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 2,
+          "score": 0.565,
+          "grade": 0,
+          "components": {
+            "final": 0.565,
+            "dense": 0.565,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 3,
+          "score": 0.539,
+          "grade": -1,
+          "components": {
+            "final": 0.539,
+            "dense": 0.539,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 4,
+          "score": 0.499,
+          "grade": 0,
+          "components": {
+            "final": 0.499,
+            "dense": 0.499,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 5,
+          "score": 0.472,
+          "grade": 0,
+          "components": {
+            "final": 0.472,
+            "dense": 0.472,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 6,
+          "score": 0.451,
+          "grade": 0,
+          "components": {
+            "final": 0.451,
+            "dense": 0.451,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 7,
+          "score": 0.45,
+          "grade": 0,
+          "components": {
+            "final": 0.45,
+            "dense": 0.45,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 8,
+          "score": 0.427,
+          "grade": 0,
+          "components": {
+            "final": 0.427,
+            "dense": 0.427,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.407,
+          "grade": 0,
+          "components": {
+            "final": 0.407,
+            "dense": 0.407,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.379,
+          "grade": 0,
+          "components": {
+            "final": 0.379,
+            "dense": 0.379,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 11,
+          "score": 0.355,
+          "grade": 0,
+          "components": {
+            "final": 0.355,
+            "dense": 0.355,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 12,
+          "score": 0.354,
+          "grade": 0,
+          "components": {
+            "final": 0.354,
+            "dense": 0.354,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 13,
+          "score": 0.313,
+          "grade": 0,
+          "components": {
+            "final": 0.313,
+            "dense": 0.313,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 14,
+          "score": 0.311,
+          "grade": 0,
+          "components": {
+            "final": 0.311,
+            "dense": 0.311,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.305,
+          "grade": 0,
+          "components": {
+            "final": 0.305,
+            "dense": 0.305,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.267,
+          "grade": 0,
+          "components": {
+            "final": 0.267,
+            "dense": 0.267,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 15
+    },
+    {
+      "query_id": "l3_synth_005",
+      "query": "cached_response_detection",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 0.747,
+          "grade": 3,
+          "components": {
+            "final": 0.747,
+            "dense": 0.747,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 2,
+          "score": 0.654,
+          "grade": -1,
+          "components": {
+            "final": 0.654,
+            "dense": 0.654,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 3,
+          "score": 0.55,
+          "grade": 0,
+          "components": {
+            "final": 0.55,
+            "dense": 0.55,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.521,
+          "grade": 0,
+          "components": {
+            "final": 0.521,
+            "dense": 0.521,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 5,
+          "score": 0.515,
+          "grade": 0,
+          "components": {
+            "final": 0.515,
+            "dense": 0.515,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 6,
+          "score": 0.513,
+          "grade": 0,
+          "components": {
+            "final": 0.513,
+            "dense": 0.513,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 7,
+          "score": 0.479,
+          "grade": 0,
+          "components": {
+            "final": 0.479,
+            "dense": 0.479,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 8,
+          "score": 0.478,
+          "grade": 0,
+          "components": {
+            "final": 0.478,
+            "dense": 0.478,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 9,
+          "score": 0.464,
+          "grade": 0,
+          "components": {
+            "final": 0.464,
+            "dense": 0.464,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 10,
+          "score": 0.449,
+          "grade": 0,
+          "components": {
+            "final": 0.449,
+            "dense": 0.449,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 11,
+          "score": 0.426,
+          "grade": 0,
+          "components": {
+            "final": 0.426,
+            "dense": 0.426,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 12,
+          "score": 0.414,
+          "grade": 0,
+          "components": {
+            "final": 0.414,
+            "dense": 0.414,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.41,
+          "grade": 0,
+          "components": {
+            "final": 0.41,
+            "dense": 0.41,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.326,
+          "grade": 0,
+          "components": {
+            "final": 0.326,
+            "dense": 0.326,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.324,
+          "grade": 0,
+          "components": {
+            "final": 0.324,
+            "dense": 0.324,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.24,
+          "grade": 0,
+          "components": {
+            "final": 0.24,
+            "dense": 0.24,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 15
+    },
+    {
+      "query_id": "l3_synth_006",
+      "query": "how do I refresh an expired JWT before calling the API",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 0.869,
+          "grade": 3,
+          "components": {
+            "final": 0.869,
+            "dense": 0.869,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 2,
+          "score": 0.7,
+          "grade": 1,
+          "components": {
+            "final": 0.7,
+            "dense": 0.7,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 3,
+          "score": 0.53,
+          "grade": -1,
+          "components": {
+            "final": 0.53,
+            "dense": 0.53,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.495,
+          "grade": 0,
+          "components": {
+            "final": 0.495,
+            "dense": 0.495,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.467,
+          "grade": 0,
+          "components": {
+            "final": 0.467,
+            "dense": 0.467,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 6,
+          "score": 0.431,
+          "grade": 0,
+          "components": {
+            "final": 0.431,
+            "dense": 0.431,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 7,
+          "score": 0.413,
+          "grade": 0,
+          "components": {
+            "final": 0.413,
+            "dense": 0.413,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 8,
+          "score": 0.403,
+          "grade": 0,
+          "components": {
+            "final": 0.403,
+            "dense": 0.403,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 9,
+          "score": 0.398,
+          "grade": 0,
+          "components": {
+            "final": 0.398,
+            "dense": 0.398,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.381,
+          "grade": 0,
+          "components": {
+            "final": 0.381,
+            "dense": 0.381,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 11,
+          "score": 0.374,
+          "grade": 0,
+          "components": {
+            "final": 0.374,
+            "dense": 0.374,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 12,
+          "score": 0.336,
+          "grade": 0,
+          "components": {
+            "final": 0.336,
+            "dense": 0.336,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.314,
+          "grade": 0,
+          "components": {
+            "final": 0.314,
+            "dense": 0.314,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 14,
+          "score": 0.283,
+          "grade": 0,
+          "components": {
+            "final": 0.283,
+            "dense": 0.283,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.221,
+          "grade": 0,
+          "components": {
+            "final": 0.221,
+            "dense": 0.221,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.205,
+          "grade": 0,
+          "components": {
+            "final": 0.205,
+            "dense": 0.205,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_007",
+      "query": "what is the safe way to mutate host agent config json",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 0.785,
+          "grade": 3,
+          "components": {
+            "final": 0.785,
+            "dense": 0.785,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 2,
+          "score": 0.697,
+          "grade": 1,
+          "components": {
+            "final": 0.697,
+            "dense": 0.697,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 3,
+          "score": 0.479,
+          "grade": -1,
+          "components": {
+            "final": 0.479,
+            "dense": 0.479,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 4,
+          "score": 0.456,
+          "grade": 0,
+          "components": {
+            "final": 0.456,
+            "dense": 0.456,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 5,
+          "score": 0.431,
+          "grade": 0,
+          "components": {
+            "final": 0.431,
+            "dense": 0.431,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.426,
+          "grade": 0,
+          "components": {
+            "final": 0.426,
+            "dense": 0.426,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 7,
+          "score": 0.391,
+          "grade": 0,
+          "components": {
+            "final": 0.391,
+            "dense": 0.391,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 8,
+          "score": 0.366,
+          "grade": 0,
+          "components": {
+            "final": 0.366,
+            "dense": 0.366,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 9,
+          "score": 0.357,
+          "grade": 0,
+          "components": {
+            "final": 0.357,
+            "dense": 0.357,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 10,
+          "score": 0.349,
+          "grade": 0,
+          "components": {
+            "final": 0.349,
+            "dense": 0.349,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 11,
+          "score": 0.323,
+          "grade": 0,
+          "components": {
+            "final": 0.323,
+            "dense": 0.323,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 12,
+          "score": 0.317,
+          "grade": 0,
+          "components": {
+            "final": 0.317,
+            "dense": 0.317,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.283,
+          "grade": 0,
+          "components": {
+            "final": 0.283,
+            "dense": 0.283,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 14,
+          "score": 0.277,
+          "grade": 0,
+          "components": {
+            "final": 0.277,
+            "dense": 0.277,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.236,
+          "grade": 0,
+          "components": {
+            "final": 0.236,
+            "dense": 0.236,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.205,
+          "grade": 0,
+          "components": {
+            "final": 0.205,
+            "dense": 0.205,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 15
+    },
+    {
+      "query_id": "l3_synth_008",
+      "query": "how do I know if a chatgpt response is cached or fresh",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "grade": 1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 0.898,
+          "grade": 3,
+          "components": {
+            "final": 0.898,
+            "dense": 0.898,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 2,
+          "score": 0.789,
+          "grade": 1,
+          "components": {
+            "final": 0.789,
+            "dense": 0.789,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 3,
+          "score": 0.555,
+          "grade": 0,
+          "components": {
+            "final": 0.555,
+            "dense": 0.555,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 4,
+          "score": 0.548,
+          "grade": 0,
+          "components": {
+            "final": 0.548,
+            "dense": 0.548,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 5,
+          "score": 0.505,
+          "grade": 0,
+          "components": {
+            "final": 0.505,
+            "dense": 0.505,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 6,
+          "score": 0.496,
+          "grade": 0,
+          "components": {
+            "final": 0.496,
+            "dense": 0.496,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 7,
+          "score": 0.479,
+          "grade": 0,
+          "components": {
+            "final": 0.479,
+            "dense": 0.479,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 8,
+          "score": 0.473,
+          "grade": 0,
+          "components": {
+            "final": 0.473,
+            "dense": 0.473,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 9,
+          "score": 0.459,
+          "grade": 0,
+          "components": {
+            "final": 0.459,
+            "dense": 0.459,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 10,
+          "score": 0.448,
+          "grade": 0,
+          "components": {
+            "final": 0.448,
+            "dense": 0.448,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 11,
+          "score": 0.41,
+          "grade": 0,
+          "components": {
+            "final": 0.41,
+            "dense": 0.41,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 12,
+          "score": 0.408,
+          "grade": 0,
+          "components": {
+            "final": 0.408,
+            "dense": 0.408,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.34,
+          "grade": 0,
+          "components": {
+            "final": 0.34,
+            "dense": 0.34,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.32,
+          "grade": 0,
+          "components": {
+            "final": 0.32,
+            "dense": 0.32,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.23,
+          "grade": 0,
+          "components": {
+            "final": 0.23,
+            "dense": 0.23,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.208,
+          "grade": 0,
+          "components": {
+            "final": 0.208,
+            "dense": 0.208,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 17
+    },
+    {
+      "query_id": "l3_synth_009",
+      "query": "what formula should I use for memory decay over time",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 1,
+          "score": 0.84,
+          "grade": 3,
+          "components": {
+            "final": 0.84,
+            "dense": 0.84,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.641,
+          "grade": -1,
+          "components": {
+            "final": 0.641,
+            "dense": 0.641,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 3,
+          "score": 0.497,
+          "grade": 0,
+          "components": {
+            "final": 0.497,
+            "dense": 0.497,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 4,
+          "score": 0.478,
+          "grade": 0,
+          "components": {
+            "final": 0.478,
+            "dense": 0.478,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 5,
+          "score": 0.46,
+          "grade": 0,
+          "components": {
+            "final": 0.46,
+            "dense": 0.46,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 6,
+          "score": 0.434,
+          "grade": 0,
+          "components": {
+            "final": 0.434,
+            "dense": 0.434,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 7,
+          "score": 0.424,
+          "grade": 0,
+          "components": {
+            "final": 0.424,
+            "dense": 0.424,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 8,
+          "score": 0.415,
+          "grade": 0,
+          "components": {
+            "final": 0.415,
+            "dense": 0.415,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.41,
+          "grade": 0,
+          "components": {
+            "final": 0.41,
+            "dense": 0.41,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 10,
+          "score": 0.364,
+          "grade": 0,
+          "components": {
+            "final": 0.364,
+            "dense": 0.364,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 11,
+          "score": 0.354,
+          "grade": 0,
+          "components": {
+            "final": 0.354,
+            "dense": 0.354,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 12,
+          "score": 0.319,
+          "grade": 0,
+          "components": {
+            "final": 0.319,
+            "dense": 0.319,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 13,
+          "score": 0.273,
+          "grade": 0,
+          "components": {
+            "final": 0.273,
+            "dense": 0.273,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 14,
+          "score": 0.251,
+          "grade": 0,
+          "components": {
+            "final": 0.251,
+            "dense": 0.251,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.249,
+          "grade": 0,
+          "components": {
+            "final": 0.249,
+            "dense": 0.249,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.249,
+          "grade": 0,
+          "components": {
+            "final": 0.249,
+            "dense": 0.249,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 17
+    },
+    {
+      "query_id": "l3_synth_010",
+      "query": "how do I handle backslash paths when opening sqlite on windows",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "grade": 1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 1,
+          "score": 0.796,
+          "grade": 3,
+          "components": {
+            "final": 0.796,
+            "dense": 0.796,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 2,
+          "score": 0.449,
+          "grade": 0,
+          "components": {
+            "final": 0.449,
+            "dense": 0.449,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 3,
+          "score": 0.413,
+          "grade": 0,
+          "components": {
+            "final": 0.413,
+            "dense": 0.413,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 4,
+          "score": 0.364,
+          "grade": 0,
+          "components": {
+            "final": 0.364,
+            "dense": 0.364,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 5,
+          "score": 0.362,
+          "grade": 1,
+          "components": {
+            "final": 0.362,
+            "dense": 0.362,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 6,
+          "score": 0.332,
+          "grade": 0,
+          "components": {
+            "final": 0.332,
+            "dense": 0.332,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 7,
+          "score": 0.323,
+          "grade": 0,
+          "components": {
+            "final": 0.323,
+            "dense": 0.323,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 8,
+          "score": 0.32,
+          "grade": 0,
+          "components": {
+            "final": 0.32,
+            "dense": 0.32,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 9,
+          "score": 0.313,
+          "grade": 0,
+          "components": {
+            "final": 0.313,
+            "dense": 0.313,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 10,
+          "score": 0.298,
+          "grade": 0,
+          "components": {
+            "final": 0.298,
+            "dense": 0.298,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 11,
+          "score": 0.296,
+          "grade": 0,
+          "components": {
+            "final": 0.296,
+            "dense": 0.296,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 12,
+          "score": 0.294,
+          "grade": 0,
+          "components": {
+            "final": 0.294,
+            "dense": 0.294,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 13,
+          "score": 0.264,
+          "grade": 0,
+          "components": {
+            "final": 0.264,
+            "dense": 0.264,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 14,
+          "score": 0.254,
+          "grade": 0,
+          "components": {
+            "final": 0.254,
+            "dense": 0.254,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 15,
+          "score": 0.24,
+          "grade": 0,
+          "components": {
+            "final": 0.24,
+            "dense": 0.24,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 16,
+          "score": 0.217,
+          "grade": 0,
+          "components": {
+            "final": 0.217,
+            "dense": 0.217,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 0.9327783893101107
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_011",
+      "query": "which session debugged the unbounded async hang",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 1,
+          "score": 0.652,
+          "grade": 3,
+          "components": {
+            "final": 0.652,
+            "dense": 0.652,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 2,
+          "score": 0.491,
+          "grade": 0,
+          "components": {
+            "final": 0.491,
+            "dense": 0.491,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 3,
+          "score": 0.477,
+          "grade": 0,
+          "components": {
+            "final": 0.477,
+            "dense": 0.477,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 4,
+          "score": 0.452,
+          "grade": 0,
+          "components": {
+            "final": 0.452,
+            "dense": 0.452,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.409,
+          "grade": 0,
+          "components": {
+            "final": 0.409,
+            "dense": 0.409,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 6,
+          "score": 0.388,
+          "grade": 0,
+          "components": {
+            "final": 0.388,
+            "dense": 0.388,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 7,
+          "score": 0.385,
+          "grade": 0,
+          "components": {
+            "final": 0.385,
+            "dense": 0.385,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 8,
+          "score": 0.364,
+          "grade": 0,
+          "components": {
+            "final": 0.364,
+            "dense": 0.364,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 9,
+          "score": 0.358,
+          "grade": 0,
+          "components": {
+            "final": 0.358,
+            "dense": 0.358,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 10,
+          "score": 0.342,
+          "grade": 0,
+          "components": {
+            "final": 0.342,
+            "dense": 0.342,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 11,
+          "score": 0.323,
+          "grade": 0,
+          "components": {
+            "final": 0.323,
+            "dense": 0.323,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 12,
+          "score": 0.304,
+          "grade": 0,
+          "components": {
+            "final": 0.304,
+            "dense": 0.304,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.302,
+          "grade": 0,
+          "components": {
+            "final": 0.302,
+            "dense": 0.302,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.263,
+          "grade": 0,
+          "components": {
+            "final": 0.263,
+            "dense": 0.263,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.243,
+          "grade": 0,
+          "components": {
+            "final": 0.243,
+            "dense": 0.243,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.203,
+          "grade": 0,
+          "components": {
+            "final": 0.203,
+            "dense": 0.203,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_012",
+      "query": "how was the roasting prompt migrated to a skill",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 1,
+          "score": 0.739,
+          "grade": 3,
+          "components": {
+            "final": 0.739,
+            "dense": 0.739,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 2,
+          "score": 0.581,
+          "grade": 0,
+          "components": {
+            "final": 0.581,
+            "dense": 0.581,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 3,
+          "score": 0.553,
+          "grade": 0,
+          "components": {
+            "final": 0.553,
+            "dense": 0.553,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 4,
+          "score": 0.529,
+          "grade": 0,
+          "components": {
+            "final": 0.529,
+            "dense": 0.529,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 5,
+          "score": 0.455,
+          "grade": 0,
+          "components": {
+            "final": 0.455,
+            "dense": 0.455,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.453,
+          "grade": 0,
+          "components": {
+            "final": 0.453,
+            "dense": 0.453,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 7,
+          "score": 0.437,
+          "grade": 0,
+          "components": {
+            "final": 0.437,
+            "dense": 0.437,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 8,
+          "score": 0.418,
+          "grade": 0,
+          "components": {
+            "final": 0.418,
+            "dense": 0.418,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.404,
+          "grade": 0,
+          "components": {
+            "final": 0.404,
+            "dense": 0.404,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 10,
+          "score": 0.388,
+          "grade": 0,
+          "components": {
+            "final": 0.388,
+            "dense": 0.388,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 11,
+          "score": 0.386,
+          "grade": 0,
+          "components": {
+            "final": 0.386,
+            "dense": 0.386,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 12,
+          "score": 0.384,
+          "grade": 0,
+          "components": {
+            "final": 0.384,
+            "dense": 0.384,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.322,
+          "grade": 0,
+          "components": {
+            "final": 0.322,
+            "dense": 0.322,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.31,
+          "grade": 0,
+          "components": {
+            "final": 0.31,
+            "dense": 0.31,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.294,
+          "grade": 0,
+          "components": {
+            "final": 0.294,
+            "dense": 0.294,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.25,
+          "grade": 0,
+          "components": {
+            "final": 0.25,
+            "dense": 0.25,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_013",
+      "query": "walk me through the safe sequence for patching config json",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 0.768,
+          "grade": 3,
+          "components": {
+            "final": 0.768,
+            "dense": 0.768,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 2,
+          "score": 0.657,
+          "grade": -1,
+          "components": {
+            "final": 0.657,
+            "dense": 0.657,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 3,
+          "score": 0.526,
+          "grade": 0,
+          "components": {
+            "final": 0.526,
+            "dense": 0.526,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 4,
+          "score": 0.461,
+          "grade": 0,
+          "components": {
+            "final": 0.461,
+            "dense": 0.461,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 5,
+          "score": 0.421,
+          "grade": 0,
+          "components": {
+            "final": 0.421,
+            "dense": 0.421,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 6,
+          "score": 0.395,
+          "grade": 0,
+          "components": {
+            "final": 0.395,
+            "dense": 0.395,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 7,
+          "score": 0.394,
+          "grade": 0,
+          "components": {
+            "final": 0.394,
+            "dense": 0.394,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.391,
+          "grade": 0,
+          "components": {
+            "final": 0.391,
+            "dense": 0.391,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 9,
+          "score": 0.365,
+          "grade": 0,
+          "components": {
+            "final": 0.365,
+            "dense": 0.365,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 10,
+          "score": 0.362,
+          "grade": 0,
+          "components": {
+            "final": 0.362,
+            "dense": 0.362,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 11,
+          "score": 0.334,
+          "grade": 0,
+          "components": {
+            "final": 0.334,
+            "dense": 0.334,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 12,
+          "score": 0.332,
+          "grade": 0,
+          "components": {
+            "final": 0.332,
+            "dense": 0.332,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.298,
+          "grade": 0,
+          "components": {
+            "final": 0.298,
+            "dense": 0.298,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.27,
+          "grade": 0,
+          "components": {
+            "final": 0.27,
+            "dense": 0.27,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.251,
+          "grade": 0,
+          "components": {
+            "final": 0.251,
+            "dense": 0.251,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 16,
+          "score": 0.25,
+          "grade": 0,
+          "components": {
+            "final": 0.25,
+            "dense": 0.25,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 18
+    },
+    {
+      "query_id": "l3_synth_014",
+      "query": "what steps verify a chatgpt send actually landed in the conversation",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 0.792,
+          "grade": 3,
+          "components": {
+            "final": 0.792,
+            "dense": 0.792,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 2,
+          "score": 0.761,
+          "grade": -1,
+          "components": {
+            "final": 0.761,
+            "dense": 0.761,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 3,
+          "score": 0.538,
+          "grade": 0,
+          "components": {
+            "final": 0.538,
+            "dense": 0.538,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 4,
+          "score": 0.524,
+          "grade": 0,
+          "components": {
+            "final": 0.524,
+            "dense": 0.524,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 5,
+          "score": 0.505,
+          "grade": 0,
+          "components": {
+            "final": 0.505,
+            "dense": 0.505,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 6,
+          "score": 0.461,
+          "grade": 0,
+          "components": {
+            "final": 0.461,
+            "dense": 0.461,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 7,
+          "score": 0.449,
+          "grade": 0,
+          "components": {
+            "final": 0.449,
+            "dense": 0.449,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 8,
+          "score": 0.436,
+          "grade": 0,
+          "components": {
+            "final": 0.436,
+            "dense": 0.436,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 9,
+          "score": 0.425,
+          "grade": 0,
+          "components": {
+            "final": 0.425,
+            "dense": 0.425,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 10,
+          "score": 0.404,
+          "grade": 0,
+          "components": {
+            "final": 0.404,
+            "dense": 0.404,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 11,
+          "score": 0.381,
+          "grade": 0,
+          "components": {
+            "final": 0.381,
+            "dense": 0.381,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 12,
+          "score": 0.37,
+          "grade": 0,
+          "components": {
+            "final": 0.37,
+            "dense": 0.37,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.346,
+          "grade": 0,
+          "components": {
+            "final": 0.346,
+            "dense": 0.346,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.292,
+          "grade": 0,
+          "components": {
+            "final": 0.292,
+            "dense": 0.292,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.266,
+          "grade": 0,
+          "components": {
+            "final": 0.266,
+            "dense": 0.266,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.247,
+          "grade": 0,
+          "components": {
+            "final": 0.247,
+            "dense": 0.247,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 20
+    },
+    {
+      "query_id": "l3_synth_015",
+      "query": "how do I compute memory strength from confidence and last_used timestamp",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 1,
+          "score": 0.821,
+          "grade": 3,
+          "components": {
+            "final": 0.821,
+            "dense": 0.821,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.629,
+          "grade": -1,
+          "components": {
+            "final": 0.629,
+            "dense": 0.629,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 3,
+          "score": 0.523,
+          "grade": 0,
+          "components": {
+            "final": 0.523,
+            "dense": 0.523,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.516,
+          "grade": 0,
+          "components": {
+            "final": 0.516,
+            "dense": 0.516,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 5,
+          "score": 0.494,
+          "grade": 0,
+          "components": {
+            "final": 0.494,
+            "dense": 0.494,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 6,
+          "score": 0.479,
+          "grade": 0,
+          "components": {
+            "final": 0.479,
+            "dense": 0.479,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 7,
+          "score": 0.433,
+          "grade": 0,
+          "components": {
+            "final": 0.433,
+            "dense": 0.433,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 8,
+          "score": 0.402,
+          "grade": 0,
+          "components": {
+            "final": 0.402,
+            "dense": 0.402,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 9,
+          "score": 0.387,
+          "grade": 0,
+          "components": {
+            "final": 0.387,
+            "dense": 0.387,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 10,
+          "score": 0.367,
+          "grade": 0,
+          "components": {
+            "final": 0.367,
+            "dense": 0.367,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 11,
+          "score": 0.345,
+          "grade": 0,
+          "components": {
+            "final": 0.345,
+            "dense": 0.345,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 12,
+          "score": 0.326,
+          "grade": 0,
+          "components": {
+            "final": 0.326,
+            "dense": 0.326,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.323,
+          "grade": 0,
+          "components": {
+            "final": 0.323,
+            "dense": 0.323,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.301,
+          "grade": 0,
+          "components": {
+            "final": 0.301,
+            "dense": 0.301,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.282,
+          "grade": 0,
+          "components": {
+            "final": 0.282,
+            "dense": 0.282,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.223,
+          "grade": 0,
+          "components": {
+            "final": 0.223,
+            "dense": 0.223,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_016",
+      "query": "what verification confirms the token was actually refreshed",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 0.74,
+          "grade": 3,
+          "components": {
+            "final": 0.74,
+            "dense": 0.74,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 2,
+          "score": 0.619,
+          "grade": 0,
+          "components": {
+            "final": 0.619,
+            "dense": 0.619,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 3,
+          "score": 0.594,
+          "grade": 0,
+          "components": {
+            "final": 0.594,
+            "dense": 0.594,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 4,
+          "score": 0.458,
+          "grade": 0,
+          "components": {
+            "final": 0.458,
+            "dense": 0.458,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.44,
+          "grade": 0,
+          "components": {
+            "final": 0.44,
+            "dense": 0.44,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 6,
+          "score": 0.426,
+          "grade": 0,
+          "components": {
+            "final": 0.426,
+            "dense": 0.426,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 7,
+          "score": 0.41,
+          "grade": 0,
+          "components": {
+            "final": 0.41,
+            "dense": 0.41,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 8,
+          "score": 0.41,
+          "grade": 0,
+          "components": {
+            "final": 0.41,
+            "dense": 0.41,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 9,
+          "score": 0.397,
+          "grade": 0,
+          "components": {
+            "final": 0.397,
+            "dense": 0.397,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 10,
+          "score": 0.357,
+          "grade": 0,
+          "components": {
+            "final": 0.357,
+            "dense": 0.357,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 11,
+          "score": 0.342,
+          "grade": 0,
+          "components": {
+            "final": 0.342,
+            "dense": 0.342,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 12,
+          "score": 0.268,
+          "grade": 0,
+          "components": {
+            "final": 0.268,
+            "dense": 0.268,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.26,
+          "grade": 0,
+          "components": {
+            "final": 0.26,
+            "dense": 0.26,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.242,
+          "grade": 0,
+          "components": {
+            "final": 0.242,
+            "dense": 0.242,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 15,
+          "score": 0.184,
+          "grade": 0,
+          "components": {
+            "final": 0.184,
+            "dense": 0.184,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.18,
+          "grade": 0,
+          "components": {
+            "final": 0.18,
+            "dense": 0.18,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_017",
+      "query": "which memory governs token refresh before API calls: retry on 401 or refresh first",
+      "query_type": "conflict",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 1,
+          "score": 0.834,
+          "grade": 1,
+          "components": {
+            "final": 0.834,
+            "dense": 0.834,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 2,
+          "score": 0.787,
+          "grade": 3,
+          "components": {
+            "final": 0.787,
+            "dense": 0.787,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 3,
+          "score": 0.617,
+          "grade": -1,
+          "components": {
+            "final": 0.617,
+            "dense": 0.617,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.583,
+          "grade": 0,
+          "components": {
+            "final": 0.583,
+            "dense": 0.583,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.517,
+          "grade": 0,
+          "components": {
+            "final": 0.517,
+            "dense": 0.517,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 6,
+          "score": 0.48,
+          "grade": 0,
+          "components": {
+            "final": 0.48,
+            "dense": 0.48,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 7,
+          "score": 0.441,
+          "grade": 0,
+          "components": {
+            "final": 0.441,
+            "dense": 0.441,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 8,
+          "score": 0.416,
+          "grade": 0,
+          "components": {
+            "final": 0.416,
+            "dense": 0.416,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 9,
+          "score": 0.41,
+          "grade": 0,
+          "components": {
+            "final": 0.41,
+            "dense": 0.41,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 10,
+          "score": 0.4,
+          "grade": 0,
+          "components": {
+            "final": 0.4,
+            "dense": 0.4,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 11,
+          "score": 0.343,
+          "grade": 0,
+          "components": {
+            "final": 0.343,
+            "dense": 0.343,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 12,
+          "score": 0.294,
+          "grade": 0,
+          "components": {
+            "final": 0.294,
+            "dense": 0.294,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.289,
+          "grade": 0,
+          "components": {
+            "final": 0.289,
+            "dense": 0.289,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 14,
+          "score": 0.284,
+          "grade": 0,
+          "components": {
+            "final": 0.284,
+            "dense": 0.284,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.245,
+          "grade": 0,
+          "components": {
+            "final": 0.245,
+            "dense": 0.245,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.192,
+          "grade": 0,
+          "components": {
+            "final": 0.192,
+            "dense": 0.192,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 0.7967075809905066
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_018",
+      "query": "should memories decay over time or be retained at full strength forever",
+      "query_type": "conflict",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 1,
+          "score": 0.814,
+          "grade": 3,
+          "components": {
+            "final": 0.814,
+            "dense": 0.814,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.762,
+          "grade": 1,
+          "components": {
+            "final": 0.762,
+            "dense": 0.762,
+            "dense_source": "cache"
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 3,
+          "score": 0.534,
+          "grade": 0,
+          "components": {
+            "final": 0.534,
+            "dense": 0.534,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 4,
+          "score": 0.53,
+          "grade": 0,
+          "components": {
+            "final": 0.53,
+            "dense": 0.53,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 5,
+          "score": 0.523,
+          "grade": -1,
+          "components": {
+            "final": 0.523,
+            "dense": 0.523,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 6,
+          "score": 0.505,
+          "grade": 0,
+          "components": {
+            "final": 0.505,
+            "dense": 0.505,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 7,
+          "score": 0.478,
+          "grade": 0,
+          "components": {
+            "final": 0.478,
+            "dense": 0.478,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 8,
+          "score": 0.441,
+          "grade": 0,
+          "components": {
+            "final": 0.441,
+            "dense": 0.441,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 9,
+          "score": 0.402,
+          "grade": 0,
+          "components": {
+            "final": 0.402,
+            "dense": 0.402,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 10,
+          "score": 0.401,
+          "grade": 0,
+          "components": {
+            "final": 0.401,
+            "dense": 0.401,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 11,
+          "score": 0.389,
+          "grade": 0,
+          "components": {
+            "final": 0.389,
+            "dense": 0.389,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 12,
+          "score": 0.378,
+          "grade": 0,
+          "components": {
+            "final": 0.378,
+            "dense": 0.378,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 13,
+          "score": 0.32,
+          "grade": 0,
+          "components": {
+            "final": 0.32,
+            "dense": 0.32,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 14,
+          "score": 0.315,
+          "grade": 0,
+          "components": {
+            "final": 0.315,
+            "dense": 0.315,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.271,
+          "grade": 0,
+          "components": {
+            "final": 0.271,
+            "dense": 0.271,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.216,
+          "grade": 0,
+          "components": {
+            "final": 0.216,
+            "dense": 0.216,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 17
+    },
+    {
+      "query_id": "l3_synth_019",
+      "query": "what color should the dashboard background be",
+      "query_type": "negative",
+      "gold": [
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 1,
+          "score": 0.403,
+          "grade": 0,
+          "components": {
+            "final": 0.403,
+            "dense": 0.403,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 2,
+          "score": 0.401,
+          "grade": 0,
+          "components": {
+            "final": 0.401,
+            "dense": 0.401,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 3,
+          "score": 0.381,
+          "grade": -1,
+          "components": {
+            "final": 0.381,
+            "dense": 0.381,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 4,
+          "score": 0.378,
+          "grade": 0,
+          "components": {
+            "final": 0.378,
+            "dense": 0.378,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 5,
+          "score": 0.371,
+          "grade": 0,
+          "components": {
+            "final": 0.371,
+            "dense": 0.371,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 6,
+          "score": 0.36,
+          "grade": 0,
+          "components": {
+            "final": 0.36,
+            "dense": 0.36,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 7,
+          "score": 0.341,
+          "grade": 0,
+          "components": {
+            "final": 0.341,
+            "dense": 0.341,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 8,
+          "score": 0.319,
+          "grade": 0,
+          "components": {
+            "final": 0.319,
+            "dense": 0.319,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 9,
+          "score": 0.312,
+          "grade": 0,
+          "components": {
+            "final": 0.312,
+            "dense": 0.312,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 10,
+          "score": 0.301,
+          "grade": 0,
+          "components": {
+            "final": 0.301,
+            "dense": 0.301,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 11,
+          "score": 0.28,
+          "grade": 0,
+          "components": {
+            "final": 0.28,
+            "dense": 0.28,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 12,
+          "score": 0.269,
+          "grade": 0,
+          "components": {
+            "final": 0.269,
+            "dense": 0.269,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 13,
+          "score": 0.261,
+          "grade": 0,
+          "components": {
+            "final": 0.261,
+            "dense": 0.261,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 14,
+          "score": 0.232,
+          "grade": 0,
+          "components": {
+            "final": 0.232,
+            "dense": 0.232,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.221,
+          "grade": 0,
+          "components": {
+            "final": 0.221,
+            "dense": 0.221,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.183,
+          "grade": 0,
+          "components": {
+            "final": 0.183,
+            "dense": 0.183,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": null,
+        "recall@10": null,
+        "rr": 0,
+        "ndcg": null
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_020",
+      "query": "who won the world series in 1998",
+      "query_type": "negative",
+      "gold": [
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 0.309,
+          "grade": 0,
+          "components": {
+            "final": 0.309,
+            "dense": 0.309,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 2,
+          "score": 0.292,
+          "grade": 0,
+          "components": {
+            "final": 0.292,
+            "dense": 0.292,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 3,
+          "score": 0.29,
+          "grade": 0,
+          "components": {
+            "final": 0.29,
+            "dense": 0.29,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 4,
+          "score": 0.29,
+          "grade": -1,
+          "components": {
+            "final": 0.29,
+            "dense": 0.29,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 5,
+          "score": 0.288,
+          "grade": 0,
+          "components": {
+            "final": 0.288,
+            "dense": 0.288,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 6,
+          "score": 0.25,
+          "grade": 0,
+          "components": {
+            "final": 0.25,
+            "dense": 0.25,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 7,
+          "score": 0.247,
+          "grade": 0,
+          "components": {
+            "final": 0.247,
+            "dense": 0.247,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 8,
+          "score": 0.244,
+          "grade": 0,
+          "components": {
+            "final": 0.244,
+            "dense": 0.244,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 9,
+          "score": 0.242,
+          "grade": 0,
+          "components": {
+            "final": 0.242,
+            "dense": 0.242,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.233,
+          "grade": 0,
+          "components": {
+            "final": 0.233,
+            "dense": 0.233,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 11,
+          "score": 0.223,
+          "grade": 0,
+          "components": {
+            "final": 0.223,
+            "dense": 0.223,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 12,
+          "score": 0.215,
+          "grade": 0,
+          "components": {
+            "final": 0.215,
+            "dense": 0.215,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 13,
+          "score": 0.213,
+          "grade": 0,
+          "components": {
+            "final": 0.213,
+            "dense": 0.213,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 14,
+          "score": 0.203,
+          "grade": 0,
+          "components": {
+            "final": 0.203,
+            "dense": 0.203,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.149,
+          "grade": 0,
+          "components": {
+            "final": 0.149,
+            "dense": 0.149,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 16,
+          "score": 0.148,
+          "grade": 0,
+          "components": {
+            "final": 0.148,
+            "dense": 0.148,
+            "dense_source": "cache"
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": null,
+        "recall@10": null,
+        "rr": 0,
+        "ndcg": null
+      },
+      "latency_ms": 15
+    }
+  ],
+  "aggregate": {
+    "recall@5": 1,
+    "recall@10": 1,
+    "mrr": 0.9,
+    "ndcg": 0.9849714427944787,
+    "p50_ms": 16,
+    "p95_ms": 21,
+    "mean_ms": 16.5,
+    "empty_rate": 0,
+    "slices": {
+      "exact_anchor": {
+        "n": 5,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 1,
+        "ndcg": 1
+      },
+      "negative_leakage": {
+        "n": 14,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 0.8571428571428571,
+        "ndcg": 0.9830589650825422
+      },
+      "lexical_distractor": {
+        "n": 11,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 0.9090909090909091,
+        "ndcg": 0.9796707580990507
+      },
+      "semantic_win": {
+        "n": 11,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 1,
+        "ndcg": 0.9938889444827373
+      },
+      "conflict_resolution": {
+        "n": 2,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 1,
+        "ndcg": 0.8983537904952533
+      }
+    },
+    "exact_anchor_regressions": {
+      "regressions_top1": 0,
+      "regressions_top5": 0,
+      "total_exact_anchor_queries": 5
+    },
+    "negative_leakage": [
+      {
+        "query_id": "l3_synth_001",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/auth_retry_on_401.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_002",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/config_write_naive.md"
+        ],
+        "worst_rank": 4
+      },
+      {
+        "query_id": "l3_synth_004",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/memory_never_forget.md"
+        ],
+        "worst_rank": 3
+      },
+      {
+        "query_id": "l3_synth_005",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/chatgpt_blind_trust_streamed.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_006",
+        "query_type": "semantic_episode",
+        "leaked_ids": [
+          "lesson/http_5xx_retry.md"
+        ],
+        "worst_rank": 3
+      },
+      {
+        "query_id": "l3_synth_007",
+        "query_type": "semantic_episode",
+        "leaked_ids": [
+          "lesson/generic_file_backup.md"
+        ],
+        "worst_rank": 3
+      },
+      {
+        "query_id": "l3_synth_009",
+        "query_type": "semantic_episode",
+        "leaked_ids": [
+          "lesson/memory_never_forget.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_013",
+        "query_type": "procedure",
+        "leaked_ids": [
+          "lesson/config_write_naive.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_014",
+        "query_type": "procedure",
+        "leaked_ids": [
+          "lesson/chatgpt_blind_trust_streamed.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_015",
+        "query_type": "procedure",
+        "leaked_ids": [
+          "lesson/memory_never_forget.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_017",
+        "query_type": "conflict",
+        "leaked_ids": [
+          "lesson/http_5xx_retry.md"
+        ],
+        "worst_rank": 3
+      },
+      {
+        "query_id": "l3_synth_018",
+        "query_type": "conflict",
+        "leaked_ids": [
+          "lesson/cached_response_detection.md"
+        ],
+        "worst_rank": 5
+      },
+      {
+        "query_id": "l3_synth_019",
+        "query_type": "negative",
+        "leaked_ids": [
+          "lesson/onboarding_organize_downloads.md"
+        ],
+        "worst_rank": 3
+      },
+      {
+        "query_id": "l3_synth_020",
+        "query_type": "negative",
+        "leaked_ids": [
+          "lesson/unrelated_release_notes.md"
+        ],
+        "worst_rank": 4
+      }
+    ],
+    "embedding_cache": {
+      "entries": 45,
+      "db": "C:\\Next-Era\\Moneta\\eval\\.cache\\embeddings.sqlite"
+    }
+  },
+  "errors": {
+    "query_failures": 0,
+    "embedding_failures": 0,
+    "empty_queries": 0
+  },
+  "candidate_count": 16
+}

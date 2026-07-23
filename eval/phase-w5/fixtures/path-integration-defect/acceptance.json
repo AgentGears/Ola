@@ -1,0 +1,18 @@
+{
+  "failure_class": "integration",
+  "task_description": "A configuration manager supports layered config (defaults, global, local, env vars) with deep merge. Environment variables override top-level keys correctly, but fail to override keys inside nested config objects (e.g., APP_DATABASE_PORT does not override config.database.port). The applyEnvOverrides function only iterates top-level keys.",
+  "setup_command": "npm install",
+  "failing_command": "npm test",
+  "acceptance_command": "npm test",
+  "expected_failure_digest": "env_override_nested_keys FAIL",
+  "minimum_diagnostic_observations": 3,
+  "reference_invariant": "Environment variable overrides using the APP_ prefix convention should reach into nested configuration objects, not just top-level keys.",
+  "max_expected_runtime_seconds": 300,
+  "expected_files_changed": ["src/index.js"],
+  "root_cause": "The applyEnvOverrides function iterates only top-level config keys and does not recurse into nested objects. When config has a nested structure like {database: {host, port}}, env vars APP_DATABASE_HOST and APP_DATABASE_PORT should override those nested values. The fix is to make applyEnvOverrides recursive, building the env key path from the nested key path (e.g., database.port -> APP_DATABASE_PORT).",
+  "unacceptable_workarounds": [
+    "Flattening the config structure to avoid nesting",
+    "Removing nested config from the defaults",
+    "Adding special-case handling for known nested keys instead of general recursion"
+  ]
+}

@@ -1,0 +1,1663 @@
+{
+  "corpus_sha256": "c830568a3630bf1b586d45d615700a0b8656179ccc7a36280d104f46d0330648",
+  "query_set_sha256": "ba93fa39903d5c372f9d24e567d642af87b0dd898161502ad422cca3e1f27760",
+  "label_sha256": "87e9426f3d1c60f1314a04089f3cf3393d55b533bbc3325aea0ab0e7d8c96fe2",
+  "embedding_config": {
+    "url": "http://100.64.0.2:1234",
+    "url_hash": "a1280d4b18ff459b",
+    "model": "text-embedding-qwen3-embedding-0.6b",
+    "endpoint": "http://100.64.0.2:1234/v1/embeddings"
+  },
+  "embedding_cache": {
+    "entries": 61,
+    "db": "C:\\Next-Era\\Moneta\\eval\\.cache\\embeddings.sqlite"
+  },
+  "timestamp": "2026-07-06T143524545Z",
+  "candidate_count": 43,
+  "run_id": "phase-c-lexical-2026-07-06T143524545Z",
+  "candidate_mode": "lexical_baseline",
+  "results": [
+    {
+      "query_id": "q001",
+      "query_text": "data dir authority for CLI mutations",
+      "category": "exact_anchor",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 2,
+      "top3": [
+        {
+          "memory_id": "playbook/data_dir_authority_for_cli_mutations_2026-07-05T225549213Z.md",
+          "score": 0.65,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.4,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.292,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q002",
+      "query_text": "safety mechanisms must not live inside the guarded subtree",
+      "category": "exact_anchor",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/safety_mechanisms_must_not_live_inside_guarded_subtree_2026-07-05T225503098Z.md",
+          "score": 0.65,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.314,
+          "grade": 0
+        },
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.292,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q003",
+      "query_text": "investigation discipline after plausible answer",
+      "category": "exact_anchor",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.65,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.205,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/chatgpt_web2api_composer_breaker_recovery_2026_07_04_2026-07-03T220237389Z.md",
+          "score": 0.13,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q004",
+      "query_text": "retrieval is not reinforcement",
+      "category": "exact_anchor",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/retrieval_is_not_reinforcement_2026-07-01T105458728Z.md",
+          "score": 0.7,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.488,
+          "grade": 0
+        },
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.4,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q005",
+      "query_text": "transactional config mutation safePatchConfig",
+      "category": "exact_anchor",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.725,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T023625479Z.md",
+          "score": 0.4,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T024428799Z.md",
+          "score": 0.325,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q006",
+      "query_text": "agent neutral path resolver",
+      "category": "exact_anchor",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.725,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/data_dir_authority_for_cli_mutations_2026-07-05T225549213Z.md",
+          "score": 0.488,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.238,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q007",
+      "query_text": "recursive trust extraction gate LLM as judge",
+      "category": "exact_anchor",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/recursive_trust_extraction_gate_2026-07-01T105523254Z.md",
+          "score": 0.679,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T023625479Z.md",
+          "score": 0.261,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T032214651Z.md",
+          "score": 0.261,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q008",
+      "query_text": "composer circuit breaker recovery ChatGPT web2api",
+      "category": "exact_anchor",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/chatgpt_web2api_composer_breaker_recovery_2026_07_04_2026-07-03T220237389Z.md",
+          "score": 0.683,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T032214651Z.md",
+          "score": 0.4,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T022724452Z.md",
+          "score": 0.292,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q009",
+      "query_text": "how should CLI tools resolve which data directory to write memories to",
+      "category": "paraphrase",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.4,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/data_dir_authority_for_cli_mutations_2026-07-05T225549213Z.md",
+          "score": 0.379,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.346,
+          "grade": 1
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 0.6442869262030828,
+        "recall@10": 1,
+        "ndcg@10": 0.6442869262030828,
+        "mrr": 0.5,
+        "exact_anchor_top1_grade": 0,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q010",
+      "query_text": "what happens if a guard file is destroyed when the data it protects is reset",
+      "category": "paraphrase",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/safety_mechanisms_must_not_live_inside_guarded_subtree_2026-07-05T225503098Z.md",
+          "score": 0.464,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.4,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.4,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q011",
+      "query_text": "why was the conflict pair diagnosis initially wrong",
+      "category": "paraphrase",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.488,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.238,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/data_dir_authority_for_cli_mutations_2026-07-05T225549213Z.md",
+          "score": 0.163,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q012",
+      "query_text": "how to safely modify config.json without corrupting it",
+      "category": "paraphrase",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.481,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.319,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T032214651Z.md",
+          "score": 0.319,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q013",
+      "query_text": "when does seeing a memory in results not count as learning it",
+      "category": "paraphrase",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.43,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/chatgpt-web2api-sse_bridge_launch_2026-07-03T181440771Z.md",
+          "score": 0.43,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.43,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 0.43067655807339306,
+        "recall@10": 1,
+        "ndcg@10": 0.43067655807339306,
+        "mrr": 0.25,
+        "exact_anchor_top1_grade": 0,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q014",
+      "query_text": "how to validate AI extraction quality without trusting the same model",
+      "category": "paraphrase",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/recursive_trust_extraction_gate_2026-07-01T105523254Z.md",
+          "score": 0.532,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.311,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.252,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q015",
+      "query_text": "what to do when ChatGPT web2api returns stale or timeout responses",
+      "category": "paraphrase",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/chatgpt_web2api_composer_breaker_recovery_2026_07_04_2026-07-03T220237389Z.md",
+          "score": 0.532,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T032214651Z.md",
+          "score": 0.489,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/stale_return_root_cause_a1_a2_2026-07-03T220535601Z.md",
+          "score": 0.473,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q016",
+      "query_text": "what should we do before promoting a closure record or gate decision",
+      "category": "procedural_recall",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.532,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T023625479Z.md",
+          "score": 0.37,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T032214651Z.md",
+          "score": 0.37,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q017",
+      "query_text": "procedure for diagnosing data written but not found",
+      "category": "procedural_recall",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.644,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/retrieval_is_not_reinforcement_2026-07-01T105458728Z.md",
+          "score": 0.244,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.244,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 0.5,
+        "ndcg@5": 1,
+        "recall@10": 0.5,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q018",
+      "query_text": "how to handle JWT token expiration during API calls",
+      "category": "procedural_recall",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "lesson/auth_token_refresh_2026-07-01T024315730Z.md",
+          "score": 0.478,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/chatgpt-web2api-sse_bridge_launch_2026-07-03T181440771Z.md",
+          "score": 0.292,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T032214651Z.md",
+          "score": 0.219,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q019",
+      "query_text": "what is the current authoritative guidance on data directory resolution for memory mutations",
+      "category": "conflict_pair_supersession",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.475,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/data_dir_authority_for_cli_mutations_2026-07-05T225549213Z.md",
+          "score": 0.4,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.375,
+          "grade": -1
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 0.6309297535714575,
+        "recall@10": 1,
+        "ndcg@10": 0.6309297535714575,
+        "mrr": 0.5,
+        "exact_anchor_top1_grade": 0,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 1,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q020",
+      "query_text": "should the resolver check ZCODE_PLUGIN_DATA or CLAUDE_PLUGIN_DATA for the data directory",
+      "category": "conflict_pair_supersession",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.489,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/data_dir_authority_for_cli_mutations_2026-07-05T225549213Z.md",
+          "score": 0.473,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.37,
+          "grade": -1
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 0.6309297535714575,
+        "recall@10": 1,
+        "ndcg@10": 0.6309297535714575,
+        "mrr": 0.5,
+        "exact_anchor_top1_grade": 0,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 1,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q021",
+      "query_text": "what fusion weights does the retrieval system use to combine sparse and dense",
+      "category": "conflict_pair_supersession",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.375,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.325,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/retrieval_is_not_reinforcement_2026-07-01T105458728Z.md",
+          "score": 0.3,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 0,
+        "ndcg@5": 0,
+        "recall@10": 1,
+        "ndcg@10": 0.3010299956639812,
+        "mrr": 0.1111111111111111,
+        "exact_anchor_top1_grade": 0,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q022",
+      "query_text": "why did weight tuning fail and what replaced it",
+      "category": "conflict_pair_supersession",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T022724452Z.md",
+          "score": 0.292,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T023625479Z.md",
+          "score": 0.292,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.292,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 0,
+        "ndcg@5": 0,
+        "recall@10": 0,
+        "ndcg@10": 0,
+        "mrr": 0,
+        "exact_anchor_top1_grade": 0,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q023",
+      "query_text": "what is the difference between q018 and q009 q015 conflict pair failures",
+      "category": "conflict_pair_supersession",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.325,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.292,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.238,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q024",
+      "query_text": "ChatGPT web2api bridge failure recovery",
+      "category": "conflict_pair_supersession",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/chatgpt_web2api_composer_breaker_recovery_2026_07_04_2026-07-03T220237389Z.md",
+          "score": 0.56,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T032214651Z.md",
+          "score": 0.465,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/chatgpt-web2api-sse_bridge_launch_2026-07-03T181440771Z.md",
+          "score": 0.465,
+          "grade": -1
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 1,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q025",
+      "query_text": "memory decay Ebbinghaus formula strength consolidation",
+      "category": "negative_leakage",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/retrieval_is_not_reinforcement_2026-07-01T105458728Z.md",
+          "score": 0.467,
+          "grade": 3
+        },
+        {
+          "memory_id": "lesson/b0_accepted_phase_a_gate_locked_2026-07-05T173951909Z.md",
+          "score": 0.4,
+          "grade": -1
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.183,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 1,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q026",
+      "query_text": "how to wire MCP servers into the host agent",
+      "category": "negative_leakage",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.508,
+          "grade": 2
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.436,
+          "grade": 0
+        },
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.364,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 2,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 1,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q027",
+      "query_text": "agent neutral portability adapter pattern",
+      "category": "negative_leakage",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.765,
+          "grade": 2
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.205,
+          "grade": 0
+        },
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.205,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 2,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q028",
+      "query_text": "atomic writes file system operations safety",
+      "category": "negative_leakage",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.542,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/safety_mechanisms_must_not_live_inside_guarded_subtree_2026-07-05T225503098Z.md",
+          "score": 0.217,
+          "grade": -1
+        },
+        {
+          "memory_id": "playbook/data_dir_authority_for_cli_mutations_2026-07-05T225549213Z.md",
+          "score": 0.217,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 1,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q029",
+      "query_text": "B0 eval harness Phase A gate conditions",
+      "category": "phase_boundary",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "lesson/b0_accepted_phase_a_gate_locked_2026-07-05T173951909Z.md",
+          "score": 0.725,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.325,
+          "grade": 0
+        },
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.183,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q030",
+      "query_text": "what is the difference between Phase A and Phase C",
+      "category": "phase_boundary",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.4,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.325,
+          "grade": 1
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.319,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 0.5,
+        "ndcg@5": 0.6309297535714575,
+        "recall@10": 0.5,
+        "ndcg@10": 0.6309297535714575,
+        "mrr": 0.5,
+        "exact_anchor_top1_grade": 0,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q031",
+      "query_text": "what did the beta plus migration change about data directory resolution",
+      "category": "phase_boundary",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.311,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.252,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/safety_mechanisms_must_not_live_inside_guarded_subtree_2026-07-05T225503098Z.md",
+          "score": 0.236,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 0.38685280723454163,
+        "recall@10": 1,
+        "ndcg@10": 0.38685280723454163,
+        "mrr": 0.2,
+        "exact_anchor_top1_grade": 0,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q032",
+      "query_text": "what fusion architecture did Phase A accept",
+      "category": "activation_path",
+      "eligible_for_primary_scoring": false,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "lesson/b0_accepted_phase_a_gate_locked_2026-07-05T173951909Z.md",
+          "score": 0.4,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.217,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.183,
+          "grade": 0
+        }
+      ],
+      "metrics": null
+    },
+    {
+      "query_id": "q033",
+      "query_text": "how is Evidence-RRF activated in production",
+      "category": "activation_path",
+      "eligible_for_primary_scoring": false,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.371,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.354,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/retrieval_is_not_reinforcement_2026-07-01T105458728Z.md",
+          "score": 0.279,
+          "grade": 0
+        }
+      ],
+      "metrics": null
+    },
+    {
+      "query_id": "q034",
+      "query_text": "sync vs async recallMemory limitation",
+      "category": "activation_path",
+      "eligible_for_primary_scoring": false,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T023625479Z.md",
+          "score": 0.335,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T024428799Z.md",
+          "score": 0.26,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.13,
+          "grade": 0
+        }
+      ],
+      "metrics": null
+    },
+    {
+      "query_id": "q035",
+      "query_text": "safety mechanisms guard sentinel placement",
+      "category": "playbook_retrieval",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/safety_mechanisms_must_not_live_inside_guarded_subtree_2026-07-05T225503098Z.md",
+          "score": 0.65,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.245,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T032214651Z.md",
+          "score": 0.205,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q036",
+      "query_text": "where should a migration sentinel file live",
+      "category": "playbook_retrieval",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/safety_mechanisms_must_not_live_inside_guarded_subtree_2026-07-05T225503098Z.md",
+          "score": 0.325,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/data_dir_authority_for_cli_mutations_2026-07-05T225549213Z.md",
+          "score": 0.217,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.183,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q037",
+      "query_text": "who has authority to mutate the canonical memory store",
+      "category": "playbook_retrieval",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/data_dir_authority_for_cli_mutations_2026-07-05T225549213Z.md",
+          "score": 0.506,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.364,
+          "grade": 0
+        },
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.292,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q038",
+      "query_text": "what counts as a load-bearing claim that needs verification",
+      "category": "playbook_retrieval",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "playbook/investigation_discipline_after_plausible_answer_2026-07-06T021811747Z.md",
+          "score": 0.361,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.292,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.219,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q039",
+      "query_text": "env driven data dir split brain diagnosis",
+      "category": "exact_anchor",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "lesson/env_driven_data_dir_split_brain_2026-07-01T105541153Z.md",
+          "score": 0.632,
+          "grade": 3
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.354,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/data_dir_authority_for_cli_mutations_2026-07-05T225549213Z.md",
+          "score": 0.279,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 3,
+        "exact_anchor_hit": 1,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q040",
+      "query_text": "phase0 staletest reproduction results",
+      "category": "non_self_referential",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 1,
+      "top3": [
+        {
+          "memory_id": "lesson/a2_phase0_staletest_reproduction_2026-07-04_2026-07-04T013222831Z.md",
+          "score": 0.488,
+          "grade": 1
+        },
+        {
+          "memory_id": "lesson/a2_phase0_5_1_combined_results_2026-07-04_2026-07-04T015106662Z.md",
+          "score": 0.325,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/retrieval_is_not_reinforcement_2026-07-01T105458728Z.md",
+          "score": 0.163,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 1,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q041",
+      "query_text": "parallel tabs feature design ChatGPT multi-project",
+      "category": "non_self_referential",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T022724452Z.md",
+          "score": 0.725,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T023625479Z.md",
+          "score": 0.725,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/parallel_tabs_feature_design_2026-07-03T024428799Z.md",
+          "score": 0.65,
+          "grade": 2
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 0.5,
+        "recall@10": 1,
+        "ndcg@10": 0.5,
+        "mrr": 0.3333333333333333,
+        "exact_anchor_top1_grade": 0,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    },
+    {
+      "query_id": "q042",
+      "query_text": "how to push back or disagree with ChatGPT during review",
+      "category": "procedural_recall",
+      "eligible_for_primary_scoring": true,
+      "retrieved_count": 10,
+      "latency_ms": 0,
+      "top3": [
+        {
+          "memory_id": "playbook/push_back_to_chatgpt_directly_2026-07-03T210220718Z.md",
+          "score": 0.595,
+          "grade": 2
+        },
+        {
+          "memory_id": "playbook/transactional_config_mutation_2026-07-01T105416371Z.md",
+          "score": 0.335,
+          "grade": 0
+        },
+        {
+          "memory_id": "playbook/agent_neutral_path_resolver_2026-07-01T105458997Z.md",
+          "score": 0.335,
+          "grade": 0
+        }
+      ],
+      "metrics": {
+        "recall@5": 1,
+        "ndcg@5": 1,
+        "recall@10": 1,
+        "ndcg@10": 1,
+        "mrr": 1,
+        "exact_anchor_top1_grade": 2,
+        "exact_anchor_hit": 0,
+        "negative_leakage_count": 0,
+        "integrity_violation": 0
+      }
+    }
+  ],
+  "aggregate": {
+    "avg_recall@5": 0.9230769230769231,
+    "avg_ndcg@5": 0.8680668090314203,
+    "avg_recall@10": 0.9487179487179487,
+    "avg_ndcg@10": 0.8757855268689584,
+    "avg_mrr": 0.8434472934472935,
+    "avg_exact_anchor_top1_grade": 2.1794871794871793,
+    "avg_exact_anchor_hit": 0.6666666666666666,
+    "avg_negative_leakage_count": 0.15384615384615385,
+    "avg_integrity_violation": 0,
+    "query_count": 39
+  },
+  "by_category": {
+    "exact_anchor": {
+      "avg_recall@5": 1,
+      "avg_ndcg@5": 1,
+      "avg_recall@10": 1,
+      "avg_ndcg@10": 1,
+      "avg_mrr": 1,
+      "avg_exact_anchor_top1_grade": 3,
+      "avg_exact_anchor_hit": 1,
+      "avg_negative_leakage_count": 0,
+      "avg_integrity_violation": 0,
+      "query_count": 9
+    },
+    "paraphrase": {
+      "avg_recall@5": 1,
+      "avg_ndcg@5": 0.8678519263252109,
+      "avg_recall@10": 1,
+      "avg_ndcg@10": 0.8678519263252109,
+      "avg_mrr": 0.8214285714285714,
+      "avg_exact_anchor_top1_grade": 2.142857142857143,
+      "avg_exact_anchor_hit": 0.7142857142857143,
+      "avg_negative_leakage_count": 0,
+      "avg_integrity_violation": 0,
+      "query_count": 7
+    },
+    "procedural_recall": {
+      "avg_recall@5": 0.875,
+      "avg_ndcg@5": 1,
+      "avg_recall@10": 0.875,
+      "avg_ndcg@10": 1,
+      "avg_mrr": 1,
+      "avg_exact_anchor_top1_grade": 2.75,
+      "avg_exact_anchor_hit": 0.75,
+      "avg_negative_leakage_count": 0,
+      "avg_integrity_violation": 0,
+      "query_count": 4
+    },
+    "conflict_pair_supersession": {
+      "avg_recall@5": 0.6666666666666666,
+      "avg_ndcg@5": 0.5436432511904858,
+      "avg_recall@10": 0.8333333333333334,
+      "avg_ndcg@10": 0.5938149171344828,
+      "avg_mrr": 0.5185185185185185,
+      "avg_exact_anchor_top1_grade": 1,
+      "avg_exact_anchor_hit": 0.3333333333333333,
+      "avg_negative_leakage_count": 0.5,
+      "avg_integrity_violation": 0,
+      "query_count": 6
+    },
+    "negative_leakage": {
+      "avg_recall@5": 1,
+      "avg_ndcg@5": 1,
+      "avg_recall@10": 1,
+      "avg_ndcg@10": 1,
+      "avg_mrr": 1,
+      "avg_exact_anchor_top1_grade": 2.5,
+      "avg_exact_anchor_hit": 0.5,
+      "avg_negative_leakage_count": 0.75,
+      "avg_integrity_violation": 0,
+      "query_count": 4
+    },
+    "phase_boundary": {
+      "avg_recall@5": 0.8333333333333334,
+      "avg_ndcg@5": 0.6725941869353331,
+      "avg_recall@10": 0.8333333333333334,
+      "avg_ndcg@10": 0.6725941869353331,
+      "avg_mrr": 0.5666666666666667,
+      "avg_exact_anchor_top1_grade": 1,
+      "avg_exact_anchor_hit": 0.3333333333333333,
+      "avg_negative_leakage_count": 0,
+      "avg_integrity_violation": 0,
+      "query_count": 3
+    },
+    "playbook_retrieval": {
+      "avg_recall@5": 1,
+      "avg_ndcg@5": 1,
+      "avg_recall@10": 1,
+      "avg_ndcg@10": 1,
+      "avg_mrr": 1,
+      "avg_exact_anchor_top1_grade": 3,
+      "avg_exact_anchor_hit": 1,
+      "avg_negative_leakage_count": 0,
+      "avg_integrity_violation": 0,
+      "query_count": 4
+    },
+    "non_self_referential": {
+      "avg_recall@5": 1,
+      "avg_ndcg@5": 0.75,
+      "avg_recall@10": 1,
+      "avg_ndcg@10": 0.75,
+      "avg_mrr": 0.6666666666666666,
+      "avg_exact_anchor_top1_grade": 0.5,
+      "avg_exact_anchor_hit": 0,
+      "avg_negative_leakage_count": 0,
+      "avg_integrity_violation": 0,
+      "query_count": 2
+    }
+  },
+  "by_self_referential_slice": {
+    "implementation_or_operational": {
+      "avg_recall@5": 0.94,
+      "avg_ndcg@5": 0.8717199696232217,
+      "avg_recall@10": 0.94,
+      "avg_ndcg@10": 0.8717199696232217,
+      "avg_mrr": 0.8413333333333333,
+      "avg_exact_anchor_top1_grade": 2.2,
+      "avg_exact_anchor_hit": 0.68,
+      "avg_negative_leakage_count": 0.16,
+      "avg_integrity_violation": 0,
+      "query_count": 25
+    },
+    "project_playbook_or_lesson": {
+      "avg_recall@5": 1,
+      "avg_ndcg@5": 0.9430676558073394,
+      "avg_recall@10": 1,
+      "avg_ndcg@10": 0.9430676558073394,
+      "avg_mrr": 0.925,
+      "avg_exact_anchor_top1_grade": 2.6,
+      "avg_exact_anchor_hit": 0.8,
+      "avg_negative_leakage_count": 0.2,
+      "avg_integrity_violation": 0,
+      "query_count": 10
+    },
+    "project_self_description": {
+      "avg_recall@5": 0.5,
+      "avg_ndcg@5": 0.5436432511904858,
+      "avg_recall@10": 0.8333333333333334,
+      "avg_ndcg@10": 0.6439865830784796,
+      "avg_mrr": 0.5370370370370371,
+      "avg_exact_anchor_top1_grade": 1,
+      "avg_exact_anchor_hit": 0.3333333333333333,
+      "avg_negative_leakage_count": 0,
+      "avg_integrity_violation": 0,
+      "query_count": 3
+    },
+    "older_non_phase_c_project_content": {
+      "avg_recall@5": 1,
+      "avg_ndcg@5": 1,
+      "avg_recall@10": 1,
+      "avg_ndcg@10": 1,
+      "avg_mrr": 1,
+      "avg_exact_anchor_top1_grade": 1,
+      "avg_exact_anchor_hit": 0,
+      "avg_negative_leakage_count": 0,
+      "avg_integrity_violation": 0,
+      "query_count": 1
+    }
+  }
+}

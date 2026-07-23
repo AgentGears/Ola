@@ -1,0 +1,6507 @@
+{
+  "schema_version": "b0.run.v1",
+  "run_id": "b0-l3-synth-hybrid-2026-07-06T001525481Z",
+  "surface": "l3-synth",
+  "mode": "hybrid",
+  "timestamp": "2026-07-06T00:15:25.482Z",
+  "code": {
+    "git_sha": "norepo",
+    "dirty": false
+  },
+  "dataset_file": "eval\\datasets\\l3-synthetic-queries.jsonl",
+  "dataset_sha256": "b17169b06d901c4894a55df203b511af63ea4613d392ebee464d8bc056988a37",
+  "corpus_id": "l3-synthetic-corpus",
+  "corpus_sha256": "10cdc666b6a350727a4332858e7faa8955c702abd0df174e1fbce951dd50c766",
+  "retrieval_config": {
+    "weights": {
+      "sparse": 0.3,
+      "dense": 0.55,
+      "strength": 0.15
+    },
+    "top_k": 10,
+    "candidate_policy": "full_corpus",
+    "candidate_policy_description": "All records in the surface corpus are ranked. No pre-filter.",
+    "candidate_limit": null,
+    "exact_match_override": true,
+    "production_read_occurred": false
+  },
+  "embedding_config": {
+    "enabled": true,
+    "endpoint": "http://100.64.0.2:1234/v1/embeddings",
+    "base_url": "http://100.64.0.2:1234",
+    "model": "text-embedding-qwen3-embedding-0.6b",
+    "api_key_set": false,
+    "cache_db": "C:\\Next-Era\\Moneta\\eval\\.cache\\embeddings.sqlite",
+    "cache_key_algorithm": "sha256(model + '\\0' + sha256(embedding_url) + '\\0' + sha256(exact_text_bytes))"
+  },
+  "metric_config": {
+    "version": "b0.metrics.v1",
+    "grades": {
+      "ideal": 3,
+      "strong": 2,
+      "weak": 1,
+      "irrelevant": 0,
+      "harmful": -1
+    },
+    "negative_policy": "penalize_harmful_retrieval"
+  },
+  "query_count": 20,
+  "results": [
+    {
+      "query_id": "l3_synth_001",
+      "query": "auth_token_refresh",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": true,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 2,
+          "score": 0.031025,
+          "grade": 0,
+          "components": {
+            "final": 0.031025,
+            "rrf_evidence": 0.031025,
+            "sparse_rank": 6,
+            "dense_rank": 3,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 3,
+          "score": 0.031514,
+          "grade": 0,
+          "components": {
+            "final": 0.031514,
+            "rrf_evidence": 0.031514,
+            "sparse_rank": 2,
+            "dense_rank": 5,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 4,
+          "score": 0.032002,
+          "grade": -1,
+          "components": {
+            "final": 0.032002,
+            "rrf_evidence": 0.032002,
+            "sparse_rank": 3,
+            "dense_rank": 2,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 5,
+          "score": 0.02971,
+          "grade": 0,
+          "components": {
+            "final": 0.02971,
+            "rrf_evidence": 0.02971,
+            "sparse_rank": 4,
+            "dense_rank": 11,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 6,
+          "score": 0.029877,
+          "grade": 0,
+          "components": {
+            "final": 0.029877,
+            "rrf_evidence": 0.029877,
+            "sparse_rank": 5,
+            "dense_rank": 9,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 7,
+          "score": 0.030077,
+          "grade": 0,
+          "components": {
+            "final": 0.030077,
+            "rrf_evidence": 0.030077,
+            "sparse_rank": 7,
+            "dense_rank": 6,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.028992,
+          "grade": 0,
+          "components": {
+            "final": 0.028992,
+            "rrf_evidence": 0.028992,
+            "sparse_rank": 8,
+            "dense_rank": 10,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 9,
+          "score": 0.02901,
+          "grade": 0,
+          "components": {
+            "final": 0.02901,
+            "rrf_evidence": 0.02901,
+            "sparse_rank": 11,
+            "dense_rank": 7,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 10,
+          "score": 0.029139,
+          "grade": 0,
+          "components": {
+            "final": 0.029139,
+            "rrf_evidence": 0.029139,
+            "sparse_rank": 14,
+            "dense_rank": 4,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 11,
+          "score": 0.028006,
+          "grade": 0,
+          "components": {
+            "final": 0.028006,
+            "rrf_evidence": 0.028006,
+            "sparse_rank": 9,
+            "dense_rank": 14,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 12,
+          "score": 0.027619,
+          "grade": 0,
+          "components": {
+            "final": 0.027619,
+            "rrf_evidence": 0.027619,
+            "sparse_rank": 10,
+            "dense_rank": 15,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 13,
+          "score": 0.028405,
+          "grade": 0,
+          "components": {
+            "final": 0.028405,
+            "rrf_evidence": 0.028405,
+            "sparse_rank": 13,
+            "dense_rank": 8,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.027047,
+          "grade": 0,
+          "components": {
+            "final": 0.027047,
+            "rrf_evidence": 0.027047,
+            "sparse_rank": 12,
+            "dense_rank": 16,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.027222,
+          "grade": 0,
+          "components": {
+            "final": 0.027222,
+            "rrf_evidence": 0.027222,
+            "sparse_rank": 15,
+            "dense_rank": 12,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.026857,
+          "grade": 0,
+          "components": {
+            "final": 0.026857,
+            "rrf_evidence": 0.026857,
+            "sparse_rank": 16,
+            "dense_rank": 13,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 22
+    },
+    {
+      "query_id": "l3_synth_002",
+      "query": "config_patch_transactional",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": true,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 2,
+          "score": 0.032258,
+          "grade": 0,
+          "components": {
+            "final": 0.032258,
+            "rrf_evidence": 0.032258,
+            "sparse_rank": 2,
+            "dense_rank": 2,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 3,
+          "score": 0.030769,
+          "grade": 0,
+          "components": {
+            "final": 0.030769,
+            "rrf_evidence": 0.030769,
+            "sparse_rank": 5,
+            "dense_rank": 5,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 4,
+          "score": 0.031498,
+          "grade": -1,
+          "components": {
+            "final": 0.031498,
+            "rrf_evidence": 0.031498,
+            "sparse_rank": 3,
+            "dense_rank": 4,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 5,
+          "score": 0.029324,
+          "grade": 0,
+          "components": {
+            "final": 0.029324,
+            "rrf_evidence": 0.029324,
+            "sparse_rank": 4,
+            "dense_rank": 13,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.029644,
+          "grade": 0,
+          "components": {
+            "final": 0.029644,
+            "rrf_evidence": 0.029644,
+            "sparse_rank": 6,
+            "dense_rank": 9,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 7,
+          "score": 0.029851,
+          "grade": 0,
+          "components": {
+            "final": 0.029851,
+            "rrf_evidence": 0.029851,
+            "sparse_rank": 7,
+            "dense_rank": 7,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.029644,
+          "grade": 0,
+          "components": {
+            "final": 0.029644,
+            "rrf_evidence": 0.029644,
+            "sparse_rank": 9,
+            "dense_rank": 6,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.028595,
+          "grade": 0,
+          "components": {
+            "final": 0.028595,
+            "rrf_evidence": 0.028595,
+            "sparse_rank": 8,
+            "dense_rank": 12,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 10,
+          "score": 0.029572,
+          "grade": 0,
+          "components": {
+            "final": 0.029572,
+            "rrf_evidence": 0.029572,
+            "sparse_rank": 13,
+            "dense_rank": 3,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 11,
+          "score": 0.027799,
+          "grade": 0,
+          "components": {
+            "final": 0.027799,
+            "rrf_evidence": 0.027799,
+            "sparse_rank": 10,
+            "dense_rank": 14,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 12,
+          "score": 0.027242,
+          "grade": 0,
+          "components": {
+            "final": 0.027242,
+            "rrf_evidence": 0.027242,
+            "sparse_rank": 11,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 13,
+          "score": 0.027222,
+          "grade": 0,
+          "components": {
+            "final": 0.027222,
+            "rrf_evidence": 0.027222,
+            "sparse_rank": 12,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 14,
+          "score": 0.028219,
+          "grade": 0,
+          "components": {
+            "final": 0.028219,
+            "rrf_evidence": 0.028219,
+            "sparse_rank": 14,
+            "dense_rank": 8,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.027619,
+          "grade": 0,
+          "components": {
+            "final": 0.027619,
+            "rrf_evidence": 0.027619,
+            "sparse_rank": 15,
+            "dense_rank": 10,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 16,
+          "score": 0.027242,
+          "grade": 0,
+          "components": {
+            "final": 0.027242,
+            "rrf_evidence": 0.027242,
+            "sparse_rank": 16,
+            "dense_rank": 11,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_003",
+      "query": "regex_quota_escaping",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": true,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.030018,
+          "grade": 0,
+          "components": {
+            "final": 0.030018,
+            "rrf_evidence": 0.030018,
+            "sparse_rank": 2,
+            "dense_rank": 12,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 3,
+          "score": 0.030579,
+          "grade": 0,
+          "components": {
+            "final": 0.030579,
+            "rrf_evidence": 0.030579,
+            "sparse_rank": 3,
+            "dense_rank": 8,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.030118,
+          "grade": 0,
+          "components": {
+            "final": 0.030118,
+            "rrf_evidence": 0.030118,
+            "sparse_rank": 4,
+            "dense_rank": 9,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 5,
+          "score": 0.030536,
+          "grade": 0,
+          "components": {
+            "final": 0.030536,
+            "rrf_evidence": 0.030536,
+            "sparse_rank": 5,
+            "dense_rank": 6,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 6,
+          "score": 0.030077,
+          "grade": 0,
+          "components": {
+            "final": 0.030077,
+            "rrf_evidence": 0.030077,
+            "sparse_rank": 6,
+            "dense_rank": 7,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 7,
+          "score": 0.030159,
+          "grade": 0,
+          "components": {
+            "final": 0.030159,
+            "rrf_evidence": 0.030159,
+            "sparse_rank": 10,
+            "dense_rank": 3,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 8,
+          "score": 0.030214,
+          "grade": 0,
+          "components": {
+            "final": 0.030214,
+            "rrf_evidence": 0.030214,
+            "sparse_rank": 11,
+            "dense_rank": 2,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.02901,
+          "grade": 0,
+          "components": {
+            "final": 0.02901,
+            "rrf_evidence": 0.02901,
+            "sparse_rank": 7,
+            "dense_rank": 11,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.028992,
+          "grade": 0,
+          "components": {
+            "final": 0.028992,
+            "rrf_evidence": 0.028992,
+            "sparse_rank": 8,
+            "dense_rank": 10,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 11,
+          "score": 0.029514,
+          "grade": 0,
+          "components": {
+            "final": 0.029514,
+            "rrf_evidence": 0.029514,
+            "sparse_rank": 12,
+            "dense_rank": 4,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 12,
+          "score": 0.029083,
+          "grade": 0,
+          "components": {
+            "final": 0.029083,
+            "rrf_evidence": 0.029083,
+            "sparse_rank": 13,
+            "dense_rank": 5,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.027651,
+          "grade": 0,
+          "components": {
+            "final": 0.027651,
+            "rrf_evidence": 0.027651,
+            "sparse_rank": 9,
+            "dense_rank": 16,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 14,
+          "score": 0.027027,
+          "grade": 0,
+          "components": {
+            "final": 0.027027,
+            "rrf_evidence": 0.027027,
+            "sparse_rank": 14,
+            "dense_rank": 14,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.026491,
+          "grade": 0,
+          "components": {
+            "final": 0.026491,
+            "rrf_evidence": 0.026491,
+            "sparse_rank": 16,
+            "dense_rank": 15,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 16,
+          "score": 0.027032,
+          "grade": 0,
+          "components": {
+            "final": 0.027032,
+            "rrf_evidence": 0.027032,
+            "sparse_rank": 15,
+            "dense_rank": 13,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 19
+    },
+    {
+      "query_id": "l3_synth_004",
+      "query": "ebbinghaus_decay_calibrated",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": true,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.032002,
+          "grade": -1,
+          "components": {
+            "final": 0.032002,
+            "rrf_evidence": 0.032002,
+            "sparse_rank": 2,
+            "dense_rank": 3,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 3,
+          "score": 0.029958,
+          "grade": 0,
+          "components": {
+            "final": 0.029958,
+            "rrf_evidence": 0.029958,
+            "sparse_rank": 3,
+            "dense_rank": 11,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.030777,
+          "grade": 0,
+          "components": {
+            "final": 0.030777,
+            "rrf_evidence": 0.030777,
+            "sparse_rank": 4,
+            "dense_rank": 6,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 5,
+          "score": 0.03009,
+          "grade": 0,
+          "components": {
+            "final": 0.03009,
+            "rrf_evidence": 0.03009,
+            "sparse_rank": 5,
+            "dense_rank": 8,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 6,
+          "score": 0.029644,
+          "grade": 0,
+          "components": {
+            "final": 0.029644,
+            "rrf_evidence": 0.029644,
+            "sparse_rank": 6,
+            "dense_rank": 9,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 7,
+          "score": 0.029211,
+          "grade": 0,
+          "components": {
+            "final": 0.029211,
+            "rrf_evidence": 0.029211,
+            "sparse_rank": 7,
+            "dense_rank": 10,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 8,
+          "score": 0.02967,
+          "grade": 0,
+          "components": {
+            "final": 0.02967,
+            "rrf_evidence": 0.02967,
+            "sparse_rank": 10,
+            "dense_rank": 5,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 9,
+          "score": 0.030018,
+          "grade": 0,
+          "components": {
+            "final": 0.030018,
+            "rrf_evidence": 0.030018,
+            "sparse_rank": 12,
+            "dense_rank": 2,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 10,
+          "score": 0.029324,
+          "grade": 0,
+          "components": {
+            "final": 0.029324,
+            "rrf_evidence": 0.029324,
+            "sparse_rank": 13,
+            "dense_rank": 4,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 11,
+          "score": 0.028219,
+          "grade": 0,
+          "components": {
+            "final": 0.028219,
+            "rrf_evidence": 0.028219,
+            "sparse_rank": 8,
+            "dense_rank": 14,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 12,
+          "score": 0.027826,
+          "grade": 0,
+          "components": {
+            "final": 0.027826,
+            "rrf_evidence": 0.027826,
+            "sparse_rank": 9,
+            "dense_rank": 15,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 13,
+          "score": 0.027783,
+          "grade": 0,
+          "components": {
+            "final": 0.027783,
+            "rrf_evidence": 0.027783,
+            "sparse_rank": 11,
+            "dense_rank": 13,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 14,
+          "score": 0.028439,
+          "grade": 0,
+          "components": {
+            "final": 0.028439,
+            "rrf_evidence": 0.028439,
+            "sparse_rank": 14,
+            "dense_rank": 7,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.026316,
+          "grade": 0,
+          "components": {
+            "final": 0.026316,
+            "rrf_evidence": 0.026316,
+            "sparse_rank": 16,
+            "dense_rank": 16,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 16,
+          "score": 0.027222,
+          "grade": 0,
+          "components": {
+            "final": 0.027222,
+            "rrf_evidence": 0.027222,
+            "sparse_rank": 15,
+            "dense_rank": 12,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 15
+    },
+    {
+      "query_id": "l3_synth_005",
+      "query": "cached_response_detection",
+      "query_type": "exact_anchor",
+      "gold": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 1,
+          "grade": 3,
+          "components": {
+            "final": 1,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": true,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 2,
+          "score": 0.032258,
+          "grade": -1,
+          "components": {
+            "final": 0.032258,
+            "rrf_evidence": 0.032258,
+            "sparse_rank": 2,
+            "dense_rank": 2,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 3,
+          "score": 0.030366,
+          "grade": 0,
+          "components": {
+            "final": 0.030366,
+            "rrf_evidence": 0.030366,
+            "sparse_rank": 3,
+            "dense_rank": 9,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.03101,
+          "grade": 0,
+          "components": {
+            "final": 0.03101,
+            "rrf_evidence": 0.03101,
+            "sparse_rank": 5,
+            "dense_rank": 4,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.031025,
+          "grade": 0,
+          "components": {
+            "final": 0.031025,
+            "rrf_evidence": 0.031025,
+            "sparse_rank": 6,
+            "dense_rank": 3,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 6,
+          "score": 0.02971,
+          "grade": 0,
+          "components": {
+            "final": 0.02971,
+            "rrf_evidence": 0.02971,
+            "sparse_rank": 4,
+            "dense_rank": 11,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 7,
+          "score": 0.029851,
+          "grade": 0,
+          "components": {
+            "final": 0.029851,
+            "rrf_evidence": 0.029851,
+            "sparse_rank": 7,
+            "dense_rank": 7,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.028595,
+          "grade": 0,
+          "components": {
+            "final": 0.028595,
+            "rrf_evidence": 0.028595,
+            "sparse_rank": 8,
+            "dense_rank": 12,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 9,
+          "score": 0.029236,
+          "grade": 0,
+          "components": {
+            "final": 0.029236,
+            "rrf_evidence": 0.029236,
+            "sparse_rank": 11,
+            "dense_rank": 6,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 10,
+          "score": 0.028191,
+          "grade": 0,
+          "components": {
+            "final": 0.028191,
+            "rrf_evidence": 0.028191,
+            "sparse_rank": 9,
+            "dense_rank": 13,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 11,
+          "score": 0.029083,
+          "grade": 0,
+          "components": {
+            "final": 0.029083,
+            "rrf_evidence": 0.029083,
+            "sparse_rank": 13,
+            "dense_rank": 5,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 12,
+          "score": 0.027444,
+          "grade": 0,
+          "components": {
+            "final": 0.027444,
+            "rrf_evidence": 0.027444,
+            "sparse_rank": 10,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 13,
+          "score": 0.027222,
+          "grade": 0,
+          "components": {
+            "final": 0.027222,
+            "rrf_evidence": 0.027222,
+            "sparse_rank": 12,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 14,
+          "score": 0.027799,
+          "grade": 0,
+          "components": {
+            "final": 0.027799,
+            "rrf_evidence": 0.027799,
+            "sparse_rank": 14,
+            "dense_rank": 10,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 15,
+          "score": 0.028039,
+          "grade": 0,
+          "components": {
+            "final": 0.028039,
+            "rrf_evidence": 0.028039,
+            "sparse_rank": 15,
+            "dense_rank": 8,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.026671,
+          "grade": 0,
+          "components": {
+            "final": 0.026671,
+            "rrf_evidence": 0.026671,
+            "sparse_rank": 16,
+            "dense_rank": 14,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 14
+    },
+    {
+      "query_id": "l3_synth_006",
+      "query": "how do I refresh an expired JWT before calling the API",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 2,
+          "score": 0.031746,
+          "grade": -1,
+          "components": {
+            "final": 0.031746,
+            "rrf_evidence": 0.031746,
+            "sparse_rank": 3,
+            "dense_rank": 3,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 3,
+          "score": 0.031754,
+          "grade": 1,
+          "components": {
+            "final": 0.031754,
+            "rrf_evidence": 0.031754,
+            "sparse_rank": 4,
+            "dense_rank": 2,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 4,
+          "score": 0.029236,
+          "grade": 0,
+          "components": {
+            "final": 0.029236,
+            "rrf_evidence": 0.029236,
+            "sparse_rank": 6,
+            "dense_rank": 11,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 5,
+          "score": 0.029631,
+          "grade": 0,
+          "components": {
+            "final": 0.029631,
+            "rrf_evidence": 0.029631,
+            "sparse_rank": 7,
+            "dense_rank": 8,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 6,
+          "score": 0.029911,
+          "grade": 0,
+          "components": {
+            "final": 0.029911,
+            "rrf_evidence": 0.029911,
+            "sparse_rank": 10,
+            "dense_rank": 4,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 7,
+          "score": 0.029274,
+          "grade": 0,
+          "components": {
+            "final": 0.029274,
+            "rrf_evidence": 0.029274,
+            "sparse_rank": 12,
+            "dense_rank": 5,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.02967,
+          "grade": 0,
+          "components": {
+            "final": 0.02967,
+            "rrf_evidence": 0.02967,
+            "sparse_rank": 5,
+            "dense_rank": 10,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 9,
+          "score": 0.029287,
+          "grade": 0,
+          "components": {
+            "final": 0.029287,
+            "rrf_evidence": 0.029287,
+            "sparse_rank": 2,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 10,
+          "score": 0.02901,
+          "grade": 0,
+          "components": {
+            "final": 0.02901,
+            "rrf_evidence": 0.02901,
+            "sparse_rank": 11,
+            "dense_rank": 7,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 11,
+          "score": 0.028006,
+          "grade": 0,
+          "components": {
+            "final": 0.028006,
+            "rrf_evidence": 0.028006,
+            "sparse_rank": 9,
+            "dense_rank": 14,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 12,
+          "score": 0.028039,
+          "grade": 0,
+          "components": {
+            "final": 0.028039,
+            "rrf_evidence": 0.028039,
+            "sparse_rank": 8,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 13,
+          "score": 0.028191,
+          "grade": 0,
+          "components": {
+            "final": 0.028191,
+            "rrf_evidence": 0.028191,
+            "sparse_rank": 13,
+            "dense_rank": 9,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 14,
+          "score": 0.028485,
+          "grade": 0,
+          "components": {
+            "final": 0.028485,
+            "rrf_evidence": 0.028485,
+            "sparse_rank": 15,
+            "dense_rank": 6,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.026857,
+          "grade": 0,
+          "components": {
+            "final": 0.026857,
+            "rrf_evidence": 0.026857,
+            "sparse_rank": 16,
+            "dense_rank": 13,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.027402,
+          "grade": 0,
+          "components": {
+            "final": 0.027402,
+            "rrf_evidence": 0.027402,
+            "sparse_rank": 14,
+            "dense_rank": 12,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 0.9639404333166532
+      },
+      "latency_ms": 15
+    },
+    {
+      "query_id": "l3_synth_007",
+      "query": "what is the safe way to mutate host agent config json",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 2,
+          "score": 0.032258,
+          "grade": 1,
+          "components": {
+            "final": 0.032258,
+            "rrf_evidence": 0.032258,
+            "sparse_rank": 2,
+            "dense_rank": 2,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 3,
+          "score": 0.03101,
+          "grade": 0,
+          "components": {
+            "final": 0.03101,
+            "rrf_evidence": 0.03101,
+            "sparse_rank": 5,
+            "dense_rank": 4,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.029857,
+          "grade": 0,
+          "components": {
+            "final": 0.029857,
+            "rrf_evidence": 0.029857,
+            "sparse_rank": 8,
+            "dense_rank": 6,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 5,
+          "score": 0.030798,
+          "grade": 0,
+          "components": {
+            "final": 0.030798,
+            "rrf_evidence": 0.030798,
+            "sparse_rank": 3,
+            "dense_rank": 7,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 6,
+          "score": 0.030366,
+          "grade": -1,
+          "components": {
+            "final": 0.030366,
+            "rrf_evidence": 0.030366,
+            "sparse_rank": 9,
+            "dense_rank": 3,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 7,
+          "score": 0.03101,
+          "grade": 0,
+          "components": {
+            "final": 0.03101,
+            "rrf_evidence": 0.03101,
+            "sparse_rank": 4,
+            "dense_rank": 5,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 8,
+          "score": 0.028439,
+          "grade": 0,
+          "components": {
+            "final": 0.028439,
+            "rrf_evidence": 0.028439,
+            "sparse_rank": 7,
+            "dense_rank": 14,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 9,
+          "score": 0.028992,
+          "grade": 0,
+          "components": {
+            "final": 0.028992,
+            "rrf_evidence": 0.028992,
+            "sparse_rank": 10,
+            "dense_rank": 8,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 10,
+          "score": 0.029236,
+          "grade": 0,
+          "components": {
+            "final": 0.029236,
+            "rrf_evidence": 0.029236,
+            "sparse_rank": 6,
+            "dense_rank": 11,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 11,
+          "score": 0.027826,
+          "grade": 0,
+          "components": {
+            "final": 0.027826,
+            "rrf_evidence": 0.027826,
+            "sparse_rank": 15,
+            "dense_rank": 9,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 12,
+          "score": 0.027242,
+          "grade": 0,
+          "components": {
+            "final": 0.027242,
+            "rrf_evidence": 0.027242,
+            "sparse_rank": 11,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 13,
+          "score": 0.028175,
+          "grade": 0,
+          "components": {
+            "final": 0.028175,
+            "rrf_evidence": 0.028175,
+            "sparse_rank": 12,
+            "dense_rank": 10,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.026491,
+          "grade": 0,
+          "components": {
+            "final": 0.026491,
+            "rrf_evidence": 0.026491,
+            "sparse_rank": 16,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.027397,
+          "grade": 0,
+          "components": {
+            "final": 0.027397,
+            "rrf_evidence": 0.027397,
+            "sparse_rank": 13,
+            "dense_rank": 13,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 16,
+          "score": 0.027402,
+          "grade": 0,
+          "components": {
+            "final": 0.027402,
+            "rrf_evidence": 0.027402,
+            "sparse_rank": 14,
+            "dense_rank": 12,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_008",
+      "query": "how do I know if a chatgpt response is cached or fresh",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "grade": 1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 2,
+          "score": 0.032002,
+          "grade": 0,
+          "components": {
+            "final": 0.032002,
+            "rrf_evidence": 0.032002,
+            "sparse_rank": 2,
+            "dense_rank": 3,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 3,
+          "score": 0.031025,
+          "grade": 0,
+          "components": {
+            "final": 0.031025,
+            "rrf_evidence": 0.031025,
+            "sparse_rank": 3,
+            "dense_rank": 6,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 4,
+          "score": 0.030769,
+          "grade": 0,
+          "components": {
+            "final": 0.030769,
+            "rrf_evidence": 0.030769,
+            "sparse_rank": 5,
+            "dense_rank": 5,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 5,
+          "score": 0.031754,
+          "grade": 1,
+          "components": {
+            "final": 0.031754,
+            "rrf_evidence": 0.031754,
+            "sparse_rank": 4,
+            "dense_rank": 2,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 6,
+          "score": 0.028986,
+          "grade": 0,
+          "components": {
+            "final": 0.028986,
+            "rrf_evidence": 0.028986,
+            "sparse_rank": 9,
+            "dense_rank": 9,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 7,
+          "score": 0.029437,
+          "grade": 0,
+          "components": {
+            "final": 0.029437,
+            "rrf_evidence": 0.029437,
+            "sparse_rank": 6,
+            "dense_rank": 10,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 8,
+          "score": 0.02837,
+          "grade": 0,
+          "components": {
+            "final": 0.02837,
+            "rrf_evidence": 0.02837,
+            "sparse_rank": 10,
+            "dense_rank": 11,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 9,
+          "score": 0.028958,
+          "grade": 0,
+          "components": {
+            "final": 0.028958,
+            "rrf_evidence": 0.028958,
+            "sparse_rank": 15,
+            "dense_rank": 4,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 10,
+          "score": 0.028405,
+          "grade": 0,
+          "components": {
+            "final": 0.028405,
+            "rrf_evidence": 0.028405,
+            "sparse_rank": 8,
+            "dense_rank": 13,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 11,
+          "score": 0.02879,
+          "grade": 0,
+          "components": {
+            "final": 0.02879,
+            "rrf_evidence": 0.02879,
+            "sparse_rank": 11,
+            "dense_rank": 8,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 12,
+          "score": 0.028814,
+          "grade": 0,
+          "components": {
+            "final": 0.028814,
+            "rrf_evidence": 0.028814,
+            "sparse_rank": 7,
+            "dense_rank": 12,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 13,
+          "score": 0.028624,
+          "grade": 0,
+          "components": {
+            "final": 0.028624,
+            "rrf_evidence": 0.028624,
+            "sparse_rank": 13,
+            "dense_rank": 7,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 14,
+          "score": 0.026671,
+          "grade": 0,
+          "components": {
+            "final": 0.026671,
+            "rrf_evidence": 0.026671,
+            "sparse_rank": 14,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.027222,
+          "grade": 0,
+          "components": {
+            "final": 0.027222,
+            "rrf_evidence": 0.027222,
+            "sparse_rank": 12,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.026671,
+          "grade": 0,
+          "components": {
+            "final": 0.026671,
+            "rrf_evidence": 0.026671,
+            "sparse_rank": 16,
+            "dense_rank": 14,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 0.9327783893101107
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_009",
+      "query": "what formula should I use for memory decay over time",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 1,
+          "score": 0.032258,
+          "grade": -1,
+          "components": {
+            "final": 0.032258,
+            "rrf_evidence": 0.032258,
+            "sparse_rank": 2,
+            "dense_rank": 2,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 2,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 3,
+          "score": 0.031498,
+          "grade": 0,
+          "components": {
+            "final": 0.031498,
+            "rrf_evidence": 0.031498,
+            "sparse_rank": 4,
+            "dense_rank": 3,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 4,
+          "score": 0.029762,
+          "grade": 0,
+          "components": {
+            "final": 0.029762,
+            "rrf_evidence": 0.029762,
+            "sparse_rank": 3,
+            "dense_rank": 12,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 5,
+          "score": 0.029437,
+          "grade": 0,
+          "components": {
+            "final": 0.029437,
+            "rrf_evidence": 0.029437,
+            "sparse_rank": 10,
+            "dense_rank": 6,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 6,
+          "score": 0.029877,
+          "grade": 0,
+          "components": {
+            "final": 0.029877,
+            "rrf_evidence": 0.029877,
+            "sparse_rank": 9,
+            "dense_rank": 5,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 7,
+          "score": 0.029139,
+          "grade": 0,
+          "components": {
+            "final": 0.029139,
+            "rrf_evidence": 0.029139,
+            "sparse_rank": 14,
+            "dense_rank": 4,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 8,
+          "score": 0.030077,
+          "grade": 0,
+          "components": {
+            "final": 0.030077,
+            "rrf_evidence": 0.030077,
+            "sparse_rank": 6,
+            "dense_rank": 7,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 9,
+          "score": 0.02879,
+          "grade": 0,
+          "components": {
+            "final": 0.02879,
+            "rrf_evidence": 0.02879,
+            "sparse_rank": 11,
+            "dense_rank": 8,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 10,
+          "score": 0.028191,
+          "grade": 0,
+          "components": {
+            "final": 0.028191,
+            "rrf_evidence": 0.028191,
+            "sparse_rank": 13,
+            "dense_rank": 9,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 11,
+          "score": 0.02901,
+          "grade": 0,
+          "components": {
+            "final": 0.02901,
+            "rrf_evidence": 0.02901,
+            "sparse_rank": 7,
+            "dense_rank": 11,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 12,
+          "score": 0.028219,
+          "grade": 0,
+          "components": {
+            "final": 0.028219,
+            "rrf_evidence": 0.028219,
+            "sparse_rank": 8,
+            "dense_rank": 14,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 13,
+          "score": 0.028718,
+          "grade": 0,
+          "components": {
+            "final": 0.028718,
+            "rrf_evidence": 0.028718,
+            "sparse_rank": 5,
+            "dense_rank": 15,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.027047,
+          "grade": 0,
+          "components": {
+            "final": 0.027047,
+            "rrf_evidence": 0.027047,
+            "sparse_rank": 12,
+            "dense_rank": 16,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.026857,
+          "grade": 0,
+          "components": {
+            "final": 0.026857,
+            "rrf_evidence": 0.026857,
+            "sparse_rank": 16,
+            "dense_rank": 13,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 16,
+          "score": 0.027619,
+          "grade": 0,
+          "components": {
+            "final": 0.027619,
+            "rrf_evidence": 0.027619,
+            "sparse_rank": 15,
+            "dense_rank": 10,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 0.5,
+        "ndcg": 0.6309297535714574
+      },
+      "latency_ms": 17
+    },
+    {
+      "query_id": "l3_synth_010",
+      "query": "how do I handle backslash paths when opening sqlite on windows",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "grade": 1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 1,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 2,
+          "score": 0.031514,
+          "grade": 1,
+          "components": {
+            "final": 0.031514,
+            "rrf_evidence": 0.031514,
+            "sparse_rank": 2,
+            "dense_rank": 5,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 3,
+          "score": 0.029572,
+          "grade": 0,
+          "components": {
+            "final": 0.029572,
+            "rrf_evidence": 0.029572,
+            "sparse_rank": 3,
+            "dense_rank": 13,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 4,
+          "score": 0.030118,
+          "grade": 0,
+          "components": {
+            "final": 0.030118,
+            "rrf_evidence": 0.030118,
+            "sparse_rank": 4,
+            "dense_rank": 9,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 5,
+          "score": 0.03101,
+          "grade": 0,
+          "components": {
+            "final": 0.03101,
+            "rrf_evidence": 0.03101,
+            "sparse_rank": 5,
+            "dense_rank": 4,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 6,
+          "score": 0.030798,
+          "grade": 0,
+          "components": {
+            "final": 0.030798,
+            "rrf_evidence": 0.030798,
+            "sparse_rank": 7,
+            "dense_rank": 3,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 7,
+          "score": 0.029236,
+          "grade": 0,
+          "components": {
+            "final": 0.029236,
+            "rrf_evidence": 0.029236,
+            "sparse_rank": 11,
+            "dense_rank": 6,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 8,
+          "score": 0.02904,
+          "grade": 0,
+          "components": {
+            "final": 0.02904,
+            "rrf_evidence": 0.02904,
+            "sparse_rank": 6,
+            "dense_rank": 12,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 9,
+          "score": 0.029828,
+          "grade": 0,
+          "components": {
+            "final": 0.029828,
+            "rrf_evidence": 0.029828,
+            "sparse_rank": 13,
+            "dense_rank": 2,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 10,
+          "score": 0.027444,
+          "grade": 0,
+          "components": {
+            "final": 0.027444,
+            "rrf_evidence": 0.027444,
+            "sparse_rank": 10,
+            "dense_rank": 16,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 11,
+          "score": 0.028175,
+          "grade": 0,
+          "components": {
+            "final": 0.028175,
+            "rrf_evidence": 0.028175,
+            "sparse_rank": 12,
+            "dense_rank": 10,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 12,
+          "score": 0.028219,
+          "grade": 0,
+          "components": {
+            "final": 0.028219,
+            "rrf_evidence": 0.028219,
+            "sparse_rank": 14,
+            "dense_rank": 8,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 13,
+          "score": 0.028219,
+          "grade": 0,
+          "components": {
+            "final": 0.028219,
+            "rrf_evidence": 0.028219,
+            "sparse_rank": 8,
+            "dense_rank": 14,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 14,
+          "score": 0.028259,
+          "grade": 0,
+          "components": {
+            "final": 0.028259,
+            "rrf_evidence": 0.028259,
+            "sparse_rank": 15,
+            "dense_rank": 7,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.027242,
+          "grade": 0,
+          "components": {
+            "final": 0.027242,
+            "rrf_evidence": 0.027242,
+            "sparse_rank": 16,
+            "dense_rank": 11,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 16,
+          "score": 0.027826,
+          "grade": 0,
+          "components": {
+            "final": 0.027826,
+            "rrf_evidence": 0.027826,
+            "sparse_rank": 9,
+            "dense_rank": 15,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 15
+    },
+    {
+      "query_id": "l3_synth_011",
+      "query": "which session debugged the unbounded async hang",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 1,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.030331,
+          "grade": 0,
+          "components": {
+            "final": 0.030331,
+            "rrf_evidence": 0.030331,
+            "sparse_rank": 4,
+            "dense_rank": 8,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 3,
+          "score": 0.029958,
+          "grade": 0,
+          "components": {
+            "final": 0.029958,
+            "rrf_evidence": 0.029958,
+            "sparse_rank": 3,
+            "dense_rank": 11,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.030622,
+          "grade": 0,
+          "components": {
+            "final": 0.030622,
+            "rrf_evidence": 0.030622,
+            "sparse_rank": 9,
+            "dense_rank": 2,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 5,
+          "score": 0.030798,
+          "grade": 0,
+          "components": {
+            "final": 0.030798,
+            "rrf_evidence": 0.030798,
+            "sparse_rank": 7,
+            "dense_rank": 3,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.029644,
+          "grade": 0,
+          "components": {
+            "final": 0.029644,
+            "rrf_evidence": 0.029644,
+            "sparse_rank": 6,
+            "dense_rank": 9,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 7,
+          "score": 0.02967,
+          "grade": 0,
+          "components": {
+            "final": 0.02967,
+            "rrf_evidence": 0.02967,
+            "sparse_rank": 10,
+            "dense_rank": 5,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.030018,
+          "grade": 0,
+          "components": {
+            "final": 0.030018,
+            "rrf_evidence": 0.030018,
+            "sparse_rank": 2,
+            "dense_rank": 12,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 9,
+          "score": 0.030536,
+          "grade": 0,
+          "components": {
+            "final": 0.030536,
+            "rrf_evidence": 0.030536,
+            "sparse_rank": 5,
+            "dense_rank": 6,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 10,
+          "score": 0.02971,
+          "grade": 0,
+          "components": {
+            "final": 0.02971,
+            "rrf_evidence": 0.02971,
+            "sparse_rank": 11,
+            "dense_rank": 4,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 11,
+          "score": 0.027864,
+          "grade": 0,
+          "components": {
+            "final": 0.027864,
+            "rrf_evidence": 0.027864,
+            "sparse_rank": 8,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 12,
+          "score": 0.028439,
+          "grade": 0,
+          "components": {
+            "final": 0.028439,
+            "rrf_evidence": 0.028439,
+            "sparse_rank": 14,
+            "dense_rank": 7,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 13,
+          "score": 0.027212,
+          "grade": 0,
+          "components": {
+            "final": 0.027212,
+            "rrf_evidence": 0.027212,
+            "sparse_rank": 13,
+            "dense_rank": 14,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 14,
+          "score": 0.028175,
+          "grade": 0,
+          "components": {
+            "final": 0.028175,
+            "rrf_evidence": 0.028175,
+            "sparse_rank": 12,
+            "dense_rank": 10,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.026667,
+          "grade": 0,
+          "components": {
+            "final": 0.026667,
+            "rrf_evidence": 0.026667,
+            "sparse_rank": 15,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 16,
+          "score": 0.026857,
+          "grade": 0,
+          "components": {
+            "final": 0.026857,
+            "rrf_evidence": 0.026857,
+            "sparse_rank": 16,
+            "dense_rank": 13,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_012",
+      "query": "how was the roasting prompt migrated to a skill",
+      "query_type": "semantic_episode",
+      "gold": [
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 1,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.030159,
+          "grade": 0,
+          "components": {
+            "final": 0.030159,
+            "rrf_evidence": 0.030159,
+            "sparse_rank": 3,
+            "dense_rank": 10,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 3,
+          "score": 0.02971,
+          "grade": 0,
+          "components": {
+            "final": 0.02971,
+            "rrf_evidence": 0.02971,
+            "sparse_rank": 4,
+            "dense_rank": 11,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.030159,
+          "grade": 0,
+          "components": {
+            "final": 0.030159,
+            "rrf_evidence": 0.030159,
+            "sparse_rank": 10,
+            "dense_rank": 3,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 5,
+          "score": 0.030536,
+          "grade": 0,
+          "components": {
+            "final": 0.030536,
+            "rrf_evidence": 0.030536,
+            "sparse_rank": 5,
+            "dense_rank": 6,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 6,
+          "score": 0.02901,
+          "grade": 0,
+          "components": {
+            "final": 0.02901,
+            "rrf_evidence": 0.02901,
+            "sparse_rank": 11,
+            "dense_rank": 7,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 7,
+          "score": 0.029199,
+          "grade": 0,
+          "components": {
+            "final": 0.029199,
+            "rrf_evidence": 0.029199,
+            "sparse_rank": 8,
+            "dense_rank": 9,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 8,
+          "score": 0.029828,
+          "grade": 0,
+          "components": {
+            "final": 0.029828,
+            "rrf_evidence": 0.029828,
+            "sparse_rank": 2,
+            "dense_rank": 13,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 9,
+          "score": 0.028898,
+          "grade": 0,
+          "components": {
+            "final": 0.028898,
+            "rrf_evidence": 0.028898,
+            "sparse_rank": 14,
+            "dense_rank": 5,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 10,
+          "score": 0.029514,
+          "grade": 0,
+          "components": {
+            "final": 0.029514,
+            "rrf_evidence": 0.029514,
+            "sparse_rank": 12,
+            "dense_rank": 4,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 11,
+          "score": 0.029828,
+          "grade": 0,
+          "components": {
+            "final": 0.029828,
+            "rrf_evidence": 0.029828,
+            "sparse_rank": 13,
+            "dense_rank": 2,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 12,
+          "score": 0.027651,
+          "grade": 0,
+          "components": {
+            "final": 0.027651,
+            "rrf_evidence": 0.027651,
+            "sparse_rank": 9,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 13,
+          "score": 0.028439,
+          "grade": 0,
+          "components": {
+            "final": 0.028439,
+            "rrf_evidence": 0.028439,
+            "sparse_rank": 7,
+            "dense_rank": 14,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 14,
+          "score": 0.02904,
+          "grade": 0,
+          "components": {
+            "final": 0.02904,
+            "rrf_evidence": 0.02904,
+            "sparse_rank": 6,
+            "dense_rank": 12,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.027864,
+          "grade": 0,
+          "components": {
+            "final": 0.027864,
+            "rrf_evidence": 0.027864,
+            "sparse_rank": 16,
+            "dense_rank": 8,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 16,
+          "score": 0.026667,
+          "grade": 0,
+          "components": {
+            "final": 0.026667,
+            "rrf_evidence": 0.026667,
+            "sparse_rank": 15,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_013",
+      "query": "walk me through the safe sequence for patching config json",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 1,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 2,
+          "score": 0.030777,
+          "grade": 0,
+          "components": {
+            "final": 0.030777,
+            "rrf_evidence": 0.030777,
+            "sparse_rank": 4,
+            "dense_rank": 6,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 3,
+          "score": 0.031025,
+          "grade": 0,
+          "components": {
+            "final": 0.031025,
+            "rrf_evidence": 0.031025,
+            "sparse_rank": 6,
+            "dense_rank": 3,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 4,
+          "score": 0.031498,
+          "grade": 0,
+          "components": {
+            "final": 0.031498,
+            "rrf_evidence": 0.031498,
+            "sparse_rank": 3,
+            "dense_rank": 4,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 5,
+          "score": 0.032258,
+          "grade": -1,
+          "components": {
+            "final": 0.032258,
+            "rrf_evidence": 0.032258,
+            "sparse_rank": 2,
+            "dense_rank": 2,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.03031,
+          "grade": 0,
+          "components": {
+            "final": 0.03031,
+            "rrf_evidence": 0.03031,
+            "sparse_rank": 7,
+            "dense_rank": 5,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 7,
+          "score": 0.028543,
+          "grade": 0,
+          "components": {
+            "final": 0.028543,
+            "rrf_evidence": 0.028543,
+            "sparse_rank": 5,
+            "dense_rank": 16,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 8,
+          "score": 0.028259,
+          "grade": 0,
+          "components": {
+            "final": 0.028259,
+            "rrf_evidence": 0.028259,
+            "sparse_rank": 15,
+            "dense_rank": 7,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.028595,
+          "grade": 0,
+          "components": {
+            "final": 0.028595,
+            "rrf_evidence": 0.028595,
+            "sparse_rank": 8,
+            "dense_rank": 12,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 10,
+          "score": 0.029199,
+          "grade": 0,
+          "components": {
+            "final": 0.029199,
+            "rrf_evidence": 0.029199,
+            "sparse_rank": 9,
+            "dense_rank": 8,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 11,
+          "score": 0.028169,
+          "grade": 0,
+          "components": {
+            "final": 0.028169,
+            "rrf_evidence": 0.028169,
+            "sparse_rank": 11,
+            "dense_rank": 11,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 12,
+          "score": 0.027619,
+          "grade": 0,
+          "components": {
+            "final": 0.027619,
+            "rrf_evidence": 0.027619,
+            "sparse_rank": 10,
+            "dense_rank": 15,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 13,
+          "score": 0.028382,
+          "grade": 0,
+          "components": {
+            "final": 0.028382,
+            "rrf_evidence": 0.028382,
+            "sparse_rank": 12,
+            "dense_rank": 9,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.026671,
+          "grade": 0,
+          "components": {
+            "final": 0.026671,
+            "rrf_evidence": 0.026671,
+            "sparse_rank": 16,
+            "dense_rank": 14,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.027397,
+          "grade": 0,
+          "components": {
+            "final": 0.027397,
+            "rrf_evidence": 0.027397,
+            "sparse_rank": 13,
+            "dense_rank": 13,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 16,
+          "score": 0.027799,
+          "grade": 0,
+          "components": {
+            "final": 0.027799,
+            "rrf_evidence": 0.027799,
+            "sparse_rank": 14,
+            "dense_rank": 10,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 15
+    },
+    {
+      "query_id": "l3_synth_014",
+      "query": "what steps verify a chatgpt send actually landed in the conversation",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 2,
+          "score": 0.031498,
+          "grade": 0,
+          "components": {
+            "final": 0.031498,
+            "rrf_evidence": 0.031498,
+            "sparse_rank": 3,
+            "dense_rank": 4,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 3,
+          "score": 0.032002,
+          "grade": 0,
+          "components": {
+            "final": 0.032002,
+            "rrf_evidence": 0.032002,
+            "sparse_rank": 2,
+            "dense_rank": 3,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.03031,
+          "grade": 0,
+          "components": {
+            "final": 0.03031,
+            "rrf_evidence": 0.03031,
+            "sparse_rank": 7,
+            "dense_rank": 5,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 5,
+          "score": 0.030835,
+          "grade": -1,
+          "components": {
+            "final": 0.030835,
+            "rrf_evidence": 0.030835,
+            "sparse_rank": 8,
+            "dense_rank": 2,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 6,
+          "score": 0.029274,
+          "grade": 0,
+          "components": {
+            "final": 0.029274,
+            "rrf_evidence": 0.029274,
+            "sparse_rank": 5,
+            "dense_rank": 12,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 7,
+          "score": 0.029437,
+          "grade": 0,
+          "components": {
+            "final": 0.029437,
+            "rrf_evidence": 0.029437,
+            "sparse_rank": 6,
+            "dense_rank": 10,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 8,
+          "score": 0.029644,
+          "grade": 0,
+          "components": {
+            "final": 0.029644,
+            "rrf_evidence": 0.029644,
+            "sparse_rank": 9,
+            "dense_rank": 6,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 9,
+          "score": 0.028382,
+          "grade": 0,
+          "components": {
+            "final": 0.028382,
+            "rrf_evidence": 0.028382,
+            "sparse_rank": 12,
+            "dense_rank": 9,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 10,
+          "score": 0.029324,
+          "grade": 0,
+          "components": {
+            "final": 0.029324,
+            "rrf_evidence": 0.029324,
+            "sparse_rank": 4,
+            "dense_rank": 13,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 11,
+          "score": 0.028259,
+          "grade": 0,
+          "components": {
+            "final": 0.028259,
+            "rrf_evidence": 0.028259,
+            "sparse_rank": 15,
+            "dense_rank": 7,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 12,
+          "score": 0.028992,
+          "grade": 0,
+          "components": {
+            "final": 0.028992,
+            "rrf_evidence": 0.028992,
+            "sparse_rank": 10,
+            "dense_rank": 8,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 13,
+          "score": 0.027242,
+          "grade": 0,
+          "components": {
+            "final": 0.027242,
+            "rrf_evidence": 0.027242,
+            "sparse_rank": 11,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 14,
+          "score": 0.027783,
+          "grade": 0,
+          "components": {
+            "final": 0.027783,
+            "rrf_evidence": 0.027783,
+            "sparse_rank": 13,
+            "dense_rank": 11,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.026491,
+          "grade": 0,
+          "components": {
+            "final": 0.026491,
+            "rrf_evidence": 0.026491,
+            "sparse_rank": 16,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.027027,
+          "grade": 0,
+          "components": {
+            "final": 0.027027,
+            "rrf_evidence": 0.027027,
+            "sparse_rank": 14,
+            "dense_rank": 14,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 1
+      },
+      "latency_ms": 17
+    },
+    {
+      "query_id": "l3_synth_015",
+      "query": "how do I compute memory strength from confidence and last_used timestamp",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 1,
+          "score": 0.032258,
+          "grade": -1,
+          "components": {
+            "final": 0.032258,
+            "rrf_evidence": 0.032258,
+            "sparse_rank": 2,
+            "dense_rank": 2,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 2,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 3,
+          "score": 0.030331,
+          "grade": 0,
+          "components": {
+            "final": 0.030331,
+            "rrf_evidence": 0.030331,
+            "sparse_rank": 4,
+            "dense_rank": 8,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 4,
+          "score": 0.030777,
+          "grade": 0,
+          "components": {
+            "final": 0.030777,
+            "rrf_evidence": 0.030777,
+            "sparse_rank": 6,
+            "dense_rank": 4,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 5,
+          "score": 0.030798,
+          "grade": 0,
+          "components": {
+            "final": 0.030798,
+            "rrf_evidence": 0.030798,
+            "sparse_rank": 7,
+            "dense_rank": 3,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 6,
+          "score": 0.029211,
+          "grade": 0,
+          "components": {
+            "final": 0.029211,
+            "rrf_evidence": 0.029211,
+            "sparse_rank": 10,
+            "dense_rank": 7,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 7,
+          "score": 0.029762,
+          "grade": 0,
+          "components": {
+            "final": 0.029762,
+            "rrf_evidence": 0.029762,
+            "sparse_rank": 3,
+            "dense_rank": 12,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 8,
+          "score": 0.029644,
+          "grade": 0,
+          "components": {
+            "final": 0.029644,
+            "rrf_evidence": 0.029644,
+            "sparse_rank": 9,
+            "dense_rank": 6,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 9,
+          "score": 0.029469,
+          "grade": 0,
+          "components": {
+            "final": 0.029469,
+            "rrf_evidence": 0.029469,
+            "sparse_rank": 5,
+            "dense_rank": 11,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 10,
+          "score": 0.028175,
+          "grade": 0,
+          "components": {
+            "final": 0.028175,
+            "rrf_evidence": 0.028175,
+            "sparse_rank": 12,
+            "dense_rank": 10,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 11,
+          "score": 0.027212,
+          "grade": 0,
+          "components": {
+            "final": 0.027212,
+            "rrf_evidence": 0.027212,
+            "sparse_rank": 14,
+            "dense_rank": 13,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 12,
+          "score": 0.027864,
+          "grade": 0,
+          "components": {
+            "final": 0.027864,
+            "rrf_evidence": 0.027864,
+            "sparse_rank": 8,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 13,
+          "score": 0.028718,
+          "grade": 0,
+          "components": {
+            "final": 0.028718,
+            "rrf_evidence": 0.028718,
+            "sparse_rank": 15,
+            "dense_rank": 5,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.027418,
+          "grade": 0,
+          "components": {
+            "final": 0.027418,
+            "rrf_evidence": 0.027418,
+            "sparse_rank": 11,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.028191,
+          "grade": 0,
+          "components": {
+            "final": 0.028191,
+            "rrf_evidence": 0.028191,
+            "sparse_rank": 13,
+            "dense_rank": 9,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.026671,
+          "grade": 0,
+          "components": {
+            "final": 0.026671,
+            "rrf_evidence": 0.026671,
+            "sparse_rank": 16,
+            "dense_rank": 14,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 0.5,
+        "ndcg": 0.6309297535714574
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_016",
+      "query": "what verification confirms the token was actually refreshed",
+      "query_type": "procedure",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 1,
+          "score": 0.032002,
+          "grade": 0,
+          "components": {
+            "final": 0.032002,
+            "rrf_evidence": 0.032002,
+            "sparse_rank": 2,
+            "dense_rank": 3,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 2,
+          "score": 0.032787,
+          "grade": 3,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 3,
+          "score": 0.032002,
+          "grade": 0,
+          "components": {
+            "final": 0.032002,
+            "rrf_evidence": 0.032002,
+            "sparse_rank": 3,
+            "dense_rank": 2,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 4,
+          "score": 0.029644,
+          "grade": 0,
+          "components": {
+            "final": 0.029644,
+            "rrf_evidence": 0.029644,
+            "sparse_rank": 6,
+            "dense_rank": 9,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.02967,
+          "grade": 0,
+          "components": {
+            "final": 0.02967,
+            "rrf_evidence": 0.02967,
+            "sparse_rank": 10,
+            "dense_rank": 5,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 6,
+          "score": 0.030331,
+          "grade": 0,
+          "components": {
+            "final": 0.030331,
+            "rrf_evidence": 0.030331,
+            "sparse_rank": 4,
+            "dense_rank": 8,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 7,
+          "score": 0.028778,
+          "grade": 0,
+          "components": {
+            "final": 0.028778,
+            "rrf_evidence": 0.028778,
+            "sparse_rank": 9,
+            "dense_rank": 10,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.02879,
+          "grade": 0,
+          "components": {
+            "final": 0.02879,
+            "rrf_evidence": 0.02879,
+            "sparse_rank": 8,
+            "dense_rank": 11,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 9,
+          "score": 0.029083,
+          "grade": 0,
+          "components": {
+            "final": 0.029083,
+            "rrf_evidence": 0.029083,
+            "sparse_rank": 5,
+            "dense_rank": 13,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 10,
+          "score": 0.030077,
+          "grade": 0,
+          "components": {
+            "final": 0.030077,
+            "rrf_evidence": 0.030077,
+            "sparse_rank": 7,
+            "dense_rank": 6,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 11,
+          "score": 0.028624,
+          "grade": 0,
+          "components": {
+            "final": 0.028624,
+            "rrf_evidence": 0.028624,
+            "sparse_rank": 13,
+            "dense_rank": 7,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 12,
+          "score": 0.028958,
+          "grade": 0,
+          "components": {
+            "final": 0.028958,
+            "rrf_evidence": 0.028958,
+            "sparse_rank": 15,
+            "dense_rank": 4,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 13,
+          "score": 0.027222,
+          "grade": 0,
+          "components": {
+            "final": 0.027222,
+            "rrf_evidence": 0.027222,
+            "sparse_rank": 12,
+            "dense_rank": 15,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.026671,
+          "grade": 0,
+          "components": {
+            "final": 0.026671,
+            "rrf_evidence": 0.026671,
+            "sparse_rank": 14,
+            "dense_rank": 16,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.027047,
+          "grade": 0,
+          "components": {
+            "final": 0.027047,
+            "rrf_evidence": 0.027047,
+            "sparse_rank": 16,
+            "dense_rank": 12,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.027598,
+          "grade": 0,
+          "components": {
+            "final": 0.027598,
+            "rrf_evidence": 0.027598,
+            "sparse_rank": 11,
+            "dense_rank": 14,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 0.5,
+        "ndcg": 0.6309297535714574
+      },
+      "latency_ms": 14
+    },
+    {
+      "query_id": "l3_synth_017",
+      "query": "which memory governs token refresh before API calls: retry on 401 or refresh first",
+      "query_type": "conflict",
+      "gold": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 1,
+          "score": 0.032522,
+          "grade": 3,
+          "components": {
+            "final": 0.032522,
+            "rrf_evidence": 0.032522,
+            "sparse_rank": 1,
+            "dense_rank": 2,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 2,
+          "score": 0.031746,
+          "grade": -1,
+          "components": {
+            "final": 0.031746,
+            "rrf_evidence": 0.031746,
+            "sparse_rank": 3,
+            "dense_rank": 3,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 3,
+          "score": 0.032522,
+          "grade": 1,
+          "components": {
+            "final": 0.032522,
+            "rrf_evidence": 0.032522,
+            "sparse_rank": 2,
+            "dense_rank": 1,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 4,
+          "score": 0.03055,
+          "grade": 0,
+          "components": {
+            "final": 0.03055,
+            "rrf_evidence": 0.03055,
+            "sparse_rank": 4,
+            "dense_rank": 7,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 5,
+          "score": 0.02967,
+          "grade": 0,
+          "components": {
+            "final": 0.02967,
+            "rrf_evidence": 0.02967,
+            "sparse_rank": 5,
+            "dense_rank": 10,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 6,
+          "score": 0.03055,
+          "grade": 0,
+          "components": {
+            "final": 0.03055,
+            "rrf_evidence": 0.03055,
+            "sparse_rank": 7,
+            "dense_rank": 4,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 7,
+          "score": 0.030536,
+          "grade": 0,
+          "components": {
+            "final": 0.030536,
+            "rrf_evidence": 0.030536,
+            "sparse_rank": 6,
+            "dense_rank": 5,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 8,
+          "score": 0.028169,
+          "grade": 0,
+          "components": {
+            "final": 0.028169,
+            "rrf_evidence": 0.028169,
+            "sparse_rank": 11,
+            "dense_rank": 11,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 9,
+          "score": 0.028992,
+          "grade": 0,
+          "components": {
+            "final": 0.028992,
+            "rrf_evidence": 0.028992,
+            "sparse_rank": 10,
+            "dense_rank": 8,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 10,
+          "score": 0.027588,
+          "grade": 0,
+          "components": {
+            "final": 0.027588,
+            "rrf_evidence": 0.027588,
+            "sparse_rank": 12,
+            "dense_rank": 13,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 11,
+          "score": 0.027864,
+          "grade": 0,
+          "components": {
+            "final": 0.027864,
+            "rrf_evidence": 0.027864,
+            "sparse_rank": 8,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 12,
+          "score": 0.027826,
+          "grade": 0,
+          "components": {
+            "final": 0.027826,
+            "rrf_evidence": 0.027826,
+            "sparse_rank": 9,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 13,
+          "score": 0.027826,
+          "grade": 0,
+          "components": {
+            "final": 0.027826,
+            "rrf_evidence": 0.027826,
+            "sparse_rank": 15,
+            "dense_rank": 9,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 14,
+          "score": 0.028309,
+          "grade": 0,
+          "components": {
+            "final": 0.028309,
+            "rrf_evidence": 0.028309,
+            "sparse_rank": 16,
+            "dense_rank": 6,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.027588,
+          "grade": 0,
+          "components": {
+            "final": 0.027588,
+            "rrf_evidence": 0.027588,
+            "sparse_rank": 13,
+            "dense_rank": 12,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.027027,
+          "grade": 0,
+          "components": {
+            "final": 0.027027,
+            "rrf_evidence": 0.027027,
+            "sparse_rank": 14,
+            "dense_rank": 14,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 0.9639404333166532
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_018",
+      "query": "should memories decay over time or be retained at full strength forever",
+      "query_type": "conflict",
+      "gold": [
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "grade": 3
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "grade": 1
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 1,
+          "score": 0.032522,
+          "grade": 1,
+          "components": {
+            "final": 0.032522,
+            "rrf_evidence": 0.032522,
+            "sparse_rank": 1,
+            "dense_rank": 2,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 2,
+          "score": 0.032522,
+          "grade": 3,
+          "components": {
+            "final": 0.032522,
+            "rrf_evidence": 0.032522,
+            "sparse_rank": 2,
+            "dense_rank": 1,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": true
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 3,
+          "score": 0.030159,
+          "grade": 0,
+          "components": {
+            "final": 0.030159,
+            "rrf_evidence": 0.030159,
+            "sparse_rank": 3,
+            "dense_rank": 10,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.029857,
+          "grade": 0,
+          "components": {
+            "final": 0.029857,
+            "rrf_evidence": 0.029857,
+            "sparse_rank": 6,
+            "dense_rank": 8,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 5,
+          "score": 0.030579,
+          "grade": 0,
+          "components": {
+            "final": 0.030579,
+            "rrf_evidence": 0.030579,
+            "sparse_rank": 8,
+            "dense_rank": 3,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 6,
+          "score": 0.030777,
+          "grade": 0,
+          "components": {
+            "final": 0.030777,
+            "rrf_evidence": 0.030777,
+            "sparse_rank": 4,
+            "dense_rank": 6,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 7,
+          "score": 0.029274,
+          "grade": -1,
+          "components": {
+            "final": 0.029274,
+            "rrf_evidence": 0.029274,
+            "sparse_rank": 12,
+            "dense_rank": 5,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 8,
+          "score": 0.02971,
+          "grade": 0,
+          "components": {
+            "final": 0.02971,
+            "rrf_evidence": 0.02971,
+            "sparse_rank": 11,
+            "dense_rank": 4,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 9,
+          "score": 0.028577,
+          "grade": 0,
+          "components": {
+            "final": 0.028577,
+            "rrf_evidence": 0.028577,
+            "sparse_rank": 9,
+            "dense_rank": 11,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 10,
+          "score": 0.029274,
+          "grade": 0,
+          "components": {
+            "final": 0.029274,
+            "rrf_evidence": 0.029274,
+            "sparse_rank": 5,
+            "dense_rank": 12,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 11,
+          "score": 0.027826,
+          "grade": 0,
+          "components": {
+            "final": 0.027826,
+            "rrf_evidence": 0.027826,
+            "sparse_rank": 15,
+            "dense_rank": 9,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 12,
+          "score": 0.027799,
+          "grade": 0,
+          "components": {
+            "final": 0.027799,
+            "rrf_evidence": 0.027799,
+            "sparse_rank": 10,
+            "dense_rank": 14,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 13,
+          "score": 0.028083,
+          "grade": 0,
+          "components": {
+            "final": 0.028083,
+            "rrf_evidence": 0.028083,
+            "sparse_rank": 7,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 14,
+          "score": 0.028083,
+          "grade": 0,
+          "components": {
+            "final": 0.028083,
+            "rrf_evidence": 0.028083,
+            "sparse_rank": 16,
+            "dense_rank": 7,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 15,
+          "score": 0.026847,
+          "grade": 0,
+          "components": {
+            "final": 0.026847,
+            "rrf_evidence": 0.026847,
+            "sparse_rank": 14,
+            "dense_rank": 15,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.027397,
+          "grade": 0,
+          "components": {
+            "final": 0.027397,
+            "rrf_evidence": 0.027397,
+            "sparse_rank": 13,
+            "dense_rank": 13,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": 1,
+        "recall@10": 1,
+        "rr": 1,
+        "ndcg": 0.7967075809905066
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_019",
+      "query": "what color should the dashboard background be",
+      "query_type": "negative",
+      "gold": [
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 1,
+          "score": 0.032787,
+          "grade": 0,
+          "components": {
+            "final": 0.032787,
+            "rrf_evidence": 0.032787,
+            "sparse_rank": 1,
+            "dense_rank": 1,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 2,
+          "score": 0.030366,
+          "grade": 0,
+          "components": {
+            "final": 0.030366,
+            "rrf_evidence": 0.030366,
+            "sparse_rank": 3,
+            "dense_rank": 9,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 3,
+          "score": 0.029911,
+          "grade": 0,
+          "components": {
+            "final": 0.029911,
+            "rrf_evidence": 0.029911,
+            "sparse_rank": 4,
+            "dense_rank": 10,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 4,
+          "score": 0.03009,
+          "grade": 0,
+          "components": {
+            "final": 0.03009,
+            "rrf_evidence": 0.03009,
+            "sparse_rank": 5,
+            "dense_rank": 8,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.030331,
+          "grade": 0,
+          "components": {
+            "final": 0.030331,
+            "rrf_evidence": 0.030331,
+            "sparse_rank": 8,
+            "dense_rank": 4,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 6,
+          "score": 0.030077,
+          "grade": 0,
+          "components": {
+            "final": 0.030077,
+            "rrf_evidence": 0.030077,
+            "sparse_rank": 6,
+            "dense_rank": 7,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 7,
+          "score": 0.030018,
+          "grade": 0,
+          "components": {
+            "final": 0.030018,
+            "rrf_evidence": 0.030018,
+            "sparse_rank": 2,
+            "dense_rank": 12,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 8,
+          "score": 0.030622,
+          "grade": 0,
+          "components": {
+            "final": 0.030622,
+            "rrf_evidence": 0.030622,
+            "sparse_rank": 9,
+            "dense_rank": 2,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 9,
+          "score": 0.028898,
+          "grade": 0,
+          "components": {
+            "final": 0.028898,
+            "rrf_evidence": 0.028898,
+            "sparse_rank": 14,
+            "dense_rank": 5,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 10,
+          "score": 0.028169,
+          "grade": 0,
+          "components": {
+            "final": 0.028169,
+            "rrf_evidence": 0.028169,
+            "sparse_rank": 11,
+            "dense_rank": 11,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 11,
+          "score": 0.028083,
+          "grade": 0,
+          "components": {
+            "final": 0.028083,
+            "rrf_evidence": 0.028083,
+            "sparse_rank": 7,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 12,
+          "score": 0.02904,
+          "grade": 0,
+          "components": {
+            "final": 0.02904,
+            "rrf_evidence": 0.02904,
+            "sparse_rank": 12,
+            "dense_rank": 6,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 13,
+          "score": 0.029031,
+          "grade": -1,
+          "components": {
+            "final": 0.029031,
+            "rrf_evidence": 0.029031,
+            "sparse_rank": 16,
+            "dense_rank": 3,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.027397,
+          "grade": 0,
+          "components": {
+            "final": 0.027397,
+            "rrf_evidence": 0.027397,
+            "sparse_rank": 13,
+            "dense_rank": 13,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 15,
+          "score": 0.027619,
+          "grade": 0,
+          "components": {
+            "final": 0.027619,
+            "rrf_evidence": 0.027619,
+            "sparse_rank": 10,
+            "dense_rank": 15,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 16,
+          "score": 0.026847,
+          "grade": 0,
+          "components": {
+            "final": 0.026847,
+            "rrf_evidence": 0.026847,
+            "sparse_rank": 15,
+            "dense_rank": 14,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": null,
+        "recall@10": null,
+        "rr": 0,
+        "ndcg": null
+      },
+      "latency_ms": 16
+    },
+    {
+      "query_id": "l3_synth_020",
+      "query": "who won the world series in 1998",
+      "query_type": "negative",
+      "gold": [
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "grade": -1
+        }
+      ],
+      "candidate_count": 16,
+      "retrieved": [
+        {
+          "id": "lesson/memory_never_forget.md",
+          "rank": 1,
+          "score": 0.031099,
+          "grade": 0,
+          "components": {
+            "final": 0.031099,
+            "rrf_evidence": 0.031099,
+            "sparse_rank": 1,
+            "dense_rank": 8,
+            "strength_rank": 1,
+            "strength_value": 0.856,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/cached_response_detection.md",
+          "rank": 2,
+          "score": 0.030886,
+          "grade": 0,
+          "components": {
+            "final": 0.030886,
+            "rrf_evidence": 0.030886,
+            "sparse_rank": 9,
+            "dense_rank": 1,
+            "strength_rank": 3,
+            "strength_value": 0.745,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_token_refresh.md",
+          "rank": 3,
+          "score": 0.031258,
+          "grade": 0,
+          "components": {
+            "final": 0.031258,
+            "rrf_evidence": 0.031258,
+            "sparse_rank": 3,
+            "dense_rank": 5,
+            "strength_rank": 4,
+            "strength_value": 0.694,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_patch_transactional.md",
+          "rank": 4,
+          "score": 0.029828,
+          "grade": 0,
+          "components": {
+            "final": 0.029828,
+            "rrf_evidence": 0.029828,
+            "sparse_rank": 2,
+            "dense_rank": 13,
+            "strength_rank": 2,
+            "strength_value": 0.752,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/ebbinghaus_decay_calibrated.md",
+          "rank": 5,
+          "score": 0.030159,
+          "grade": 0,
+          "components": {
+            "final": 0.030159,
+            "rrf_evidence": 0.030159,
+            "sparse_rank": 10,
+            "dense_rank": 3,
+            "strength_rank": 5,
+            "strength_value": 0.682,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/http_5xx_retry.md",
+          "rank": 6,
+          "score": 0.030777,
+          "grade": 0,
+          "components": {
+            "final": 0.030777,
+            "rrf_evidence": 0.030777,
+            "sparse_rank": 4,
+            "dense_rank": 6,
+            "strength_rank": 6,
+            "strength_value": 0.545,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_skill_conversion.md",
+          "rank": 7,
+          "score": 0.02967,
+          "grade": 0,
+          "components": {
+            "final": 0.02967,
+            "rrf_evidence": 0.02967,
+            "sparse_rank": 5,
+            "dense_rank": 10,
+            "strength_rank": 7,
+            "strength_value": 0.502,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/unrelated_release_notes.md",
+          "rank": 8,
+          "score": 0.030331,
+          "grade": -1,
+          "components": {
+            "final": 0.030331,
+            "rrf_evidence": 0.030331,
+            "sparse_rank": 8,
+            "dense_rank": 4,
+            "strength_rank": 12,
+            "strength_value": 0.134,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/chatgpt_blind_trust_streamed.md",
+          "rank": 9,
+          "score": 0.030214,
+          "grade": 0,
+          "components": {
+            "final": 0.030214,
+            "rrf_evidence": 0.030214,
+            "sparse_rank": 11,
+            "dense_rank": 2,
+            "strength_rank": 13,
+            "strength_value": 0.041,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/session_async_hang_debug.md",
+          "rank": 10,
+          "score": 0.028665,
+          "grade": 0,
+          "components": {
+            "final": 0.028665,
+            "rrf_evidence": 0.028665,
+            "sparse_rank": 6,
+            "dense_rank": 14,
+            "strength_rank": 8,
+            "strength_value": 0.446,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/regex_quota_escaping.md",
+          "rank": 11,
+          "score": 0.028083,
+          "grade": 0,
+          "components": {
+            "final": 0.028083,
+            "rrf_evidence": 0.028083,
+            "sparse_rank": 7,
+            "dense_rank": 16,
+            "strength_rank": 9,
+            "strength_value": 0.274,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/generic_file_backup.md",
+          "rank": 12,
+          "score": 0.028006,
+          "grade": 0,
+          "components": {
+            "final": 0.028006,
+            "rrf_evidence": 0.028006,
+            "sparse_rank": 14,
+            "dense_rank": 9,
+            "strength_rank": 10,
+            "strength_value": 0.27,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/auth_retry_on_401.md",
+          "rank": 13,
+          "score": 0.028814,
+          "grade": 0,
+          "components": {
+            "final": 0.028814,
+            "rrf_evidence": 0.028814,
+            "sparse_rank": 12,
+            "dense_rank": 7,
+            "strength_rank": 16,
+            "strength_value": 0.001,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/windows_path_quirks.md",
+          "rank": 14,
+          "score": 0.027222,
+          "grade": 0,
+          "components": {
+            "final": 0.027222,
+            "rrf_evidence": 0.027222,
+            "sparse_rank": 15,
+            "dense_rank": 12,
+            "strength_rank": 11,
+            "strength_value": 0.184,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/onboarding_organize_downloads.md",
+          "rank": 15,
+          "score": 0.027242,
+          "grade": 0,
+          "components": {
+            "final": 0.027242,
+            "rrf_evidence": 0.027242,
+            "sparse_rank": 16,
+            "dense_rank": 11,
+            "strength_rank": 14,
+            "strength_value": 0.025,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        },
+        {
+          "id": "lesson/config_write_naive.md",
+          "rank": 16,
+          "score": 0.027032,
+          "grade": 0,
+          "components": {
+            "final": 0.027032,
+            "rrf_evidence": 0.027032,
+            "sparse_rank": 13,
+            "dense_rank": 15,
+            "strength_rank": 15,
+            "strength_value": 0.003,
+            "exact_match": false,
+            "rrf_k": 60,
+            "tie_band": 0.001
+          },
+          "matched_gold": false
+        }
+      ],
+      "retrieved_count": 16,
+      "empty": false,
+      "errors": [],
+      "metrics": {
+        "recall@5": null,
+        "recall@10": null,
+        "rr": 0,
+        "ndcg": null
+      },
+      "latency_ms": 14
+    }
+  ],
+  "aggregate": {
+    "recall@5": 1,
+    "recall@10": 1,
+    "mrr": 0.825,
+    "ndcg": 0.9194531165360164,
+    "p50_ms": 16,
+    "p95_ms": 22,
+    "mean_ms": 16.05,
+    "empty_rate": 0,
+    "slices": {
+      "exact_anchor": {
+        "n": 5,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 1,
+        "ndcg": 1
+      },
+      "negative_leakage": {
+        "n": 12,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 0.75,
+        "ndcg": 0.9189740373776221
+      },
+      "lexical_distractor": {
+        "n": 6,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 0.8333333333333334,
+        "ndcg": 0.8649567289627035
+      },
+      "semantic_win": {
+        "n": 11,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 0.8636363636363636,
+        "ndcg": 0.8899552803037397
+      },
+      "conflict_resolution": {
+        "n": 2,
+        "recall@5": 1,
+        "recall@10": 1,
+        "mrr": 1,
+        "ndcg": 0.88032400715358
+      }
+    },
+    "exact_anchor_regressions": {
+      "regressions_top1": 0,
+      "regressions_top5": 0,
+      "total_exact_anchor_queries": 5
+    },
+    "negative_leakage": [
+      {
+        "query_id": "l3_synth_001",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/auth_retry_on_401.md"
+        ],
+        "worst_rank": 4
+      },
+      {
+        "query_id": "l3_synth_002",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/config_write_naive.md"
+        ],
+        "worst_rank": 4
+      },
+      {
+        "query_id": "l3_synth_004",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/memory_never_forget.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_005",
+        "query_type": "exact_anchor",
+        "leaked_ids": [
+          "lesson/chatgpt_blind_trust_streamed.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_006",
+        "query_type": "semantic_episode",
+        "leaked_ids": [
+          "lesson/http_5xx_retry.md"
+        ],
+        "worst_rank": 2
+      },
+      {
+        "query_id": "l3_synth_009",
+        "query_type": "semantic_episode",
+        "leaked_ids": [
+          "lesson/memory_never_forget.md"
+        ],
+        "worst_rank": 1
+      },
+      {
+        "query_id": "l3_synth_013",
+        "query_type": "procedure",
+        "leaked_ids": [
+          "lesson/config_write_naive.md"
+        ],
+        "worst_rank": 5
+      },
+      {
+        "query_id": "l3_synth_014",
+        "query_type": "procedure",
+        "leaked_ids": [
+          "lesson/chatgpt_blind_trust_streamed.md"
+        ],
+        "worst_rank": 5
+      },
+      {
+        "query_id": "l3_synth_015",
+        "query_type": "procedure",
+        "leaked_ids": [
+          "lesson/memory_never_forget.md"
+        ],
+        "worst_rank": 1
+      },
+      {
+        "query_id": "l3_synth_017",
+        "query_type": "conflict",
+        "leaked_ids": [
+          "lesson/http_5xx_retry.md"
+        ],
+        "worst_rank": 2
+      }
+    ],
+    "embedding_cache": {
+      "entries": 50,
+      "db": "C:\\Next-Era\\Moneta\\eval\\.cache\\embeddings.sqlite"
+    }
+  },
+  "errors": {
+    "query_failures": 0,
+    "embedding_failures": 0,
+    "empty_queries": 0
+  },
+  "candidate_count": 16
+}

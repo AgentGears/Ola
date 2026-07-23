@@ -1,0 +1,181 @@
+name: Baseline clean-clone tests
+
+on:
+  pull_request:
+    paths:
+      - 'bin/**'
+      - 'hooks/**'
+      - 'mcp/**'
+      - 'eval/**'
+      - 'schemas/**'
+      - 'tools/**'
+      - 'tests/**'
+      - 'phase0/**'
+      - '.github/workflows/baseline-tests.yml'
+      - '.gitignore'
+      - '.gitattributes'
+  push:
+    branches: [main]
+    paths:
+      - 'bin/**'
+      - 'hooks/**'
+      - 'mcp/**'
+      - 'eval/**'
+      - 'schemas/**'
+      - 'tools/**'
+      - 'tests/**'
+      - 'phase0/**'
+      - '.github/workflows/baseline-tests.yml'
+      - '.gitignore'
+      - '.gitattributes'
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Deterministic gate ─────────────────────────────────────────────
+  # 19 registered suites (all except offload-latency, which has a known
+  # test-harness race — issue #11) + 3 R2 aggregators + ADR package
+  # integrity + prohibited-path absence check.
+  deterministic:
+    name: Deterministic suite (19 + 3 aggregators + ADR)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.0'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Prohibited runtime-state path absence check
+        run: |
+          set -euo pipefail
+          # These paths must NEVER be committed. Their presence is a hard fail.
+          prohibited=(
+            ".ouroboros"
+            ".zcode"
+            ".zcode-plugin"
+            ".playwright-mcp"
+            ".chatgpt-collaboration.json"
+            ".ola"
+            ".moneta"
+            "bug-reports"
+          )
+          found=0
+          for p in "${prohibited[@]}"; do
+            if [ -e "$p" ]; then
+              echo "PROHIBITED PATH PRESENT: $p"
+              found=1
+            fi
+          done
+          # Databases and logs must not be tracked
+          if find . -path ./.git -prune -o \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' -o -name '*.pem' -o -name '*.key' \) -print | grep -q .; then
+            echo "PROHIBITED: database/credential files found in tree"
+            find . -path ./.git -prune -o \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' -o -name '*.pem' -o -name '*.key' \) -print
+            found=1
+          fi
+          if [ "$found" -ne 0 ]; then
+            echo "::error::Prohibited runtime-state or credential paths are present in the repository"
+            exit 1
+          fi
+          echo "PASS: no prohibited runtime-state paths"
+
+      - name: Run 19 deterministic registered suites
+        run: |
+          set -euo pipefail
+          # All 20 registered suites EXCEPT offload-latency (issue #11).
+          deterministic_tests=(
+            "tests/test-sentinel-survives-canonical-destruction.cjs"
+            "tests/test-resolver-ignores-zcode-plugin-data.cjs"
+            "tests/test-post-migration-guard-exit.cjs"
+            "tests/embed-observability.test.cjs"
+            "tests/exact-anchor-override.test.cjs"
+            "tests/negative-leakage.test.cjs"
+            "tests/fusion-determinism.test.cjs"
+            "tests/offload-core.test.cjs"
+            "tests/offload-verify.test.cjs"
+            "tests/offload-secrets.test.cjs"
+            "tests/offload-spool.test.cjs"
+            "tests/offload-integration.test.cjs"
+            "tests/offload-session.test.cjs"
+            "tests/offload-capability.test.cjs"
+            "tests/offload-read.test.cjs"
+            "tests/offload-rehydration.test.cjs"
+            "tests/offload-ops.test.cjs"
+            "tests/schema-alias-completeness.test.cjs"
+            "tests/rename-inventory.test.cjs"
+          )
+          failed=0
+          for t in "${deterministic_tests[@]}"; do
+            echo "::group::$(basename "$t")"
+            if node "$t"; then
+              echo "PASS: $t"
+            else
+              echo "::error::FAIL: $t"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::At least one deterministic suite failed"
+            exit 1
+          fi
+          echo "PASS: 19/19 deterministic suites"
+
+      - name: Run 3 R2 aggregators independently
+        run: |
+          set -euo pipefail
+          for agg in r2-migration-forward r2-migration-refusal r2-migration-closeout; do
+            echo "::group::$agg"
+            node "tests/${agg}.test.cjs"
+            echo "::endgroup::"
+          done
+          echo "PASS: 3/3 R2 aggregators"
+
+      - name: ADR package integrity verification
+        working-directory: docs/architecture/adr-0001
+        run: |
+          python verify_adr_package.py
+
+      - name: Frozen package-root check
+        working-directory: docs/architecture/adr-0001
+        run: |
+          set -euo pipefail
+          expected="94c68edcceec5b8cd6b6b8a188e0f067a242b221dbcc423d70ebabb4e8090bf9"
+          actual="$(awk '{print $1}' PACKAGE-ROOT.sha256)"
+          echo "expected=$expected"
+          echo "actual  =$actual"
+          [ "$actual" = "$expected" ]
+          echo "PASS: package root matches frozen candidate"
+
+  # ── Non-gating diagnostic ──────────────────────────────────────────
+  # offload-latency has a known test-harness race (issue #11). It runs
+  # here for diagnostic/log purposes only. It does NOT gate the PR.
+  # Do NOT retry until green or treat a pass here as deterministic evidence.
+  offload-latency-diagnostic:
+    name: offload-latency (diagnostic, non-gating — issue #11)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.17.0'
+
+      - name: Run offload-latency (diagnostic only)
+        run: |
+          echo "=== offload-latency diagnostic run ==="
+          echo "This test has a known test-harness race (issue #11)."
+          echo "A pass here is NOT deterministic evidence."
+          echo "A fail here does NOT gate this PR."
+          echo "=========================================="
+          node tests/offload-latency.test.cjs || {
+            echo ""
+            echo "DIAGNOSTIC: offload-latency failed (expected intermittently per issue #11)."
+            echo "This does not block the PR. See issue #11 for the required fix."
+          }

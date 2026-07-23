@@ -1,0 +1,69 @@
+{
+  "generated_at": "2026-07-18T05:32:00Z",
+  "classification": "DIVERGENT-BOTH",
+  "moneta": {
+    "exists": true,
+    "files": {
+      "events.jsonl": {
+        "size": 2740853,
+        "sha256": "9459e3c982525ca8"
+      },
+      "memory-inbox.jsonl": {
+        "size": 203082,
+        "sha256": "7fa310f35e21ebde"
+      },
+      "memory-stats.sqlite": {
+        "size": 122880,
+        "sha256": "ed4c4f95fba9673f"
+      },
+      "situation-labels.jsonl": {
+        "size": 1927052,
+        "sha256": "c06aea79117a84a3"
+      },
+      "logs/decisions.jsonl": {
+        "size": 3804484,
+        "sha256": "b676e8b3ef5a8138"
+      }
+    },
+    "file_count": 5,
+    "total_size": 8798351
+  },
+  "ola": {
+    "exists": true,
+    "files": {
+      "events.jsonl": {
+        "size": 34558,
+        "sha256": "75f7c4be3a9b39c1"
+      },
+      "situation-labels.jsonl": {
+        "size": 20886,
+        "sha256": "c802c3f9803c4f66"
+      },
+      "logs/decisions.jsonl": {
+        "size": 41718,
+        "sha256": "6ae2eff0b1a44789"
+      }
+    },
+    "file_count": 3,
+    "total_size": 97162
+  },
+  "analysis": {
+    "common_files": [
+      "events.jsonl",
+      "logs/decisions.jsonl",
+      "situation-labels.jsonl"
+    ],
+    "identical_files": [],
+    "divergent_files": [
+      "events.jsonl",
+      "logs/decisions.jsonl",
+      "situation-labels.jsonl"
+    ],
+    "moneta_only_files": [
+      "memory-inbox.jsonl",
+      "memory-stats.sqlite"
+    ],
+    "ola_only_files": []
+  },
+  "note": "Both stores are divergent. ~/.moneta/ has historical data (memory-inbox, stats DB). ~/.ola/ was created fresh by hooks after R1 code changes. R2 migration must merge: copy moneta-only files into ola, and for divergent append-only files (events.jsonl, situation-labels.jsonl), concatenate or select the authoritative source."
+}

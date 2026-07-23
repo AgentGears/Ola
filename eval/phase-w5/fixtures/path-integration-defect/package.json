@@ -1,0 +1,9 @@
+{
+  "name": "config-manager",
+  "version": "1.0.0",
+  "description": "Multi-layer configuration manager with env override support",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node tests/config.test.js"
+  }
+}

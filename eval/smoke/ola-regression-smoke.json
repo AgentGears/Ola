@@ -1,0 +1,116 @@
+{
+  "schema_version": "moneta-regression-smoke/1",
+  "description": "Standing retrieval smoke fixture. Tests whether promoted memories survive in the live store after corpus mutations. NOT a re-validation of Phase C eval conclusions — smoke checks live-store recall, not frozen-corpus metrics.",
+  "limitation_note": "Current corpus is 100% Moneta-self-referential. Smoke tests recent-decision recall, not general retrieval quality. No external/non-Moneta content exists to test.",
+  "queries": [
+    {
+      "query_id": "smoke-01",
+      "query": "Phase C outcome decision lexical default",
+      "required_memory_id_contains": "phase_c_outcome_a",
+      "minimum_rank": 3,
+      "age_class": "recent_phase_c_d",
+      "purpose": "Phase C outcome is retrievable"
+    },
+    {
+      "query_id": "smoke-02",
+      "query": "why Evidence-RRF stayed experimental",
+      "required_memory_id_contains": "phase_c_outcome_a",
+      "minimum_rank": 3,
+      "age_class": "recent_phase_c_d",
+      "purpose": "Evidence-RRF experimental status"
+    },
+    {
+      "query_id": "smoke-03",
+      "query": "corpus density matters for dense retrieval",
+      "required_memory_id_contains": "empty_body_records_block",
+      "minimum_rank": 3,
+      "age_class": "recent_phase_c_d",
+      "purpose": "Corpus-density lesson retrievable"
+    },
+    {
+      "query_id": "smoke-04",
+      "query": "Phase A fusion architecture Evidence-RRF acceptance",
+      "required_memory_id_contains": "phase_a_evidence_rrf",
+      "minimum_rank": 3,
+      "age_class": "recent_phase_c_d",
+      "purpose": "Phase A architecture decision retrievable"
+    },
+    {
+      "query_id": "smoke-05",
+      "query": "q018 q009 q015 conflict pair classification",
+      "required_memory_id_contains": "q009_q015_q018",
+      "minimum_rank": 3,
+      "age_class": "recent_phase_c_d",
+      "purpose": "Conflict-pair classification retrievable"
+    },
+    {
+      "query_id": "smoke-06",
+      "query": "E prime calibrated arbitration not promoted",
+      "required_memory_id_contains": "e_prime_calibrated",
+      "minimum_rank": 3,
+      "age_class": "recent_phase_c_d",
+      "purpose": "E-prime rationale retrievable"
+    },
+    {
+      "query_id": "smoke-07",
+      "query": "freeze discipline hash protected candidate definitions",
+      "required_memory_id_contains": "freeze_discipline",
+      "minimum_rank": 3,
+      "age_class": "recent_phase_c_d",
+      "purpose": "C0.5 freeze discipline retrievable"
+    },
+    {
+      "query_id": "smoke-08",
+      "query": "current authoritative data directory resolution guidance",
+      "required_memory_id_contains": "data_dir_authority_for_cli_mutations",
+      "minimum_rank": 3,
+      "age_class": "older_pre_phase_c",
+      "purpose": "Data-dir authority outranks stale alpha-era guidance"
+    },
+    {
+      "query_id": "smoke-09",
+      "query": "push back disagree ChatGPT during review",
+      "required_memory_id_contains": "push_back_to_chatgpt_directly_enriched",
+      "minimum_rank": 3,
+      "age_class": "recent_phase_c_d",
+      "purpose": "Enriched push-back playbook retrievable"
+    },
+    {
+      "query_id": "smoke-10",
+      "query": "why were fusion weights abandoned superseded",
+      "required_memory_id_contains": "b0_accepted_phase_a_gate_locked_supersession",
+      "minimum_rank": 3,
+      "age_class": "recent_phase_c_d",
+      "purpose": "Supersession notice retrievable"
+    },
+    {
+      "query_id": "smoke-11",
+      "query": "safety mechanisms guard sentinel placement",
+      "required_memory_id_contains": "safety_mechanisms_must_not_live_inside_guarded_subtree",
+      "minimum_rank": 3,
+      "age_class": "older_pre_phase_c",
+      "purpose": "Durable playbook retrievable"
+    },
+    {
+      "query_id": "smoke-12",
+      "query": "investigation discipline plausible answer verification",
+      "required_memory_id_contains": "investigation_discipline_after_plausible_answer",
+      "minimum_rank": 3,
+      "age_class": "older_pre_phase_c",
+      "purpose": "Investigation discipline playbook retrievable"
+    }
+  ],
+  "gate_conditions": [
+    "Phase C outcome retrievable (smoke-01 or smoke-02)",
+    "Corpus-density lesson retrievable (smoke-03)",
+    "Phase A architecture retrievable (smoke-04)",
+    "Data-dir authority present in results (smoke-08)",
+    "No tombstoned record surfaces as authoritative"
+  ],
+  "age_class_coverage": {
+    "recent_phase_c_d": 8,
+    "older_pre_phase_c": 4,
+    "external_or_non_moneta": 0,
+    "note": "No external/non-Moneta content exists in the current corpus (100% self-referential per Phase D D6)."
+  }
+}

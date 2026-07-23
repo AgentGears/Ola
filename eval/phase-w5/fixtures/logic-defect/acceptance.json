@@ -1,0 +1,18 @@
+{
+  "failure_class": "logic",
+  "task_description": "A task scheduler's requeue function does not preserve original FIFO insertion order. When a task is popped and requeued, it should maintain its original position relative to other tasks with the same priority, but instead goes to the end of the queue.",
+  "setup_command": "npm install",
+  "failing_command": "npm test",
+  "acceptance_command": "npm test",
+  "expected_failure_digest": "requeue_preserves_order FAIL",
+  "minimum_diagnostic_observations": 3,
+  "reference_invariant": "A requeued task with the same priority as other queued tasks should come before tasks that were added after it originally.",
+  "max_expected_runtime_seconds": 300,
+  "expected_files_changed": ["src/index.js"],
+  "root_cause": "The requeue function calls sequenceCounter++ which assigns a new sequence number to the requeued task. This new number is higher than all existing tasks, so the requeued task goes to the end of the queue instead of maintaining its original FIFO position. The fix is to NOT increment the sequence counter in requeue — the task should keep its original seq value.",
+  "unacceptable_workarounds": [
+    "Changing the test to expect LIFO behavior",
+    "Adding a separate requeue queue instead of fixing seq assignment",
+    "Using a timestamp instead of sequence number"
+  ]
+}

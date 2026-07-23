@@ -1,0 +1,154 @@
+{
+  "$schema": "ola.legacy.allowlist.v1",
+  "description": "Machine-readable allowlist of locations where 'moneta' identifiers are permitted after the Ola rename. The rename-inventory test (R1) must fail on any 'moneta' occurrence outside these entries, and fail on any stale entry that no longer has a matching occurrence.",
+  "policy": {
+    "rule": "Every 'moneta' string in the post-rename tree MUST match exactly one allowlist entry. Unmatched occurrences fail the build. Stale allowlist entries (no matching occurrence) also fail the build.",
+    "enforcement": "tests/rename-inventory.test.cjs"
+  },
+  "entries": [
+    {
+      "id": "schema-aliases",
+      "path": "hooks/lib/schema-version.js",
+      "pattern": "moneta\\.offload\\.",
+      "reason": "Legacy schema normalization — SCHEMA_ALIASES mapping table maps old schema identifiers to ola.offload.* canonical form. NOTE: path moves to hooks/core/schema-version.js during R3 extraction.",
+      "owner": "R1 compatibility",
+      "remove_after": null
+    },
+    {
+      "id": "schema-alias-tests",
+      "path": "tests/schema-alias-completeness.test.cjs",
+      "pattern": "moneta\\.offload\\.",
+      "reason": "Tests proving schema alias normalization works for legacy identifiers. NOTE: path moves to tests/schema-alias-completeness.test.cjs.",
+      "owner": "R1 compatibility",
+      "remove_after": null
+    },
+    {
+      "id": "capability-secret-scanner",
+      "path": "hooks/lib/secrets.js",
+      "pattern": "moneta",
+      "reason": "Secret scanner redaction regex matches both ola_cap_ and moneta_cap_ to prevent old capability handles from leaking into logs. NOTE: path moves to hooks/core/secrets.js during R3 extraction.",
+      "owner": "R1 compatibility",
+      "remove_after": null
+    },
+    {
+      "id": "mcp-transcript-history",
+      "path": "hooks/lib/assess.js",
+      "pattern": "moneta",
+      "reason": "Historical transcript parsing — regex /mcp__(ola|moneta)_/ recognizes both new mcp__ola__ and legacy mcp__moneta__ tool calls. NOTE: path moves to hooks/core/assess.js during R3 extraction.",
+      "owner": "R1 compatibility",
+      "remove_after": null
+    },
+    {
+      "id": "uri-scheme-reader",
+      "path": "hooks/lib/env.js",
+      "pattern": "MONETA_",
+      "reason": "Environment variable legacy detection module — LEGACY_ENV_MAP references all MONETA_* variable names for detection and migration guidance.",
+      "owner": "R1 compatibility",
+      "remove_after": null
+    },
+    {
+      "id": "env-legacy-detection",
+      "path": "hooks/lib/shared.js",
+      "pattern": "MONETA",
+      "reason": "Comment in shared.js explaining legacy MONETA_* env var detection. NOTE: path moves to hooks/core/shared.js during R3 extraction.",
+      "owner": "R1 compatibility",
+      "remove_after": null
+    },
+    {
+      "id": "legacy-store-detection",
+      "path": "hooks/lib/legacy-stores.js",
+      "pattern": "moneta",
+      "reason": "detectAuthoritativeLegacyStores() flags old ~/.moneta/data/, the moneta@inline plugin-data leak path, and ~/.moneta.migrated-* archives. Function name monetaDataCandidate() and related references are inherent to R2 migration safety. NOTE: path moves to hooks/core/legacy-stores.js during R3 extraction.",
+      "owner": "R2 migration safety",
+      "remove_after": null
+    },
+    {
+      "id": "guard-exit-test",
+      "path": "tests/test-post-migration-guard-exit.cjs",
+      "pattern": "moneta",
+      "reason": "R2 regression test exercises the authoritative-vs-archive distinction by constructing fixtures at ~/.moneta/data, moneta@inline, and ~/.moneta.migrated-* paths inside a sandboxed home. The legacy store paths are test fixtures by necessity.",
+      "owner": "R2 migration safety",
+      "remove_after": null
+    },
+    {
+      "id": "migration-sentinel-location",
+      "path": "hooks/lib/migration-sentinel.js",
+      "pattern": "\\.moneta",
+      "reason": "Sentinel lives at ~/.ola-migration/ specifically because it must be a sibling of both ~/.moneta/ and ~/.ola/. Documentation comments and architectural invariant notes reference ~/.moneta/ by necessity.",
+      "owner": "R2 migration safety",
+      "remove_after": null
+    },
+    {
+      "id": "migration-sentinel-destruction-test",
+      "path": "tests/test-sentinel-survives-canonical-destruction.cjs",
+      "pattern": "\\.moneta|monetaRoot",
+      "reason": "R2 regression test destroys ~/.moneta/ to verify the sentinel survives. The legacy store path is a test fixture by necessity.",
+      "owner": "R2 migration safety",
+      "remove_after": null
+    },
+    {
+      "id": "migration-r2-tool",
+      "path": "bin/migrate-r2.cjs",
+      "pattern": "moneta",
+      "reason": "R2 migration CLI. Entire purpose is to read from ~/.moneta/ and ~/.moneta/data/, reference moneta@inline plugin-data leak paths, and port moneta-prefixed variables/records (monetaPayloads, monetaData, moneta_records, etc.) that describe the legacy source side of the migration. Renaming these would obscure which side of the migration a variable represents. NOTE: pattern is broad because the file is fundamentally about porting Moneta.",
+      "owner": "R2 migration",
+      "remove_after": null
+    },
+    {
+      "id": "migration-source-path",
+      "path": "bin/migrate-data-dir.cjs",
+      "pattern": "\\.moneta|moneta@inline",
+      "reason": "Migration tool reads ~/.moneta/ as source and references moneta@inline legacy plugin path",
+      "owner": "R2 migration",
+      "remove_after": null
+    },
+    {
+      "id": "migration-tests",
+      "path": "tests/schema-alias-completeness.test.cjs",
+      "pattern": "moneta\\.offload\\.",
+      "reason": "Schema alias test scans codebase for legacy moneta.offload.* identifiers to prove alias completeness",
+      "owner": "R1 tests",
+      "remove_after": null
+    },
+    {
+      "id": "migration-from-moneta-doc",
+      "path": "docs/migration-from-moneta.md",
+      "pattern": "moneta",
+      "reason": "Migration guide references the old name by necessity",
+      "owner": "R5 publication",
+      "remove_after": null
+    },
+    {
+      "id": "rename-inventory-frozen",
+      "path": "docs/ola-rename-inventory.json",
+      "pattern": "moneta",
+      "reason": "Frozen inventory of pre-rename occurrences — historical record",
+      "owner": "R0 baseline",
+      "remove_after": null
+    },
+    {
+      "id": "rename-matrix-doc",
+      "path": "docs/ola-rename-matrix.md",
+      "pattern": "moneta",
+      "reason": "Governing document defining the rename compatibility matrix",
+      "owner": "R0 baseline",
+      "remove_after": null
+    },
+    {
+      "id": "legacy-allowlist-self",
+      "path": "docs/ola-legacy-allowlist.json",
+      "pattern": "moneta",
+      "reason": "This allowlist file itself references moneta in its patterns and reasons",
+      "owner": "R0 baseline",
+      "remove_after": null
+    },
+    {
+      "id": "ci-prohibited-path-check",
+      "path": ".github/workflows/baseline-tests.yml",
+      "pattern": "\\.moneta",
+      "reason": "Baseline CI prohibited-path check lists .moneta as a runtime-state directory that must never be committed. The reference is to the legacy store path name, not a live dependency.",
+      "owner": "baseline CI",
+      "remove_after": null
+    }
+  ]
+}

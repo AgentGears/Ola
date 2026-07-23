@@ -1,0 +1,207 @@
+# playbooks.yaml — Ola Layer 3
+# Clean-room v2: governed operational-memory schema.
+# Conceptual inspiration: typed memory schemas, cognitive task analysis.
+# This implementation is original to Ola. No third-party expression derived.
+#
+# Mental model: a playbook is refined judgment distilled from many lessons.
+# Fewer, stronger, curated, actively maintained.
+# Use a playbook when the agent needs judgment, not just a workflow.
+
+memory_type: playbooks
+schema_version: 2
+
+description: |
+  A durable, reusable operational rule distilled from one or more agent
+  executions (lessons). Stores transferable judgment: when the rule applies,
+  what the future agent should do, and what failure mode it prevents.
+
+directory: "ola://playbooks"
+filename_template: "{{ playbook_name }}.md"
+enabled: true
+operation_mode: upsert
+agent_only: true
+
+identity:
+  primary_key: playbook_name
+  dedupe_strategy: semantic_same_trigger_same_behavior
+  supersession_allowed: true
+
+fields:
+  - name: playbook_name
+    type: string
+    required: true
+    merge_op: immutable
+    constraints:
+      format: lowercase_snake_case
+      max_words: 5
+      max_chars: 64
+    description: |
+      Name the reusable judgment pattern, not the specific task.
+      Use the narrowest general name that still transfers.
+      Good: "artifact_skill_first", "gmail_thread_reply_grounding"
+      Bad: "be_careful", "follow_user_request"
+
+  - name: status
+    type: enum
+    required: true
+    allowed_values:
+      - provisional
+      - active
+      - superseded
+      - deprecated
+    default: provisional
+    merge_op: replace
+    description: |
+      Lifecycle state. New playbooks start as provisional unless grounded
+      in a verified hard constraint or repeated pattern.
+
+  - name: confidence
+    type: enum
+    required: true
+    allowed_values:
+      - low
+      - medium
+      - high
+    default: medium
+    merge_op: replace
+    description: |
+      Strength of belief that this rule should guide future behavior.
+
+  - name: retrieval_anchor
+    type: string
+    required: true
+    merge_op: replace
+    description: |
+      Positive semantic retrieval text optimized for embedding.
+      Format:
+      "When: <trigger>; Apply: <future behavior>; Avoid: <failure mode>"
+
+  - name: not_applicable_when
+    type: string
+    required: true
+    merge_op: replace
+    description: |
+      Negative applicability boundary. Conditions where this playbook must
+      not be used, even if semantically similar.
+
+  - name: tags
+    type: list
+    item_type: string
+    required: true
+    merge_op: replace
+    description: |
+      Controlled retrieval tags. Prefer operational tags over topic tags.
+      Good: ["artifact_generation", "tool_ordering", "validation"]
+      Bad: ["misc", "important", "chatgpt"]
+
+  - name: evidence_basis
+    type: string
+    required: true
+    merge_op: replace
+    description: |
+      Why this rule exists.
+      Examples:
+      - "single verified failure mode"
+      - "repeated successful execution"
+      - "explicit tool constraint"
+      - "user correction"
+      - "standing instruction interaction"
+
+  - name: supersedes
+    type: string
+    required: false
+    default: ""
+    merge_op: replace
+    description: |
+      playbook_name replaced by this playbook. Use only when this playbook
+      is a better generalization of an older rule.
+
+  - name: content
+    type: string
+    required: true
+    merge_op: replace
+    description: |
+      Strict future-agent instruction in exactly this format:
+
+      ## Situation
+      Define the entry conditions for applying this rule.
+      Mention scope and minimum triggering evidence.
+
+      ## Approach
+      Give imperative execution guidance.
+      Use at most 8 bullets.
+      Use IF/THEN/ELSE where branching matters.
+      Do not narrate the original incident.
+
+      ## Reflect
+      List hard guardrails, failure modes, and anti-patterns.
+      State what not to do.
+      Make the rule safe against over-application.
+
+quality_gates:
+  reject_if:
+    - merely_summarizes_task
+    - duplicates_existing_active_playbook
+    - restates_system_instruction_without_added_operational_value
+    - too_generic_to_change_future_behavior
+    - depends_on_private_instance_details
+
+  # The Phase 0 extraction gate is the real quality check:
+  # does extraction match a human gold standard without fabrication?
+  # The reject_if list above is the structural pre-filter; the gate is the semantic filter.
+
+lifecycle_rules:
+  provisional_to_active:
+    - pattern_repeats_in_multiple_independent_tasks
+    - or_supported_by_verified_tool_or_system_constraint
+    - or_prevents_high_cost_failure
+
+  active_to_deprecated:
+    - tool_behavior_changed
+    - schema_changed
+    - memory_caused_false_positive_retrieval
+    - broader_or_better_playbook_exists
+
+  deprecated_to_superseded:
+    - replacement_playbook_named_in_supersedes
+
+retrieval_policy:
+  preferred_stage:
+    - opening
+    - pre_tool
+    - before_write
+
+  ranking_factors:
+    - semantic_similarity_to_retrieval_anchor
+    - tag_overlap
+    - status_active_over_provisional
+    - confidence_high_over_low
+    - narrow_scope_over_broad_scope
+
+  injection_rule: |
+    Inject only when the current task satisfies the positive retrieval
+    anchor and does not satisfy not_applicable_when.
+
+# ── Sidecar stats contract ──────────────────────────────────────────
+# Playbook records use upsert semantics (content can be replaced), but
+# the following tracking fields live in a SEPARATE sidecar SQLite store
+# (~/.ola/data/memory-stats.sqlite), keyed by canonical memory_id.
+#
+# memory_id format: "playbook/<slug>.md"
+#
+# Tracked fields (all mutable, updated by recall_memory + maintain.cjs):
+#   confidence          — initial: low=0.4, medium=0.7, high=0.9 (from the confidence field above)
+#   last_seen           — last time it appeared in a search result set (does NOT affect strength)
+#   last_used           — last time it was injected/used (DOES affect strength)
+#   seen_count          — how many times it appeared in any result set
+#   used_count          — how many times it was actually used
+#   consolidation_count — incremented every 5 uses (slows future decay)
+#   strength            — computed: confidence × exp(−0.1 × daysSinceUse / (1 + 0.2 × consolidationCount))
+#   lifecycle           — active → archived → tombstoned → deleted
+#
+# The discrete `status` and `confidence` fields above govern the record's
+# own lifecycle (provisional→active→superseded→deprecated). The sidecar
+# `lifecycle` and `strength` govern retrieval visibility and decay —
+# they are orthogonal concerns.
+#
+# See ARCHITECTURE.md for the full contract (Contracts 3, 4, 5, 6).
