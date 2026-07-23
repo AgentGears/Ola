@@ -92,18 +92,33 @@ function dispatchPostToolOffload(payload, opts) {
  * Real worker spawn: detached node process running offload-drain.cjs.
  * This is the production default. The deterministic test injects a substitute
  * that records the call but does NOT start a worker.
+ *
+ * The spawn implementation is parameterized so tests can verify the production
+ * spawn *configuration* (executable, script, options) using a fake spawn that
+ * starts no OS process. Production passes the real `child_process.spawn`.
+ *
+ * @param {object} opts - { offloadDir }
+ * @param {function} [spawnImpl] - spawn implementation (default: real child_process.spawn)
+ * @returns {object} the child process handle (production calls unref on it)
  */
-function _realSpawnWorker(_a) {
+function realSpawnWorker(opts, spawnImpl) {
   var path = require("node:path");
-  var spawn = require("node:child_process").spawn;
+  var spawn = spawnImpl || require("node:child_process").spawn;
   var workerScript = path.join(__dirname, "..", "..", "bin", "offload-drain.cjs");
   var child = spawn("node", [workerScript], {
     detached: true,
     stdio: "ignore",
     windowsHide: true,
-    env: Object.assign({}, process.env, { OLA_OFFLOAD_DIR: _a.offloadDir }),
+    env: Object.assign({}, process.env, { OLA_OFFLOAD_DIR: opts.offloadDir }),
   });
   child.unref();
+  return child;
 }
 
-module.exports = { dispatchPostToolOffload: dispatchPostToolOffload };
+// Internal alias for backward compatibility within dispatchPostToolOffload
+var _realSpawnWorker = realSpawnWorker;
+
+module.exports = {
+  dispatchPostToolOffload: dispatchPostToolOffload,
+  realSpawnWorker: realSpawnWorker,
+};

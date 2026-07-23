@@ -84,13 +84,14 @@ jobs:
           fi
           echo "PASS: no prohibited runtime-state paths"
 
-      - name: Run 20 deterministic registered suites
+      - name: Run deterministic registered suites (no real-spawn tests)
         run: |
           set -euo pipefail
-          # All 20 registered suites. offload-latency was repaired in issue #11
-          # and is now deterministic (real-spawn latency + eventual-state gate,
-          # no synchronous-mtime race). The structural assertion lives in the
-          # separate offload-hook-structural test.
+          # Deterministic suites that do NOT spawn real worker processes.
+          # offload-latency and offload-worker-lifecycle spawn real managed workers
+          # and are tested in the offload-stability workflow (Jobs B and C) on CI only.
+          # offload-hook-structural and offload-spawn-contract use injected fakes
+          # (zero real processes) and are safe everywhere.
           deterministic_tests=(
             "tests/test-sentinel-survives-canonical-destruction.cjs"
             "tests/test-resolver-ignores-zcode-plugin-data.cjs"
@@ -104,7 +105,6 @@ jobs:
             "tests/offload-secrets.test.cjs"
             "tests/offload-spool.test.cjs"
             "tests/offload-integration.test.cjs"
-            "tests/offload-latency.test.cjs"
             "tests/offload-session.test.cjs"
             "tests/offload-capability.test.cjs"
             "tests/offload-read.test.cjs"
@@ -113,6 +113,7 @@ jobs:
             "tests/schema-alias-completeness.test.cjs"
             "tests/rename-inventory.test.cjs"
             "tests/offload-hook-structural.test.cjs"
+            "tests/offload-spawn-contract.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
