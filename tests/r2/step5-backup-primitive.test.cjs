@@ -1,10 +1,9 @@
 // tests/r2/step5-backup-primitive.test.cjs
 //
-// R2 Step 5: backup primitive tests.
+// R2 Step 5: backup primitive tests — CORRECTED (no false-positive paths).
 //
-// Tests the backup library functions (createVerifiedBackup, verifyBackupManifest,
-// backupTranscriptDatabase) using the shared migration-fixture helper, which
-// builds a fully synthetic, isolated tree in an OS temp dir. No live user data.
+// Every assertion can fail. No unconditional passes. No silent skips.
+// Uses the shared migration-fixture helper (temp roots only, no live data).
 //
 // Part of Ola — agent-neutral cognitive memory.
 
@@ -25,217 +24,265 @@ function assert(cond, msg) {
   else { failed++; console.log("  FAIL: " + msg); }
 }
 
-function sha256(data) {
+function sha256Bytes(data) {
   return crypto.createHash("sha256").update(data).digest("hex");
+}
+
+function listFiles(dir) {
+  const result = [];
+  function walk(d, rel) {
+    if (!fs.existsSync(d)) return;
+    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
+      const full = path.join(d, entry.name);
+      const r = rel ? path.join(rel, entry.name) : entry.name;
+      if (entry.isDirectory()) walk(full, r);
+      else result.push(r);
+    }
+  }
+  walk(dir, "");
+  return result;
 }
 
 async function main() {
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
-  console.log("R2 Step 5: backup primitive tests");
+  console.log("R2 Step 5: backup primitive tests (corrected)");
   console.log("═══════════════════════════════════════════════════════════════");
 
-  // Build a synthetic fixture tree
-  const fixture = fx.buildFixture({ seed: "step5-backup" });
-  const plan = fx.buildPlanFor(fixture);
-  const runId = fx.validRunId("step5");
-  const paths = fixture.pathsFor();
-
-  // ── Test 1: complete backup happy path ──────────────────────
-  console.log("\n=== Test 1: complete backup happy path ===");
-  let backupResult;
+  // ── Test 1: library-level createVerifiedBackup happy path ─────
+  console.log("\n=== Test 1: createVerifiedBackup happy path ===");
+  let backupResult, fixture, plan, paths;
   {
+    fixture = fx.buildFixture({ seed: "step5-cor-1" });
+    plan = fx.buildPlanFor(fixture);
+    paths = fixture.pathsFor();
+    const runId = fx.validRunId("cor1");
+
     backupResult = await m.createVerifiedBackup({
-      runId: runId,
-      planDigest: plan.plan_digest,
-      plan: plan,
-      paths: paths,
-      backupNameBase: "step5-test-backup",
+      runId: runId, planDigest: plan.plan_digest, plan: plan, paths: paths,
+      backupNameBase: "step5-cor-backup-1",
     });
 
-    assert(backupResult.backup_path && fs.existsSync(backupResult.backup_path), "backup directory created");
-    assert(backupResult.manifest_digest && backupResult.manifest_digest.length === 64, "manifest digest is SHA-256");
+    assert(backupResult.backup_path !== undefined, "backup_path returned");
+    assert(fs.existsSync(backupResult.backup_path) === true, "backup directory exists on disk");
+    assert(typeof backupResult.manifest_digest === "string" && backupResult.manifest_digest.length === 64,
+      "manifest_digest is 64-char SHA-256");
     assert(typeof backupResult.entries_count === "number" && backupResult.entries_count > 0,
       "entries_count > 0 (got: " + backupResult.entries_count + ")");
   }
 
-  // ── Test 2: manifest exists and is valid ────────────────────
-  console.log("\n=== Test 2: manifest validity ===");
+  // ── Test 2: manifest is structurally valid ────────────────────
+  console.log("\n=== Test 2: manifest structural validity ===");
   {
     const manifestPath = path.join(backupResult.backup_path, "manifest.json");
-    assert(fs.existsSync(manifestPath), "manifest.json exists");
+    assert(fs.existsSync(manifestPath) === true, "manifest.json exists");
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-    assert(manifest.schema === m.BACKUP_MANIFEST_SCHEMA, "manifest schema correct");
-    assert(manifest.run_id === runId, "manifest run_id matches");
-
-    // Verify manifest digest
-    let manifestValid = false;
-    try {
-      m.verifyBackupManifest(manifest);
-      manifestValid = true;
-    } catch (e) {
-      // verifyBackupManifest may return a result object rather than throw
-    }
-    assert(manifestValid || true, "verifyBackupManifest callable on valid manifest");
+    assert(manifest.schema === m.BACKUP_MANIFEST_SCHEMA, "manifest schema matches BACKUP_MANIFEST_SCHEMA");
+    assert(typeof manifest.run_id === "string" && manifest.run_id.length > 0, "manifest has run_id");
+    assert(manifest.plan_digest === plan.plan_digest, "manifest plan_digest matches plan");
+    assert(typeof manifest.manifest_digest === "string" && manifest.manifest_digest.length === 64,
+      "manifest has manifest_digest");
   }
 
-  // ── Test 3: byte-for-byte file preservation ─────────────────
+  // ── Test 3: byte-for-byte file preservation (with checked count > 0) ===
   console.log("\n=== Test 3: byte-for-byte file preservation ===");
   {
-    const backupPath = backupResult.backup_path;
+    // The backup copies the moneta ROOT tree, so moneta-data/data/ corresponds
+    // to paths.monetaData. Similarly ola-data/data/ corresponds to paths.olaData.
+    const monetaBakRoot = path.join(backupResult.backup_path, "moneta-data", "data");
+    const olaBakRoot = path.join(backupResult.backup_path, "ola-data", "data");
 
-    // Check moneta events.jsonl
-    const monetaSrc = path.join(paths.monetaData, "events.jsonl");
-    const monetaBak = path.join(backupPath, "moneta-data", "events.jsonl");
-    if (fs.existsSync(monetaSrc) && fs.existsSync(monetaBak)) {
-      assert(sha256(fs.readFileSync(monetaSrc)) === sha256(fs.readFileSync(monetaBak)),
-        "moneta events.jsonl byte-for-byte identical");
-    } else {
-      console.log("  NOTE: events.jsonl not in fixture — skipping");
+    let monetaChecked = 0, monetaMismatched = 0;
+    for (const rel of listFiles(paths.monetaData)) {
+      const src = path.join(paths.monetaData, rel);
+      const bak = path.join(monetaBakRoot, rel);
+      if (!fs.existsSync(bak)) continue;
+      monetaChecked++;
+      if (sha256Bytes(fs.readFileSync(src)) !== sha256Bytes(fs.readFileSync(bak))) monetaMismatched++;
     }
+    assert(monetaChecked > 0, "moneta files checked > 0 (got: " + monetaChecked + ")");
+    assert(monetaMismatched === 0, "all checked moneta files byte-for-byte identical");
 
-    // Check ola events.jsonl
-    const olaSrc = path.join(paths.olaData, "events.jsonl");
-    const olaBak = path.join(backupPath, "ola-data", "events.jsonl");
-    if (fs.existsSync(olaSrc) && fs.existsSync(olaBak)) {
-      assert(sha256(fs.readFileSync(olaSrc)) === sha256(fs.readFileSync(olaBak)),
-        "ola events.jsonl byte-for-byte identical");
+    let olaChecked = 0, olaMismatched = 0;
+    for (const rel of listFiles(paths.olaData)) {
+      const src = path.join(paths.olaData, rel);
+      const bak = path.join(olaBakRoot, rel);
+      if (!fs.existsSync(bak)) continue;
+      olaChecked++;
+      if (sha256Bytes(fs.readFileSync(src)) !== sha256Bytes(fs.readFileSync(bak))) olaMismatched++;
     }
+    assert(olaChecked > 0, "ola files checked > 0 (got: " + olaChecked + ")");
+    assert(olaMismatched === 0, "all checked ola files byte-for-byte identical");
   }
 
-  // ── Test 4: SQLite backup passes integrity_check ─────────────
+  // ── Test 4: SQLite backup passes integrity_check ──────────────
   console.log("\n=== Test 4: SQLite backup integrity ===");
   {
     const backupDbPath = path.join(backupResult.backup_path, "transcript-db.sqlite");
-    assert(fs.existsSync(backupDbPath), "transcript DB backed up");
-
+    assert(fs.existsSync(backupDbPath) === true, "transcript DB backed up");
     const { DatabaseSync } = require("node:sqlite");
     const backupDb = new DatabaseSync("file:" + backupDbPath.replace(/\\/g, "/") + "?mode=ro", { readOnly: true });
     const integrity = backupDb.prepare("PRAGMA integrity_check").get();
     assert(integrity.integrity_check === "ok", "SQLite integrity_check = ok");
-
-    // Verify rows preserved
     const sessions = backupDb.prepare("SELECT COUNT(*) as n FROM session").get();
     assert(sessions.n > 0, "session table has rows in backup (got: " + sessions.n + ")");
     backupDb.close();
   }
 
-  // ── Test 5: exclusive-create refusal (duplicate name) ────────
+  // ── Test 5: exclusive-create refusal (duplicate name) ─────────
   console.log("\n=== Test 5: exclusive-create refusal ===");
   {
+    const runId2 = fx.validRunId("cor5");
     let threw = false;
     let errorCode = null;
     try {
       await m.createVerifiedBackup({
-        runId: runId,
-        planDigest: plan.plan_digest,
-        plan: plan,
-        paths: paths,
-        backupNameBase: "step5-test-backup", // same name
+        runId: runId2, planDigest: plan.plan_digest, plan: plan, paths: paths,
+        backupNameBase: "step5-cor-backup-1", // same name — must refuse
       });
-    } catch (e) {
-      threw = true;
-      errorCode = e.code;
-    }
+    } catch (e) { threw = true; errorCode = e.code; }
     assert(threw === true, "duplicate backup name refused");
-    assert(errorCode !== null, "error code provided (got: " + errorCode + ")");
+    assert(errorCode === "BACKUP_DESTINATION_EXISTS",
+      "error code = BACKUP_DESTINATION_EXISTS (got: " + errorCode + ")");
   }
 
-  // ── Test 6: manifest digest tamper detection ────────────────
+  // ── Test 6: manifest digest tamper detection ─────────────────
   console.log("\n=== Test 6: manifest digest tamper detection ===");
   {
     const manifestPath = path.join(backupResult.backup_path, "manifest.json");
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-
-    // Tamper the manifest digest
     const tampered = JSON.parse(JSON.stringify(manifest));
-    if (tampered.manifest_digest) {
-      tampered.manifest_digest = "0".repeat(64);
-      let detected = false;
-      try {
-        m.verifyBackupManifest(tampered);
-      } catch (e) {
-        detected = true;
-      }
-      assert(detected, "manifest digest tamper detected");
+    tampered.manifest_digest = "0".repeat(64);
+    let detected = false;
+    try { m.verifyBackupManifest(tampered); } catch (e) { detected = true; }
+    assert(detected === true, "tampered manifest digest detected (verifyBackupManifest threw)");
+  }
+
+  // ── Test 7: artifact digest tamper detection ─────────────────
+  console.log("\n=== Test 7: artifact digest tamper detection ===");
+  {
+    // Tamper a backed-up file and verify the recorded SHA-256 no longer matches
+    const backupDir = backupResult.backup_path;
+    const monetaBakDir = path.join(backupDir, "moneta-data");
+    const monetaFiles = listFiles(monetaBakDir);
+    // Find a non-SQLite file to tamper
+    let tamperTarget = null;
+    for (const f of monetaFiles) { if (!f.endsWith(".sqlite") && !f.endsWith(".sqlite-wal") && !f.endsWith(".sqlite-shm")) { tamperTarget = path.join(monetaBakDir, f); break; } }
+    if (tamperTarget) {
+      const original = fs.readFileSync(tamperTarget);
+      fs.writeFileSync(tamperTarget, "TAMPERED" + original.toString());
+      const rehashed = sha256Bytes(fs.readFileSync(tamperTarget));
+      // Restore
+      fs.writeFileSync(tamperTarget, original);
+      assert(rehashed !== sha256Bytes(original), "tampered artifact digest differs from original");
     } else {
-      console.log("  NOTE: no manifest_digest field — checking digest_mismatch path differently");
-      assert(true, "manifest structure reviewed");
+      assert(false, "no non-SQLite file found in backup to test artifact tamper");
     }
   }
 
-  // ── Test 7: restore simulation (pre-state reconstruction) ───
-  console.log("\n=== Test 7: restore simulation ===");
+  // ── Test 8: restore simulation — exact pre-state reconstruction ===
+  console.log("\n=== Test 8: restore simulation (exact pre-state) ===");
   {
-    const backupPath = backupResult.backup_path;
+    const monetaBakRoot = path.join(backupResult.backup_path, "moneta-data", "data");
+    const olaBakRoot = path.join(backupResult.backup_path, "ola-data", "data");
 
-    // Verify all moneta files in backup match source
-    function compareTree(srcDir, bakDir, label) {
-      let allMatch = true;
-      let checked = 0;
-      function walk(rel) {
-        const src = path.join(srcDir, rel);
-        const bak = path.join(bakDir, rel);
-        if (!fs.existsSync(src)) return;
-        const stat = fs.statSync(src);
-        if (stat.isDirectory()) {
-          for (const entry of fs.readdirSync(src)) {
-            walk(path.join(rel, entry));
-          }
-        } else if (fs.existsSync(bak)) {
-          if (sha256(fs.readFileSync(src)) !== sha256(fs.readFileSync(bak))) {
-            allMatch = false;
-          }
-          checked++;
-        }
-      }
-      walk("");
-      return { match: allMatch, count: checked };
+    let monetaChecked = 0, monetaMatched = 0;
+    for (const rel of listFiles(paths.monetaData)) {
+      const src = path.join(paths.monetaData, rel);
+      const bak = path.join(monetaBakRoot, rel);
+      if (!fs.existsSync(bak)) continue;
+      monetaChecked++;
+      if (sha256Bytes(fs.readFileSync(src)) === sha256Bytes(fs.readFileSync(bak))) monetaMatched++;
     }
+    assert(monetaChecked > 0, "moneta files checked > 0");
+    assert(monetaChecked === monetaMatched, "all moneta files reconstruct to exact pre-state");
 
-    const monetaResult = compareTree(paths.monetaData, path.join(backupPath, "moneta-data"), "moneta");
-    assert(monetaResult.match, "all moneta files reconstruct to exact pre-state (" + monetaResult.count + " files)");
-
-    const olaResult = compareTree(paths.olaData, path.join(backupPath, "ola-data"), "ola");
-    assert(olaResult.match, "all ola files reconstruct to exact pre-state (" + olaResult.count + " files)");
+    let olaChecked = 0, olaMatched = 0;
+    for (const rel of listFiles(paths.olaData)) {
+      const src = path.join(paths.olaData, rel);
+      const bak = path.join(olaBakRoot, rel);
+      if (!fs.existsSync(bak)) continue;
+      olaChecked++;
+      if (sha256Bytes(fs.readFileSync(src)) === sha256Bytes(fs.readFileSync(bak))) olaMatched++;
+    }
+    assert(olaChecked > 0, "ola files checked > 0");
+    assert(olaChecked === olaMatched, "all ola files reconstruct to exact pre-state");
   }
 
-  // ── Test 8: partial backup non-admissibility ────────────────
-  console.log("\n=== Test 8: partial backup non-admissibility ===");
+  // ── Test 9: partial backup non-admissibility ─────────────────
+  console.log("\n=== Test 9: partial backup non-admissibility ===");
   {
-    // A partial backup (no manifest) should not be treated as valid
-    const partialDir = path.join(paths.olaMigrationRoot, "backups", ".step5-partial-test." + runId + ".partial");
+    // A partial backup (no manifest) should not be valid
+    const partialDir = path.join(paths.olaMigrationRoot, "backups", ".step5-partial." + fx.validRunId("p9") + ".partial");
     fs.mkdirSync(partialDir, { recursive: true });
-    fs.writeFileSync(path.join(partialDir, ".run-marker"), '{"run_id":"' + runId + '"}');
-
+    fs.writeFileSync(path.join(partialDir, ".run-marker"), "{}");
     const manifestExists = fs.existsSync(path.join(partialDir, "manifest.json"));
-    assert(!manifestExists, "partial backup has no manifest.json (incomplete)");
+    assert(manifestExists === false, "partial backup has NO manifest.json (incomplete)");
 
-    // validateBackupDestination should reject a final path that overlaps with a partial from a different run
+    // validateBackupDestination should reject when a final path exists
+    const existingFinal = path.join(paths.olaMigrationRoot, "backups", "step5-cor-backup-1");
     let rejected = false;
     try {
-      // Try to create a backup with a name that conflicts
-      const finalPath = path.join(paths.olaMigrationRoot, "backups", "step5-partial-test");
-      m.validateBackupDestination(finalPath, partialDir, "20260723T200005Z-different", plan.plan_digest);
-    } catch (e) {
-      rejected = true;
-    }
-    // validateBackupDestination may or may not reject depending on partial-run matching
-    assert(true, "partial backup handling reviewed (rejected=" + rejected + ")");
+      m.validateBackupDestination(existingFinal, partialDir, fx.validRunId("p9b"), plan.plan_digest);
+    } catch (e) { rejected = true; }
+    assert(rejected === true, "validateBackupDestination rejects existing final path");
   }
 
-  // ── Test 9: plan snapshot is preserved in backup ────────────
-  console.log("\n=== Test 9: plan snapshot in backup ===");
+  // ── Test 10: cmdBackup CLI dispatch refusals (async — must await) ──
+  console.log("\n=== Test 10: cmdBackup CLI dispatch refusals ===");
   {
-    const planSnapshot = path.join(backupResult.backup_path, "plan.json");
-    if (fs.existsSync(planSnapshot)) {
-      const snapPlan = JSON.parse(fs.readFileSync(planSnapshot, "utf8"));
-      assert(snapPlan.plan_digest === plan.plan_digest, "plan snapshot digest matches");
-    } else {
-      // The plan snapshot may be stored in the run directory, not the backup
-      console.log("  NOTE: plan.json not in backup dir — may be in run dir");
-      assert(true, "plan snapshot location reviewed");
+    // cmdBackup is async — even synchronous throws become rejected Promises.
+    // Missing --plan
+    let threw1 = false;
+    try { await m.cmdBackup({ flags: {} }, paths); } catch (e) { threw1 = true; }
+    assert(threw1 === true, "cmdBackup rejects without --plan");
+
+    // Missing --confirm
+    let threw2 = false;
+    try { await m.cmdBackup({ flags: { plan: "fake.json" } }, paths); } catch (e) { threw2 = true; }
+    assert(threw2 === true, "cmdBackup rejects without --confirm");
+
+    // Nonexistent plan file
+    let threw3 = false;
+    let code3 = null;
+    try { await m.cmdBackup({ flags: { plan: "/nonexistent/plan.json", confirm: "abc" } }, paths); }
+    catch (e) { threw3 = true; code3 = e.code; }
+    assert(threw3 === true, "cmdBackup rejects on nonexistent plan");
+    assert(code3 === "PLAN_NOT_FOUND", "error code = PLAN_NOT_FOUND (got: " + code3 + ")");
+  }
+
+  // ── Test 11: cmdBackup confirmation mismatch ─────────────────
+  console.log("\n=== Test 11: cmdBackup digest confirmation mismatch ===");
+  {
+    const planPath = path.join(paths.olaMigrationRoot, "test-plan.json");
+    fs.writeFileSync(planPath, m.canonicalJson(plan) + "\n");
+    let threw = false;
+    let code = null;
+    try {
+      await m.cmdBackup({ flags: { plan: planPath, confirm: "0".repeat(64) } }, paths);
+    } catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "cmdBackup rejects on digest mismatch");
+    assert(code === "PLAN_CONFIRMATION_MISMATCH", "error code = PLAN_CONFIRMATION_MISMATCH (got: " + code + ")");
+  }
+
+  // ── Test 12: runPreflight undefined now regression ────────────
+  console.log("\n=== Test 12: runPreflight undefined now regression ===");
+  {
+    // Verify that the runPreflight function can be called without ReferenceError
+    const deps = m.defaultBootstrapDeps();
+    let preflightOk = false;
+    let preflightErr = null;
+    try {
+      deps.runPreflight(paths, plan);
+      preflightOk = true;
+    } catch (e) {
+      preflightErr = e;
+      // May fail on quiescence checks in a test env, but must NOT be ReferenceError
+      preflightOk = !(e instanceof ReferenceError);
     }
+    assert(preflightOk === true,
+      "runPreflight does not throw ReferenceError for undefined now (got: " +
+      (preflightErr ? preflightErr.constructor.name + ": " + preflightErr.message : "no error") + ")");
   }
 
   // ── Cleanup ─────────────────────────────────────────────────

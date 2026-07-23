@@ -9986,7 +9986,7 @@ function defaultBootstrapDeps() {
           "free space " + free + " < required " + cap.required_free);
       }
       // Destination check: backup + archive destinations absent.
-      const iso = isoForPath((now || new Date()).toISOString());
+      const iso = isoForPath(new Date().toISOString());
       // (Use plan-bound paths from plan.archive_destination / plan.backup_destination)
       const backupDest = plan.backup_destination.replace(/\//g, path.sep);
       const archiveDest = plan.archive_destination.replace(/\//g, path.sep);
@@ -11421,14 +11421,35 @@ async function cmdBackup(args, paths) {
   // 4. Reconstruct paths from the plan (ensures consistency with plan-time).
   const planPaths = reconstructPathsFromPlan(plan, {});
 
-  // 5. Recheck quiescence independently (same as cmdPlan).
+  // 5. Authoritative preflight: one tested path that performs all checks.
+  //    Mirrors cmdPlan's preflight exactly:
+  //      inventory A → quiescence evidence → inventory B → stable comparison → assert quiescent
+  const beforeInv = inventoryStores(planPaths);
   const evidence = collectQuiescenceEvidence(planPaths);
+  const afterInv = inventoryStores(planPaths);
+  assertInventoryStable(beforeInv, afterInv);
+  evidence.source_snapshots_stable = true;
   assertQuiescent(evidence, /*confirmation=*/ true);
 
+  // Capacity check (same as runPreflight).
+  const cap = estimateBackupCapacity(plan, planPaths);
+  fs.mkdirSync(path.join(planPaths.olaMigrationRoot, "backups"), { recursive: true });
+  const free = freeSpaceBytes(path.join(planPaths.olaMigrationRoot, "backups"));
+  if (free !== null && free < cap.required_free) {
+    throw new R2Error("BACKUP_CAPACITY_INSUFFICIENT",
+      "free space " + free + " < required " + cap.required_free);
+  }
+
+  // Destination check: backup + archive destinations absent.
+  const backupDest = plan.backup_destination.replace(/\//g, path.sep);
+  if (fs.existsSync(backupDest)) {
+    throw new R2Error("BACKUP_DESTINATION_EXISTS",
+      "backup destination already exists: " + backupDest);
+  }
+
   // 6. Bootstrap the run (creates runId, run-state, sentinel).
-  //    We use bootstrapExecution's preflight + run-creation path, but
-  //    we stop before the forward coordinator and call createVerifiedBackup
-  //    directly.
+  //    bootstrapExecution re-runs preflight internally, but we've already
+  //    validated above. The bootstrap creates the sentinel and initial state.
   const bsResult = bootstrapExecution({
     externalPlanPath: path.resolve(planPath),
     confirmDigest: confirmDigest,
@@ -11442,7 +11463,6 @@ async function cmdBackup(args, paths) {
   }
 
   const runId = bsResult.run_id;
-  const runState = bsResult.state;
 
   // 7. Call createVerifiedBackup with the bootstrapped run.
   let backupResult;
@@ -11454,35 +11474,42 @@ async function cmdBackup(args, paths) {
       paths: planPaths,
     });
   } catch (e) {
-    // Backup failed. Record the failure in run-state and release the sentinel
-    // so the system is not left in a blocked state.
-    try {
-      transitionState(planPaths.olaMigrationRoot, runId, {
-        status: "backup_failed",
-        error_code: e.code || "BACKUP_FAILED",
-        error_message: e.message,
-      });
-    } catch { /* best effort — state persistence may also fail */ }
-    try {
-      require("./hooks/lib/migration-sentinel").removeMigrationSentinel();
-    } catch { /* best effort */ }
+    // Backup failed. Record the failure in run-state using the correct protocol.
+    _backupFailState(planPaths.olaMigrationRoot, runId, bsResult.state, e);
+    // Release the sentinel using the CORRECT import (not a broken require path).
+    _releaseSentinelOrThrow();
     throw e;
   }
 
-  // 8. Record backup success in run-state.
+  // 8. Persist backup success in run-state using the correct protocol:
+  //    readState → transitionState → writeStateAtomic → reopen + verify.
   const projected = projectBackupEvidence(backupResult);
+  let persistedState;
   try {
-    transitionState(planPaths.olaMigrationRoot, runId, {
-      status: "in_progress",
+    const currentState = readState(planPaths.olaMigrationRoot, runId);
+    const nextState = transitionState(currentState, {
       completed_steps: ["backup"],
       backup: projected,
     });
-  } catch { /* non-fatal — backup is valid even if state update fails */ }
+    writeStateAtomic(planPaths.olaMigrationRoot, runId, nextState);
+    // Reopen and verify persisted state.
+    persistedState = readState(planPaths.olaMigrationRoot, runId);
+    if (!persistedState.completed_steps || persistedState.completed_steps.indexOf("backup") < 0) {
+      throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
+        "reopened state does not contain backup in completed_steps");
+    }
+  } catch (e) {
+    // State persistence failed. The backup exists on disk but is not durably
+    // recorded. This is a recoverable error — the operator can inspect the
+    // backup directory manually. Do NOT print success.
+    _releaseSentinelOrThrow();
+    throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
+      "backup created but state persistence failed: " + e.message, e.code);
+  }
 
-  // 9. Release the sentinel (standalone backup does not hold authority).
-  try {
-    require("./hooks/lib/migration-sentinel").removeMigrationSentinel();
-  } catch { /* best effort */ }
+  // 9. Release the sentinel using the CORRECT imported object.
+  //    This must succeed — do not swallow the error.
+  _releaseSentinelOrThrow();
 
   return {
     run_id: runId,
@@ -11490,6 +11517,24 @@ async function cmdBackup(args, paths) {
     manifest_digest: backupResult.manifest_digest,
     entries_count: backupResult.entries_count,
   };
+}
+
+// Helper: persist a backup-failed state using the correct protocol.
+function _backupFailState(olaMigrationRoot, runId, currentState, error) {
+  try {
+    const nextState = transitionState(currentState, {
+      final_status: "backup_failed",
+      error_code: error.code || "BACKUP_FAILED",
+      error_message: error.message,
+    });
+    writeStateAtomic(olaMigrationRoot, runId, nextState);
+  } catch { /* best effort — state persistence may also fail during error handling */ }
+}
+
+// Helper: release the sentinel using the correctly-imported module.
+// Throws on failure — callers must propagate the error.
+function _releaseSentinelOrThrow() {
+  sentinel.removeMigrationSentinel();
 }
 
 function renderBackupSummary(result) {
