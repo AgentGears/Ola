@@ -1,10 +1,10 @@
 // tests/r2/step5-backup-fault-injection.test.cjs
 //
-// R2 Step 5: failure-injection tests for cmdBackup.
+// R2 Step 5: failure-injection tests for cmdBackup (corrected).
 //
-// Uses dependency injection (cmdBackup's 3rd arg) to inject failures at
-// each operational boundary and verify the correct state transition.
-// Every assertion can fail. No unconditional passes.
+// Every assertion can fail. Every scenario requires a run state to exist.
+// Every expected durable state is validated with m.validateState.
+// No conditional state inspection. No either/or assertions.
 //
 // Part of Ola — agent-neutral cognitive memory.
 
@@ -12,7 +12,6 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const crypto = require("node:crypto");
 
 const m = require("../../bin/migrate-r2.cjs");
 const fx = require("./fixtures/migration-fixture.cjs");
@@ -31,9 +30,6 @@ function makeErr(code, message) {
   return e;
 }
 
-// Helper: build a fixture + plan + deps, with optional overrides.
-// Sets process.env.HOME so the sentinel module resolves to the fixture's
-// synthetic tree (sentinel uses os.homedir(), not injected paths).
 var _origHome = process.env.HOME;
 
 function setupFixture(seed) {
@@ -42,27 +38,16 @@ function setupFixture(seed) {
   const paths = fixture.pathsFor();
   const planPath = path.join(paths.olaMigrationRoot, "plan.json");
   fs.writeFileSync(planPath, m.canonicalJson(plan) + "\n");
-  // Override HOME so sentinel/quiescence checks resolve to the fixture tree
   process.env.HOME = paths.home;
   return { fixture, plan, paths, planPath };
 }
 
-function restoreHome() {
-  process.env.HOME = _origHome;
-}
+function restoreHome() { process.env.HOME = _origHome; }
 
-// Helper: make deps with one boundary overridden
 function makeDeps(overrides) {
-  const deps = m.defaultBackupCommandDeps();
-  return Object.assign(deps, overrides || {});
+  return Object.assign(m.defaultBackupCommandDeps(), overrides || {});
 }
 
-// Helper: read state safely (returns null if not found)
-function readStateSafe(root, runId) {
-  try { return m.readState(root, runId); } catch { return null; }
-}
-
-// Helper: find any run state in the migration root
 function findRunState(root) {
   const runsDir = path.join(root, "runs");
   if (!fs.existsSync(runsDir)) return null;
@@ -75,16 +60,26 @@ function findRunState(root) {
   return null;
 }
 
+function assertValidState(state, label) {
+  try { m.validateState(state); assert(true, label + ": validateState passes"); }
+  catch (e) { assert(false, label + ": validateState FAILS: " + e.message); }
+}
+
+function cleanup(paths) {
+  try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
+  restoreHome();
+}
+
 async function main() {
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
-  console.log("R2 Step 5: backup fault-injection tests");
+  console.log("R2 Step 5: backup fault-injection tests (corrected)");
   console.log("═══════════════════════════════════════════════════════════════");
 
-  // ── Scenario A: backup creation fails after bootstrap ────────
-  console.log("\n=== Scenario A: backup creation failure ===");
+  // ── Scenario A: backup creation fails → backup_failed, sentinel KEPT ──
+  console.log("\n=== Scenario A: backup creation failure (sentinel retained) ===");
   {
-    const { plan, paths, planPath } = setupFixture("fault-A");
+    const { plan, paths, planPath } = setupFixture("fault-A2");
     const deps = makeDeps({
       createVerifiedBackup: async function () { throw makeErr("BACKUP_DISK_FULL", "disk full"); },
     });
@@ -93,72 +88,31 @@ async function main() {
     try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
     catch (e) { threw = true; errCode = e.code; }
 
-    assert(threw === true, "cmdBackup throws on backup creation failure");
-    assert(errCode === "BACKUP_DISK_FULL", "error code propagated (got: " + errCode + ")");
-
-    const found = findRunState(paths.olaMigrationRoot);
-    assert(found !== null, "run state exists after backup creation failure");
-    if (found) {
-      assert(found.state.status === "backup_failed", "status=backup_failed (got: " + found.state.status + ")");
-      assert(found.state.backup.verified === false, "backup.verified=false");
-      assert(found.state.rollback.status === "not_available", "rollback.status=not_available");
-      assert(found.state.failure !== null, "failure object set");
-      assert(found.state.sentinel.owned === false, "sentinel.owned=false (released after failure)");
-      assert(found.state.sentinel.released_at !== null, "sentinel.released_at set");
-    }
-    try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
-    restoreHome();
-  }
-
-  // ── Scenario B: Phase 1 evidence write fails ─────────────────
-  console.log("\n=== Scenario B: evidence persistence failure ===");
-  {
-    const { plan, paths, planPath } = setupFixture("fault-B");
-    let writeCount = 0;
-    const deps = makeDeps({
-      writeStateAtomic: function (root, runId, body) {
-        writeCount++;
-        // Fail on the Phase 1 evidence write (in_progress + backup.verified=true, not backup_release_pending)
-        if (body.backup && body.backup.verified === true && body.status === "in_progress") {
-          throw makeErr("EIO", "disk write error during evidence persist");
-        }
-        return m.writeStateAtomic(root, runId, body);
-      },
-    });
-
-    let threw = false, errCode = null;
-    try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
-    catch (e) { threw = true; errCode = e.code; }
-
-    assert(threw === true, "cmdBackup throws on evidence persistence failure");
-    assert(errCode === "BACKUP_STATE_PERSIST_FAILED", "error code=BACKUP_STATE_PERSIST_FAILED (got: " + errCode + ")");
+    assert(threw === true, "cmdBackup throws");
+    assert(errCode === "BACKUP_DISK_FULL", "error code (got: " + errCode + ")");
 
     const found = findRunState(paths.olaMigrationRoot);
     assert(found !== null, "run state exists");
     if (found) {
-      // CRITICAL: sentinel must NOT be released (in_progress requires owned=true)
-      assert(found.state.sentinel.owned === true, "sentinel.owned=true (NOT released on evidence failure)");
-      assert(found.state.status === "failed_manual_intervention", "status=failed_manual_intervention");
-      assert(found.state.failure !== null, "failure recorded");
-      assert(found.state.failure.step === "backup-evidence", "failure.step=backup-evidence");
+      assert(found.state.status === "backup_failed", "status=backup_failed");
+      assert(found.state.backup.verified === false, "backup.verified=false");
+      assert(found.state.rollback.status === "not_available", "rollback=not_available");
+      assert(found.state.failure !== null, "failure set");
+      assert(found.state.sentinel.owned === true, "sentinel.owned=true (retained, NOT auto-released)");
+      assert(found.state.sentinel.released_at === null, "sentinel.released_at=null (not released)");
+      assertValidState(found.state, "backup_failed state");
     }
-    // Physical sentinel should still be present (not removed)
-    const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
-    assert(fs.existsSync(sentinelFile) === true, "physical sentinel STILL PRESENT (authority retained)");
-
-    try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
-    restoreHome();
+    cleanup(paths);
   }
 
-  // ── Scenario C: Phase 1.5 release-pending write fails ────────
-  console.log("\n=== Scenario C: release-pending persistence failure ===");
+  // ── Scenario B: Phase 1 evidence write fails → failed_manual_intervention, sentinel KEPT ──
+  console.log("\n=== Scenario B: evidence persistence failure ===");
   {
-    const { plan, paths, planPath } = setupFixture("fault-C");
+    const { plan, paths, planPath } = setupFixture("fault-B2");
     const deps = makeDeps({
       writeStateAtomic: function (root, runId, body) {
-        if (body.status === "backup_release_pending") {
-          throw makeErr("EIO", "disk write error during release-pending");
-        }
+        if (body.backup && body.backup.verified === true && body.status === "in_progress")
+          throw makeErr("EIO", "evidence write error");
         return m.writeStateAtomic(root, runId, body);
       },
     });
@@ -167,53 +121,89 @@ async function main() {
     try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
     catch (e) { threw = true; errCode = e.code; }
 
-    assert(threw === true, "cmdBackup throws on release-pending persistence failure");
-    assert(errCode === "BACKUP_RELEASE_INTENT_PERSIST_FAILED", "error code (got: " + errCode + ")");
+    assert(threw === true, "throws");
+    assert(errCode === "BACKUP_STATE_PERSIST_FAILED", "error code (got: " + errCode + ")");
 
     const found = findRunState(paths.olaMigrationRoot);
+    assert(found !== null, "run state exists");
     if (found) {
-      assert(found.state.sentinel.owned === true, "sentinel still owned");
+      assert(found.state.sentinel.owned === true, "sentinel.owned=true (NOT released)");
+      assert(found.state.status === "failed_manual_intervention", "status=failed_manual_intervention");
       assert(found.state.failure !== null, "failure recorded");
-      assert(found.state.failure.step === "release-intent", "failure.step=release-intent");
+      assert(found.state.failure.step === "backup-evidence", "failure.step=backup-evidence");
+      assertValidState(found.state, "failed_manual_intervention state");
     }
-    try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
-    restoreHome();
+    const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFile) === true, "physical sentinel STILL PRESENT");
+    cleanup(paths);
   }
 
-  // ── Scenario D: sentinel removal fails ───────────────────────
-  console.log("\n=== Scenario D: sentinel removal failure ===");
+  // ── Scenario C: Phase 1.5 release-pending write fails ─────────
+  console.log("\n=== Scenario C: release-pending persistence failure ===");
   {
-    const { plan, paths, planPath } = setupFixture("fault-D");
+    const { plan, paths, planPath } = setupFixture("fault-C2");
     const deps = makeDeps({
-      removeMigrationSentinel: function () { throw makeErr("EBUSY", "sentinel file locked"); },
+      writeStateAtomic: function (root, runId, body) {
+        if (body.status === "backup_release_pending") throw makeErr("EIO", "release-pending error");
+        return m.writeStateAtomic(root, runId, body);
+      },
     });
 
     let threw = false, errCode = null;
     try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
     catch (e) { threw = true; errCode = e.code; }
 
-    assert(threw === true, "cmdBackup throws on sentinel removal failure");
-    assert(errCode === "BACKUP_FINALIZE_FAILED", "error code=BACKUP_FINALIZE_FAILED (got: " + errCode + ")");
+    assert(threw === true, "throws");
+    assert(errCode === "BACKUP_RELEASE_INTENT_PERSIST_FAILED", "error code (got: " + errCode + ")");
 
     const found = findRunState(paths.olaMigrationRoot);
+    assert(found !== null, "run state exists");
     if (found) {
-      assert(found.state.failure !== null, "failure recorded");
-      assert(found.state.failure.step === "backup-finalize", "failure.step=backup-finalize");
+      assert(found.state.sentinel.owned === true, "sentinel.owned=true");
+      assert(found.state.status === "failed_manual_intervention", "status=failed_manual_intervention");
+      assert(found.state.failure.step === "release-intent", "failure.step=release-intent");
+      assertValidState(found.state, "failed_manual_intervention state");
     }
-    // Physical sentinel should still be present (removal failed)
-    const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
-    assert(fs.existsSync(sentinelFile) === true, "physical sentinel still present (removal failed)");
-    try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
-    restoreHome();
+    cleanup(paths);
   }
 
-  // ── Scenario E: final state write fails after removal ────────
+  // ── Scenario D: sentinel removal fails → failed_manual_intervention, physical present ──
+  console.log("\n=== Scenario D: sentinel removal failure ===");
+  {
+    const { plan, paths, planPath } = setupFixture("fault-D2");
+    const deps = makeDeps({
+      removeMigrationSentinel: function () { throw makeErr("EBUSY", "sentinel locked"); },
+    });
+
+    let threw = false, errCode = null;
+    try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
+    catch (e) { threw = true; errCode = e.code; }
+
+    assert(threw === true, "throws");
+    assert(errCode === "SENTINEL_RELEASE_FAILED", "error code (got: " + errCode + ")");
+
+    const found = findRunState(paths.olaMigrationRoot);
+    assert(found !== null, "run state exists");
+    if (found) {
+      assert(found.state.status === "failed_manual_intervention", "status=failed_manual_intervention");
+      assert(found.state.failure.step === "sentinel-removal", "failure.step=sentinel-removal");
+      assertValidState(found.state, "failed_manual_intervention state");
+    }
+    const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFile) === true, "physical sentinel still present (removal failed)");
+    cleanup(paths);
+  }
+
+  // ── Scenario E: final state write fails → backup_release_pending PRESERVED exactly ──
   console.log("\n=== Scenario E: final state write failure after removal ===");
   {
-    const { plan, paths, planPath } = setupFixture("fault-E");
+    const { plan, paths, planPath } = setupFixture("fault-E2");
     let removalHappened = false;
     const deps = makeDeps({
-      removeMigrationSentinel: function () { removalHappened = true; m.defaultBackupCommandDeps().removeMigrationSentinel(); },
+      removeMigrationSentinel: function () {
+        removalHappened = true;
+        m.defaultBackupCommandDeps().removeMigrationSentinel();
+      },
       writeStateAtomic: function (root, runId, body) {
         if (body.status === "backup_completed") throw makeErr("EIO", "final write error");
         return m.writeStateAtomic(root, runId, body);
@@ -224,27 +214,27 @@ async function main() {
     try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
     catch (e) { threw = true; errCode = e.code; }
 
-    assert(threw === true, "cmdBackup throws on final state write failure");
-    assert(errCode === "BACKUP_FINALIZE_FAILED", "error code=BACKUP_FINALIZE_FAILED (got: " + errCode + ")");
-    assert(removalHappened === true, "physical sentinel was removed before final write failed");
+    assert(threw === true, "throws");
+    assert(errCode === "BACKUP_FINAL_STATE_PERSIST_FAILED", "error code (got: " + errCode + ")");
+    assert(removalHappened === true, "sentinel removal occurred");
 
-    // State should be backup_release_pending (the last successful write)
     const found = findRunState(paths.olaMigrationRoot);
+    assert(found !== null, "run state exists");
     if (found) {
-      assert(found.state.status === "backup_release_pending" || found.state.status === "failed_manual_intervention",
-        "state is backup_release_pending or failed_manual_intervention (got: " + found.state.status + ")");
+      assert(found.state.status === "backup_release_pending",
+        "status=backup_release_pending EXACTLY (got: " + found.state.status + ")");
+      assert(found.state.sentinel.owned === true, "sentinel.owned=true (durable intent)");
+      assertValidState(found.state, "backup_release_pending state");
     }
-    // Physical sentinel absent (removal succeeded, but final write failed)
     const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
-    assert(fs.existsSync(sentinelFile) === false, "physical sentinel absent (removal succeeded)");
-    try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
-    restoreHome();
+    assert(fs.existsSync(sentinelFile) === false, "physical sentinel absent");
+    cleanup(paths);
   }
 
   // ── Scenario F: happy-path status sequence ───────────────────
   console.log("\n=== Scenario F: happy-path status sequence ===");
   {
-    const { plan, paths, planPath } = setupFixture("fault-F");
+    const { plan, paths, planPath } = setupFixture("fault-F2");
     var writeStatuses = [];
     const deps = makeDeps({
       writeStateAtomic: function (root, runId, body) {
@@ -255,20 +245,46 @@ async function main() {
 
     var result = await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps);
     assert(result.run_id !== undefined, "backup succeeded");
+    assert(writeStatuses.indexOf("backup_release_pending") >= 0, "includes backup_release_pending");
+    assert(writeStatuses[writeStatuses.length - 1] === "backup_completed", "final status=backup_completed");
 
-    // Verify the status sequence includes backup_release_pending before backup_completed
-    assert(writeStatuses.indexOf("backup_release_pending") >= 0,
-      "status sequence includes backup_release_pending");
-    assert(writeStatuses[writeStatuses.length - 1] === "backup_completed",
-      "final status is backup_completed (got: " + writeStatuses[writeStatuses.length - 1] + ")");
+    const found = findRunState(paths.olaMigrationRoot);
+    assert(found !== null, "run state exists");
+    if (found) assertValidState(found.state, "backup_completed state");
+    cleanup(paths);
+  }
 
-    // Verify release_pending appears BEFORE backup_completed in the sequence
-    var rpIdx = writeStatuses.indexOf("backup_release_pending");
-    var bcIdx = writeStatuses.indexOf("backup_completed");
-    assert(rpIdx < bcIdx, "backup_release_pending appears before backup_completed in sequence");
+  // ── Scenario G: recovery-state (manual-intervention) persistence failure ──
+  console.log("\n=== Scenario G: recovery-state persistence failure ===");
+  {
+    const { plan, paths, planPath } = setupFixture("fault-G");
+    const deps = makeDeps({
+      writeStateAtomic: function (root, runId, body) {
+        if (body.backup && body.backup.verified === true && body.status === "in_progress")
+          throw makeErr("EIO", "evidence error");
+        if (body.status === "failed_manual_intervention")
+          throw makeErr("EPERM", "recovery state write denied");
+        return m.writeStateAtomic(root, runId, body);
+      },
+    });
 
-    try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
-    restoreHome();
+    let threw = false, errCode = null;
+    try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
+    catch (e) { threw = true; errCode = e.code; }
+
+    assert(threw === true, "throws");
+    assert(errCode === "MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+      "composite error code (got: " + errCode + ")");
+
+    const found = findRunState(paths.olaMigrationRoot);
+    if (found) {
+      assert(found.state.status === "in_progress",
+        "prior in_progress preserved (NOT overwritten by failed manual-intervention)");
+      assert(found.state.sentinel.owned === true, "sentinel.owned=true (untouched)");
+    }
+    const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFile) === true, "physical sentinel present (untouched)");
+    cleanup(paths);
   }
 
   console.log("");

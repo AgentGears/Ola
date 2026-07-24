@@ -8758,7 +8758,6 @@ const RUN_TRANSITIONS = Object.freeze({
   ])),
   in_progress: Object.freeze(new Set([
     "backup_release_pending",
-    "backup_completed",
     "rollback_in_progress", "verified_pending_release",
     "backup_failed", "failed_manual_intervention",
   ])),
@@ -8774,7 +8773,6 @@ const RUN_TRANSITIONS = Object.freeze({
   ])),
   // Terminal:
   completed: Object.freeze(new Set([])),
-  backup_release_pending: Object.freeze(new Set(["backup_completed", "failed_manual_intervention"])), // handled above — non-terminal
   backup_completed: Object.freeze(new Set([])),
   rolled_back: Object.freeze(new Set([])),
   backup_failed: Object.freeze(new Set([])),
@@ -11573,8 +11571,10 @@ async function cmdBackup(args, paths, injectedDeps) {
   try {
     backupResult = await d.createVerifiedBackup({ runId: runId, planDigest: plan.plan_digest, plan: plan, paths: planPaths });
   } catch (e) {
+    // Backup creation failed. Persist backup_failed with all companion fields.
+    // Do NOT auto-release the sentinel — the operator clears it after revalidating
+    // that no mutation step completed.
     _persistBackupCreationFailure(root, runId, e, d);
-    _releaseSentinelAfterFailure(root, runId, d);
     throw e;
   }
   var projected = d.projectBackupEvidence(backupResult);
@@ -11582,27 +11582,64 @@ async function cmdBackup(args, paths, injectedDeps) {
   // Phase 1: persist backup evidence (in_progress, sentinel owned).
   try { _persistBackupEvidence(root, runId, backupResult, projected, d); }
   catch (e) {
-    // DEFECT FIX: do NOT release sentinel. State is in_progress (requires owned=true).
-    // Land in failed_manual_intervention, keep owned, record the specific failure.
-    _persistManualIntervention(root, runId, "backup-evidence", "BACKUP_EVIDENCE_PERSIST_FAILED",
-      "backup exists but could not be durably bound to run state: " + e.message, e.code, d);
+    // Do NOT release sentinel. Land in failed_manual_intervention, keep owned.
+    try {
+      _persistManualIntervention(root, runId, "backup-evidence", "BACKUP_EVIDENCE_PERSIST_FAILED",
+        "backup exists but could not be durably bound to run state: " + e.message, e.code, d);
+    } catch (miErr) {
+      throw new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+        "original_code=" + (e.code || "unknown") + " persistence_code=" + (miErr.code || "unknown") +
+        " run_id=" + runId + " sentinel_expected_owned=true operator_action_required=true" +
+        " detail: evidence persist failed AND manual-intervention state write failed: " + miErr.message);
+    }
     throw new R2Error("BACKUP_STATE_PERSIST_FAILED", "backup created but evidence-state persistence failed: " + e.message, e.code);
   }
 
   // Phase 1.5: persist backup_release_pending (durable intent to release sentinel).
   try { _persistBackupReleasePending(root, runId, d); }
   catch (e) {
-    _persistManualIntervention(root, runId, "release-intent", "BACKUP_RELEASE_INTENT_PERSIST_FAILED",
-      "could not persist backup_release_pending intent: " + e.message, e.code, d);
+    try {
+      _persistManualIntervention(root, runId, "release-intent", "BACKUP_RELEASE_INTENT_PERSIST_FAILED",
+        "could not persist backup_release_pending intent: " + e.message, e.code, d);
+    } catch (miErr) {
+      throw new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+        "original_code=" + (e.code || "unknown") + " persistence_code=" + (miErr.code || "unknown") +
+        " run_id=" + runId + " sentinel_expected_owned=true operator_action_required=true" +
+        " detail: release-intent persist failed AND manual-intervention state write failed: " + miErr.message);
+    }
     throw new R2Error("BACKUP_RELEASE_INTENT_PERSIST_FAILED", "could not persist backup_release_pending intent: " + e.message, e.code);
   }
 
-  // Phase 2: remove sentinel, persist backup_completed.
-  try { _removeSentinelAndFinalize(root, runId, d); }
+  // Phase 2a: remove physical sentinel.
+  try { d.removeMigrationSentinel(); }
   catch (e) {
-    _persistManualIntervention(root, runId, "backup-finalize", "BACKUP_FINALIZE_FAILED",
-      "sentinel release or backup_completed persistence failed (recovery: resume from backup_release_pending): " + e.message, e.code, d);
-    throw new R2Error("BACKUP_FINALIZE_FAILED", "sentinel release or backup_completed persistence failed: " + e.message, e.code);
+    // Sentinel removal failed. Physical sentinel still present.
+    try {
+      _persistManualIntervention(root, runId, "sentinel-removal", "SENTINEL_RELEASE_FAILED",
+        "sentinel removal failed — physical sentinel still present: " + e.message, e.code, d);
+    } catch (miErr) {
+      throw new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+        "original_code=" + (e.code || "unknown") + " persistence_code=" + (miErr.code || "unknown") +
+        " run_id=" + runId + " sentinel_expected_owned=true operator_action_required=true" +
+        " detail: sentinel removal failed AND manual-intervention state write failed: " + miErr.message);
+    }
+    throw new R2Error("SENTINEL_RELEASE_FAILED",
+      "sentinel removal failed — physical sentinel still present, authority retained: " + e.message, e.code);
+  }
+
+  // Phase 2b: persist backup_completed (sentinel already removed physically).
+  try { _finalizeBackupCompleted(root, runId, d); }
+  catch (e) {
+    // Final state write failed after physical sentinel removal.
+    // PRESERVE backup_release_pending — the release intent is the recovery signal.
+    // Do NOT overwrite with failed_manual_intervention.
+    // sentinel.owned stays true in durable state (physical absent is intentional
+    // and classified: the operator finalizes backup_completed).
+    throw new R2Error("BACKUP_FINAL_STATE_PERSIST_FAILED",
+      "backup_completed write failed after physical sentinel removal. " +
+      "Recovery: durable state is backup_release_pending, physical sentinel is absent. " +
+      "Finalize by writing backup_completed with sentinel.owned=false. " +
+      "Detail: " + e.message, e.code);
   }
 
   return { run_id: runId, backup_path: backupResult.backup_path, manifest_digest: backupResult.manifest_digest, entries_count: backupResult.entries_count };
@@ -11638,8 +11675,7 @@ function _persistBackupReleasePending(root, runId, d) {
     throw new R2Error("BACKUP_RELEASE_INTENT_PERSIST_FAILED", "reopen: status is not backup_release_pending");
 }
 
-function _removeSentinelAndFinalize(root, runId, d) {
-  d.removeMigrationSentinel();
+function _finalizeBackupCompleted(root, runId, d) {
   var cur = d.readState(root, runId);
   var releaseTs = d.now().toISOString();
   var next = d.transitionState(cur, {
@@ -11658,16 +11694,15 @@ function _removeSentinelAndFinalize(root, runId, d) {
 }
 
 function _persistManualIntervention(root, runId, step, code, message, origCode, d) {
-  try {
-    var cur = d.readState(root, runId);
-    var next = d.transitionState(cur, {
-      status: RUN_STATUSES.failed_manual_intervention,
-      failure: { step: step, code: code, message: message, at: d.now().toISOString() },
-    });
-    d.writeStateAtomic(root, runId, next);
-  } catch (e2) {
-    // Even the manual-intervention write failed. Prior state + physical sentinel stand unchanged.
-  }
+  var cur = d.readState(root, runId);
+  var next = d.transitionState(cur, {
+    status: RUN_STATUSES.failed_manual_intervention,
+    failure: { step: step, code: code, message: message, at: d.now().toISOString() },
+  });
+  d.writeStateAtomic(root, runId, next);
+  // If we reach here, the manual-intervention state was durably persisted.
+  // If read/transition/write threw, the caller's catch propagates the error
+  // AND the composite recovery information is available in the thrown R2Error.
 }
 
 function _persistBackupCreationFailure(root, runId, error, d) {
@@ -11684,21 +11719,6 @@ function _persistBackupCreationFailure(root, runId, error, d) {
   var reopened = d.readState(root, runId);
   if (reopened.status !== RUN_STATUSES.backup_failed)
     throw new R2Error("BACKUP_STATE_PERSIST_FAILED", "failure state reopen: status is not backup_failed");
-}
-
-function _releaseSentinelAfterFailure(root, runId, d) {
-  var released = false;
-  var releaseErr = null;
-  try { d.removeMigrationSentinel(); released = true; } catch (e) { releaseErr = e; }
-  try {
-    var cur = d.readState(root, runId);
-    var next = d.transitionState(cur, { sentinel: { owned: !released, released_at: released ? d.now().toISOString() : null } });
-    d.writeStateAtomic(root, runId, next);
-  } catch (e) {
-    throw new R2Error("SENTINEL_RELEASE_STATE_FAILED", "failed to persist sentinel-release state during failure handling: " + e.message);
-  }
-  if (!released)
-    throw new R2Error("SENTINEL_RELEASE_FAILED", "sentinel release failed — ownership retained for operator recovery: " + (releaseErr ? releaseErr.message : "unknown error"));
 }
 
 function renderBackupSummary(result) {
