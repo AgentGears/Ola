@@ -66,14 +66,53 @@ function main() {
       assert(threw === false, "second removeMigrationSentinel does not throw (idempotent)");
     }
 
-    // ── Test 4: SENTINEL_STILL_PRESENT if file reappears ──
-    // (Simulated by mocking — we can't easily force a race, but we can
-    // verify the post-existence check logic by creating a file, calling
-    // remove, then re-creating before the check. This is hard to race
-    // reliably, so we skip it here and rely on Scenario I in the fault-
-    // injection suite for the postcondition coverage.)
-    console.log("\n=== Test 4: SENTINEL_STILL_PRESENT (skipped — covered by Scenario I) ===");
-    console.log("  (post-existence check is exercised via cmdBackup postcondition in Scenario I)");
+    // ── Test 4: EPERM propagates ──
+    console.log("\n=== Test 4: EPERM propagation ===");
+    {
+      // Create a sentinel so unlinkSync is called
+      const sentinelFile = path.join(tmpHome, ".ola-migration", ".migration-in-progress");
+      fs.writeFileSync(sentinelFile, "{}");
+
+      var caught4 = null;
+      var origUnlink4 = fs.unlinkSync;
+      try {
+        fs.unlinkSync = function () {
+          var err = new Error("sentinel locked");
+          err.code = "EPERM";
+          throw err;
+        };
+        try { sentinel.removeMigrationSentinel(); }
+        catch (error) { caught4 = error; }
+      } finally {
+        fs.unlinkSync = origUnlink4;
+        try { fs.rmSync(sentinelFile, { force: true }); } catch {}
+      }
+
+      assert(caught4 !== null, "EPERM removal failure propagates");
+      assert(caught4 !== null && caught4.code === "EPERM", "EPERM code preserved");
+    }
+
+    // ── Test 5: SENTINEL_STILL_PRESENT when unlink is a no-op ──
+    console.log("\n=== Test 5: SENTINEL_STILL_PRESENT (no-op unlink) ===");
+    {
+      const sentinelFile = path.join(tmpHome, ".ola-migration", ".migration-in-progress");
+      fs.writeFileSync(sentinelFile, "{}");
+
+      var caught5 = null;
+      var origUnlink5 = fs.unlinkSync;
+      try {
+        fs.unlinkSync = function () {}; // no-op — file stays
+        try { sentinel.removeMigrationSentinel(); }
+        catch (error) { caught5 = error; }
+      } finally {
+        fs.unlinkSync = origUnlink5;
+        try { fs.rmSync(sentinelFile, { force: true }); } catch {}
+      }
+
+      assert(caught5 !== null, "still-present sentinel is rejected");
+      assert(caught5 !== null && caught5.code === "SENTINEL_STILL_PRESENT",
+        "SENTINEL_STILL_PRESENT error code preserved");
+    }
 
   } finally {
     process.env.HOME = origHome;
