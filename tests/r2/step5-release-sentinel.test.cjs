@@ -229,8 +229,8 @@ function main() {
     try { m.cmdReleaseSentinel({ flags: { run: runId2, "confirm-no-mutation": true } }, paths); }
     catch (e) { threw4 = true; code4 = e.code; }
     assert(threw4 === true, "throws when backup_failed has mutation evidence (completed_steps non-empty)");
-    // The error may come from validateState (RUN_STATE_INVALID) or the cmdBackup check (RELEASE_PRECONDITION_FAILED)
-    assert(code4 !== null, "error code provided (got: " + code4 + ")");
+    assert(code4 === "RUN_STATE_INVALID",
+      "validateState rejects backup_failed with mutation evidence (got: " + code4 + ")");
     cleanup(paths);
   }
 
@@ -356,6 +356,63 @@ function main() {
       assert(state10.sentinel.owned === false, "durable owned=false after retry");
       assertValidState(state10, "retried release state");
     }
+    cleanup(paths);
+  }
+
+  // ── Test 11: EPERM removal failure classified as SENTINEL_RELEASE_FAILED ──
+  console.log("\n=== Test 11: EPERM removal failure classified ===");
+  {
+    const { plan, paths } = setupFixture("rel-11");
+    const { runId } = createFailedRun(paths, plan);
+
+    // Temporarily replace removeMigrationSentinel to throw EPERM
+    var origRemove = sentinel.removeMigrationSentinel;
+    var threw11 = false, code11 = null;
+    try {
+      sentinel.removeMigrationSentinel = function () {
+        var err = new Error("sentinel locked");
+        err.code = "EPERM";
+        throw err;
+      };
+      try { m.cmdReleaseSentinel({ flags: { run: runId, "confirm-no-mutation": true } }, paths); }
+      catch (e) { threw11 = true; code11 = e.code; }
+    } finally {
+      sentinel.removeMigrationSentinel = origRemove;
+    }
+
+    assert(threw11 === true, "throws on EPERM removal failure");
+    assert(code11 === "SENTINEL_RELEASE_FAILED",
+      "error classified as SENTINEL_RELEASE_FAILED (got: " + code11 + ")");
+    // Durable ownership unchanged
+    var state11 = readStateSafe(paths.olaMigrationRoot, runId);
+    if (state11) assert(state11.sentinel.owned === true, "durable owned=true (retained after EPERM)");
+    // Physical sentinel still present
+    var sentinelFile11 = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFile11) === true, "physical sentinel remains (EPERM)");
+    cleanup(paths);
+  }
+
+  // ── Test 12: malformed/foreign-schema sentinel refused ───────
+  console.log("\n=== Test 12: malformed sentinel refused ===");
+  {
+    const { plan, paths } = setupFixture("rel-12");
+    const { runId } = createFailedRun(paths, plan);
+    // Remove the valid sentinel and write a malformed one
+    sentinel.removeMigrationSentinel();
+    var sentinelFile12 = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    fs.writeFileSync(sentinelFile12, "NOT VALID JSON {{{");
+
+    var threw12 = false, code12 = null;
+    try { m.cmdReleaseSentinel({ flags: { run: runId, "confirm-no-mutation": true } }, paths); }
+    catch (e) { threw12 = true; code12 = e.code; }
+    assert(threw12 === true, "throws on malformed sentinel");
+    assert(code12 === "SENTINEL_OWNERSHIP_MISMATCH",
+      "error classified as SENTINEL_OWNERSHIP_MISMATCH (got: " + code12 + ")");
+    // Malformed sentinel preserved
+    assert(fs.existsSync(sentinelFile12) === true, "malformed sentinel preserved (not removed)");
+    // Durable ownership unchanged
+    var state12 = readStateSafe(paths.olaMigrationRoot, runId);
+    if (state12) assert(state12.sentinel.owned === true, "durable owned=true (retained)");
     cleanup(paths);
   }
 

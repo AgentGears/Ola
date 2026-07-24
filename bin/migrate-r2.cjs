@@ -11592,11 +11592,13 @@ function cmdReleaseSentinel(args, paths) {
   }
 
   // Remove physical sentinel if present. ENOENT is acceptable (retry after partial failure).
+  // All other errors (EPERM, EBUSY, SENTINEL_STILL_PRESENT) are classified as
+  // SENTINEL_RELEASE_FAILED — durable ownership remains unchanged.
   try {
     sentinel.removeMigrationSentinel();
   } catch (e) {
-    if (e.code !== "ENOENT" && e.code !== "SENTINEL_STILL_PRESENT") throw e;
-    if (e.code === "SENTINEL_STILL_PRESENT") {
+    if (e.code === "ENOENT") { /* acceptable — already absent */ }
+    else {
       throw new R2Error("SENTINEL_RELEASE_FAILED",
         "physical sentinel could not be removed — ownership retained: " + e.message, e.code);
     }
