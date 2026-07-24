@@ -312,6 +312,56 @@ async function main() {
     cleanup(paths);
   }
 
+  // ── Scenario H: backup_release_pending blocks new migration (quiescence) ──
+  console.log("\n=== Scenario H: backup_release_pending blocks quiescence ===");
+  {
+    const { plan, paths, planPath } = setupFixture("fault-H");
+
+    // Manually create a run directory with a backup_release_pending state
+    // (simulating a crash after Phase 1.5 but before Phase 2)
+    const runIdH = fx.validRunId("H");
+    const runDirH = path.join(paths.olaMigrationRoot, "runs", runIdH);
+    fs.mkdirSync(runDirH, { recursive: true });
+    const stateH = m.buildInitialState({
+      runId: runIdH, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString()
+    });
+    // Transition to in_progress first (bootstrap sets this)
+    var st1 = m.transitionState(stateH, { status: "in_progress", sentinel: { owned: true, released_at: null } });
+    st1 = m.transitionState(st1, {
+      backup: { path: "/fake/backup", verified: true, manifest_digest: "0".repeat(64) },
+      step_outputs: { backup: { backup_path: "/fake/backup", manifest_digest: "0".repeat(64), entries_count: 1 } },
+      completed_steps: ["backup"],
+    });
+    st1 = m.transitionState(st1, {
+      status: "backup_release_pending",
+      rollback: { schema: "ola.migration.r2.rollback-state.v1", status: "not_applicable",
+        trigger_failure_digest: null, intent_path: null, intent_digest: null, completed_steps: [],
+        target_quarantine: null, source_quarantine: null, quarantine_manifest_path: null,
+        quarantine_manifest_digest: null, quarantine_manifest_input_state_digest: null,
+        attestation_path: null, attestation_digest: null, release_intent_path: null,
+        release_intent_digest: null, receipt_path: null, receipt_digest: null,
+        started_at: null, verified_at: null, released_at: null, failure: null, verified: false },
+      structural_verification: "not_applicable",
+      live_verification: "not_applicable",
+    });
+    m.writeStateAtomic(paths.olaMigrationRoot, runIdH, st1);
+    // Physical sentinel is ABSENT (removal succeeded, but final write crashed)
+
+    // Now collect quiescence evidence — it should detect the incomplete run
+    const evidence = m.collectQuiescenceEvidence(paths);
+    assert(evidence.processing_job_present === true,
+      "processing_job_present=true (backup_release_pending blocks quiescence)");
+
+    // assertQuiescent should throw
+    let quiescenceBlocked = false;
+    try { m.assertQuiescent(evidence, true); }
+    catch (e) { quiescenceBlocked = (e.code === "QUIESCENCE_NOT_CONFIRMED"); }
+    assert(quiescenceBlocked === true,
+      "assertQuiescent throws QUIESCENCE_NOT_CONFIRMED for backup_release_pending run");
+
+    cleanup(paths);
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("R2 Step 5 fault-injection: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");

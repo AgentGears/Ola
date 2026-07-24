@@ -897,12 +897,26 @@ function collectQuiescenceEvidence(paths) {
         if (!fs.existsSync(stateFile)) continue;
         try {
           const st = JSON.parse(fs.readFileSync(stateFile, "utf8"));
-          if (st.status === "in_progress" || st.status === "verified_pending_release") {
+          // A run blocks quiescence if it is in an active status OR if its
+          // durable record claims sentinel ownership. The authority check
+          // catches runs that still own the sentinel even after the physical
+          // file was externally deleted (e.g., backup_release_pending, or
+          // failed_manual_intervention with owned=true).
+          const activeByStatus =
+            st.status === RUN_STATUSES.initializing ||
+            st.status === RUN_STATUSES.in_progress ||
+            st.status === RUN_STATUSES.backup_release_pending ||
+            st.status === RUN_STATUSES.rollback_in_progress ||
+            st.status === RUN_STATUSES.verified_pending_release;
+          const activeByAuthority =
+            st.sentinel && st.sentinel.owned === true;
+          if (activeByStatus || activeByAuthority) {
             evidence.processing_job_present = true;
             evidence.detected_processes.push({
               kind: "incomplete_run",
               run_id: entry.name,
               status: st.status,
+              sentinel_owned: st.sentinel ? st.sentinel.owned : undefined,
             });
           }
         } catch {}
