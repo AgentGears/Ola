@@ -11567,18 +11567,35 @@ function cmdReleaseSentinel(args, paths) {
       "release-sentinel requires backup.verified=false (a verified backup should use backup_completed, not release)");
   }
 
-  // If already released (owned=false), accept as idempotent.
+  // If already released (owned=false), accept as idempotent — but only if
+  // no physical sentinel is present (which would be an inconsistent state).
   if (state.sentinel.owned === false && state.sentinel.released_at !== null) {
+    var physicalPresent = sentinel.isMigrationInProgress();
+    if (physicalPresent) {
+      throw new R2Error("SENTINEL_STATE_INCONSISTENT",
+        "durable state says released (owned=false), but a physical sentinel is present — possible foreign sentinel or state corruption");
+    }
     return { run_id: runId, status: "already_released", released_at: state.sentinel.released_at };
   }
 
+  // Before removing, verify the physical sentinel belongs to THIS run.
+  // A missing physical sentinel with owned=true is a valid retry case
+  // (previous removal succeeded but state write failed).
+  var physicalPresentBefore = sentinel.isMigrationInProgress();
+  if (physicalPresentBefore) {
+    try {
+      sentinel.assertSentinelOwnedBy(runId, state.plan_digest);
+    } catch (error) {
+      throw new R2Error("SENTINEL_OWNERSHIP_MISMATCH",
+        "refusing to remove a foreign or malformed sentinel: " + error.message, error.code);
+    }
+  }
+
   // Remove physical sentinel if present. ENOENT is acceptable (retry after partial failure).
-  // Use the strict removeMigrationSentinel.
   try {
     sentinel.removeMigrationSentinel();
   } catch (e) {
     if (e.code !== "ENOENT" && e.code !== "SENTINEL_STILL_PRESENT") throw e;
-    // If SENTINEL_STILL_PRESENT, the physical sentinel couldn't be removed.
     if (e.code === "SENTINEL_STILL_PRESENT") {
       throw new R2Error("SENTINEL_RELEASE_FAILED",
         "physical sentinel could not be removed — ownership retained: " + e.message, e.code);
