@@ -285,7 +285,23 @@ function createMigrationSentinel(metadata) {
 // It does NOT verify ownership; callers needing ownership enforcement must
 // call assertSentinelOwnedBy() first.
 function removeMigrationSentinel() {
-  try { fs.unlinkSync(sentinelPath()); } catch {}
+  const filePath = sentinelPath();
+  try {
+    fs.unlinkSync(filePath);
+  } catch (error) {
+    // ENOENT is acceptable (idempotent removal of an already-absent sentinel).
+    // All other errors (EPERM, EBUSY, locked file, filesystem error) must propagate.
+    if (error && error.code === "ENOENT") return;
+    throw error;
+  }
+  // Verify the file is actually gone (catches race conditions or mock filesystems).
+  if (fs.existsSync(filePath)) {
+    const error = new Error(
+      "removeMigrationSentinel: sentinel still present after unlink: " + filePath
+    );
+    error.code = "SENTINEL_STILL_PRESENT";
+    throw error;
+  }
 }
 
 // Refusal message for mutating operations that hit an active sentinel.

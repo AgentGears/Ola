@@ -10818,6 +10818,7 @@ function defaultBackupCommandDeps() {
     writeStateAtomic: (root, runId, body) => writeStateAtomic(root, runId, body),
     transitionState: (state, updates, ts, opts) => transitionState(state, updates, ts, opts),
     removeMigrationSentinel: () => sentinel.removeMigrationSentinel(),
+    isMigrationInProgress: () => sentinel.isMigrationInProgress(),
     trace: () => {},
   };
 }
@@ -11633,7 +11634,19 @@ async function cmdBackup(args, paths, injectedDeps) {
   }
 
   // Phase 2a: remove physical sentinel.
-  try { d.removeMigrationSentinel(); }
+  try {
+    d.removeMigrationSentinel();
+    // Postcondition: verify the sentinel is actually gone.
+    // This catches injected/alternative deps that return without removing,
+    // or race conditions where the file reappears.
+    if (d.isMigrationInProgress()) {
+      var stillPresentErr = new Error(
+        "physical migration sentinel remains after removal returned"
+      );
+      stillPresentErr.code = "SENTINEL_STILL_PRESENT";
+      throw stillPresentErr;
+    }
+  }
   catch (e) {
     // Sentinel removal failed. Physical sentinel still present.
     try {

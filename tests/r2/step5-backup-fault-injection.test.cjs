@@ -362,6 +362,43 @@ async function main() {
     cleanup(paths);
   }
 
+  // ── Scenario I: silent-no-op sentinel removal (postcondition catches it) ──
+  console.log("\n=== Scenario I: silent-no-op sentinel removal regression ===");
+  {
+    const { plan, paths, planPath } = setupFixture("fault-I");
+    const deps = makeDeps({
+      // removeMigrationSentinel returns normally WITHOUT deleting the file.
+      // This simulates the old defective behavior where catch {} swallowed errors.
+      removeMigrationSentinel: function () { /* silent no-op — does nothing */ },
+      // isMigrationInProgress must still return true (sentinel file still exists)
+      isMigrationInProgress: function () { return true; },
+    });
+
+    let threw = false, errCode = null;
+    try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
+    catch (e) { threw = true; errCode = e.code; }
+
+    assert(threw === true, "cmdBackup throws on silent-no-op sentinel removal");
+    assert(errCode === "SENTINEL_RELEASE_FAILED", "error code=SENTINEL_RELEASE_FAILED (got: " + errCode + ")");
+
+    const found = findRunState(paths.olaMigrationRoot);
+    assert(found !== null, "run state exists");
+    if (found) {
+      assert(found.state.status === "failed_manual_intervention",
+        "status=failed_manual_intervention (got: " + found.state.status + ")");
+      assert(found.state.sentinel.owned === true,
+        "sentinel.owned=true (authority retained)");
+      assert(found.state.failure.step === "sentinel-removal",
+        "failure.step=sentinel-removal");
+      assertValidState(found.state, "failed_manual_intervention state");
+    }
+    // Physical sentinel must remain present (removal was a no-op)
+    const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFile) === true, "physical sentinel still present (no-op removal)");
+
+    cleanup(paths);
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("R2 Step 5 fault-injection: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");
