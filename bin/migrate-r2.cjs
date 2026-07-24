@@ -11721,18 +11721,34 @@ async function cmdBackup(args, paths, injectedDeps) {
     // Backup creation failed. Persist backup_failed with all companion fields.
     // Do NOT auto-release the sentinel — the operator clears it after revalidating
     // that no mutation step completed.
-    _persistBackupCreationFailure(root, runId, e, d);
+    try {
+      _persistBackupCreationFailure(root, runId, e, d);
+    } catch (persistErr) {
+      var compFail = new R2Error("BACKUP_FAILURE_STATE_PERSIST_FAILED",
+        "backup creation failed and its canonical failure state could not be persisted: " + persistErr.message);
+      compFail.original_code = e.code || "BACKUP_FAILED";
+      compFail.persistence_code = persistErr.code || "unknown";
+      compFail.run_id = runId;
+      compFail.sentinel_expected_owned = true;
+      compFail.operator_action_required = true;
+      throw compFail;
+    }
     throw e;
   }
-  var projected = d.projectBackupEvidence(backupResult);
 
-  // Phase 1: persist backup evidence (in_progress, sentinel owned).
-  try { _persistBackupEvidence(root, runId, backupResult, projected, d); }
+  // Phase 1: project evidence and persist backup evidence (in_progress, sentinel owned).
+  // Both projection and persistence are guarded — a malformed backup result
+  // or a failed state write lands in failed_manual_intervention with sentinel retained.
+  var projected;
+  try {
+    projected = d.projectBackupEvidence(backupResult);
+    _persistBackupEvidence(root, runId, backupResult, projected, d);
+  }
   catch (e) {
     // Do NOT release sentinel. Land in failed_manual_intervention, keep owned.
     try {
       _persistManualIntervention(root, runId, "backup-evidence", "BACKUP_EVIDENCE_PERSIST_FAILED",
-        "backup exists but could not be durably bound to run state: " + e.message, e.code, d);
+        "backup exists but its evidence could not be validated or persisted: " + e.message, e.code, d);
     } catch (miErr) {
       var comp1 = new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
         "evidence persist failed AND manual-intervention state write failed: " + miErr.message);

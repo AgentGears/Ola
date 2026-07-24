@@ -399,6 +399,68 @@ async function main() {
     cleanup(paths);
   }
 
+  // ── Scenario J: projectBackupEvidence failure (malformed backup result) ──
+  console.log("\n=== Scenario J: evidence projection failure ===");
+  {
+    const { plan, paths, planPath } = setupFixture("fault-J");
+    const deps = makeDeps({
+      createVerifiedBackup: async function () {
+        return { backup_path: null }; // malformed — projectBackupEvidence will throw
+      },
+      projectBackupEvidence: function () { throw makeErr("EVIDENCE_INVALID", "malformed backup result"); },
+    });
+
+    var caught = null;
+    try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
+    catch (e) { caught = e; }
+
+    assert(caught !== null, "throws on evidence projection failure");
+    assert(caught.code === "BACKUP_STATE_PERSIST_FAILED", "error code (got: " + (caught && caught.code) + ")");
+
+    const found = findRunState(paths.olaMigrationRoot);
+    assert(found !== null, "run state exists");
+    if (found) {
+      assert(found.state.status === "failed_manual_intervention", "status=failed_manual_intervention");
+      assert(found.state.sentinel.owned === true, "sentinel.owned=true (retained)");
+      assert(found.state.failure.step === "backup-evidence", "failure.step=backup-evidence");
+    }
+    const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFile) === true, "physical sentinel present");
+    cleanup(paths);
+  }
+
+  // ── Scenario K: backup creation failure + failure-state persistence failure ──
+  console.log("\n=== Scenario K: backup failure + failure-state write failure ===");
+  {
+    const { plan, paths, planPath } = setupFixture("fault-K");
+    const deps = makeDeps({
+      createVerifiedBackup: async function () { throw makeErr("ENOSPC", "no space"); },
+      writeStateAtomic: function (root, runId, body) {
+        // Fail the backup_failed state write
+        if (body.status === "backup_failed") throw makeErr("EPERM", "state write denied");
+        return m.writeStateAtomic(root, runId, body);
+      },
+    });
+
+    var caught = null;
+    try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
+    catch (e) { caught = e; }
+
+    assert(caught !== null, "throws composite error");
+    assert(caught.code === "BACKUP_FAILURE_STATE_PERSIST_FAILED",
+      "composite error code (got: " + (caught && caught.code) + ")");
+    assert(caught.original_code === "ENOSPC", "original_code=ENOSPC (got: " + (caught && caught.original_code) + ")");
+    assert(caught.persistence_code === "EPERM", "persistence_code=EPERM (got: " + (caught && caught.persistence_code) + ")");
+    assert(typeof caught.run_id === "string" && caught.run_id.length > 0, "run_id retained");
+    assert(caught.sentinel_expected_owned === true, "sentinel_expected_owned=true");
+    assert(caught.operator_action_required === true, "operator_action_required=true");
+
+    // Physical sentinel must remain present
+    const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFile) === true, "physical sentinel present (untouched)");
+    cleanup(paths);
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("R2 Step 5 fault-injection: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");
