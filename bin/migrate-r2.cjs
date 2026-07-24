@@ -11518,6 +11518,119 @@ function cmdPlan(args, paths) {
   return { plan: written, outputPath: outPath };
 }
 
+// ── release-sentinel: explicit recovery for failed backups ──────────────
+//
+// When a backup fails and the sentinel is retained (owned=true), the system
+// is locked. This command allows the operator to explicitly release the
+// sentinel after confirming no mutation step completed.
+//
+// Usage:
+//   node bin/migrate-r2.cjs release-sentinel --run <run_id> --confirm-no-mutation
+//
+// Preconditions (validated before any action):
+//   status === backup_failed
+//   completed_steps === []
+//   backup.verified === false
+//   --confirm-no-mutation present
+//
+// Then: remove physical sentinel, verify absent, persist owned=false + released_at.
+
+function cmdReleaseSentinel(args, paths) {
+  var runId = args.flags.run;
+  if (!runId) throw new R2Error("RUN_ID_REQUIRED", "release-sentinel requires --run <run_id>");
+  validateRunId(runId);
+
+  if (!args.flags["confirm-no-mutation"]) {
+    throw new R2Error("CONFIRMATION_REQUIRED",
+      "release-sentinel requires --confirm-no-mutation (operator assertion that no mutation step completed)");
+  }
+
+  var root = paths.olaMigrationRoot;
+  var statePath = runStatePath(root, runId);
+  if (!fs.existsSync(statePath)) {
+    throw new R2Error("RUN_NOT_FOUND", "no run state found for run_id: " + runId);
+  }
+
+  var state = readState(root, runId);
+
+  // Validate preconditions.
+  if (state.status !== RUN_STATUSES.backup_failed) {
+    throw new R2Error("RELEASE_PRECONDITION_FAILED",
+      "release-sentinel requires status=backup_failed (got: " + state.status + ")");
+  }
+  if (state.completed_steps.length > 0) {
+    throw new R2Error("RELEASE_PRECONDITION_FAILED",
+      "release-sentinel requires completed_steps=[] — mutation evidence present means rollback is needed, not release (got: " + JSON.stringify(state.completed_steps) + ")");
+  }
+  if (state.backup.verified !== false) {
+    throw new R2Error("RELEASE_PRECONDITION_FAILED",
+      "release-sentinel requires backup.verified=false (a verified backup should use backup_completed, not release)");
+  }
+
+  // If already released (owned=false), accept as idempotent.
+  if (state.sentinel.owned === false && state.sentinel.released_at !== null) {
+    return { run_id: runId, status: "already_released", released_at: state.sentinel.released_at };
+  }
+
+  // Remove physical sentinel if present. ENOENT is acceptable (retry after partial failure).
+  // Use the strict removeMigrationSentinel.
+  try {
+    sentinel.removeMigrationSentinel();
+  } catch (e) {
+    if (e.code !== "ENOENT" && e.code !== "SENTINEL_STILL_PRESENT") throw e;
+    // If SENTINEL_STILL_PRESENT, the physical sentinel couldn't be removed.
+    if (e.code === "SENTINEL_STILL_PRESENT") {
+      throw new R2Error("SENTINEL_RELEASE_FAILED",
+        "physical sentinel could not be removed — ownership retained: " + e.message, e.code);
+    }
+  }
+
+  // Verify sentinel is absent.
+  if (sentinel.isMigrationInProgress()) {
+    throw new R2Error("SENTINEL_RELEASE_FAILED",
+      "physical sentinel remains present after removal — ownership retained");
+  }
+
+  // Persist sentinel-released state.
+  var releaseTs = new Date().toISOString();
+  var nextState = transitionState(state, {
+    sentinel: {
+      owned: false,
+      released_at: releaseTs,
+    },
+  });
+  writeStateAtomic(root, runId, nextState);
+
+  // Reopen and verify.
+  var reopened = readState(root, runId);
+  if (reopened.sentinel.owned !== false) {
+    throw new R2Error("SENTINEL_RELEASE_STATE_FAILED",
+      "reopened state sentinel.owned is not false after release");
+  }
+  if (reopened.sentinel.released_at === null) {
+    throw new R2Error("SENTINEL_RELEASE_STATE_FAILED",
+      "reopened state sentinel.released_at is null after release");
+  }
+
+  return { run_id: runId, status: "released", released_at: releaseTs };
+}
+
+function renderReleaseSentinelSummary(result) {
+  var lines = [];
+  lines.push("********************************************************");
+  lines.push("* R2 SENTINEL RELEASED");
+  lines.push("********************************************************");
+  lines.push("");
+  lines.push("run_id:       " + result.run_id);
+  lines.push("status:       " + result.status);
+  if (result.released_at) lines.push("released_at:  " + result.released_at);
+  lines.push("");
+  lines.push("The migration sentinel has been released.");
+  lines.push("The system is no longer locked by this failed backup run.");
+  lines.push("New plan/backup invocations are now unblocked.");
+  return lines.join("\n");
+}
+
 // ── Step 5: Backup ────────────────────────────────────────────────────────
 //
 // cmdBackup is the CLI entry point for the standalone backup subcommand.
@@ -11852,6 +11965,10 @@ function renderHelp() {
     "                                    Requires a frozen, executable plan and exact digest",
     "                                    confirmation. Bootstraps a migration run, creates the",
     "                                    backup, verifies all artifacts, and releases the sentinel.",
+    "  release-sentinel --run <run_id> --confirm-no-mutation",
+    "                                    Release the migration sentinel after a failed backup.",
+    "                                    Requires status=backup_failed, completed_steps=[],",
+    "                                    backup.verified=false, and --confirm-no-mutation.",
     "",
     "Subcommands implemented in later steps:",
     "  execute --plan <path> --confirm <digest>   (Step 10)",
@@ -11920,6 +12037,11 @@ function main() {
     case "rollback":
       throw new R2Error("NOT_IMPLEMENTED",
         args.subcommand + " is implemented in Step 10 (not yet built)");
+    case "release-sentinel": {
+      var rsResult = cmdReleaseSentinel(args, paths);
+      process.stdout.write(renderReleaseSentinelSummary(rsResult) + "\n");
+      return 0;
+    }
     default:
       throw new R2Error("UNKNOWN_SUBCOMMAND", "unknown subcommand: " + args.subcommand);
   }
@@ -12031,7 +12153,7 @@ module.exports = {
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
   // CLI commands (for tests)
-  cmdInventory, cmdPreview, cmdPlan, cmdBackup,
+  cmdInventory, cmdPreview, cmdPlan, cmdBackup, cmdReleaseSentinel,
 };
 
 if (require.main === module) {

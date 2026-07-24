@@ -1,0 +1,270 @@
+// tests/r2/step5-release-sentinel.test.cjs
+//
+// R2 Step 5: release-sentinel command tests.
+//
+// Tests the explicit recovery command for failed backups that retain sentinel
+// ownership. Every assertion can fail.
+//
+// Part of Ola — agent-neutral cognitive memory.
+
+"use strict";
+
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
+const crypto = require("node:crypto");
+
+const m = require("../../bin/migrate-r2.cjs");
+const fx = require("./fixtures/migration-fixture.cjs");
+const sentinel = require("../../hooks/lib/migration-sentinel");
+
+let passed = 0;
+let failed = 0;
+
+function assert(cond, msg) {
+  if (cond) { passed++; console.log("  PASS: " + msg); }
+  else { failed++; console.log("  FAIL: " + msg); }
+}
+
+function assertValidState(state, label) {
+  var err = null;
+  try { m.validateState(state); } catch (e) { err = e; }
+  assert(err === null, err === null ? label + ": validateState passes" : label + ": validateState FAILS: " + err.message);
+}
+
+var _origHome = process.env.HOME;
+
+function setupFixture(seed) {
+  const fixture = fx.buildFixture({ seed: seed });
+  const plan = fx.buildPlanFor(fixture);
+  const paths = fixture.pathsFor();
+  const planPath = path.join(paths.olaMigrationRoot, "plan.json");
+  fs.writeFileSync(planPath, m.canonicalJson(plan) + "\n");
+  process.env.HOME = paths.home;
+  return { fixture, plan, paths, planPath };
+}
+
+function restoreHome() { process.env.HOME = _origHome; }
+
+function cleanup(paths) {
+  try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
+  restoreHome();
+}
+
+// Helper: create a run with backup_failed state and sentinel owned=true
+function createFailedRun(paths, plan) {
+  const runId = fx.validRunId("rel");
+  const rd = m.runDir(paths.olaMigrationRoot, runId);
+  fs.mkdirSync(rd, { recursive: true });
+
+  // Write plan snapshot
+  fs.writeFileSync(path.join(rd, "plan.json"), m.canonicalJson(plan) + "\n");
+
+  // Build initial state, transition to in_progress, then backup_failed
+  var state = m.buildInitialState({
+    runId: runId, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString()
+  });
+  // Bootstrap would set in_progress + sentinel owned=true
+  state = m.transitionState(state, { status: "in_progress", sentinel: { owned: true, released_at: null } });
+  // Backup failure
+  state = m.transitionState(state, {
+    status: "backup_failed",
+    failure: { code: "BACKUP_DISK_FULL", message: "disk full", at: new Date().toISOString() },
+    backup: { path: null, verified: false, manifest_digest: null },
+    rollback: {
+      schema: "ola.migration.r2.rollback-state.v1", status: "not_available",
+      trigger_failure_digest: null, intent_path: null, intent_digest: null, completed_steps: [],
+      target_quarantine: null, source_quarantine: null, quarantine_manifest_path: null,
+      quarantine_manifest_digest: null, quarantine_manifest_input_state_digest: null,
+      attestation_path: null, attestation_digest: null, release_intent_path: null,
+      release_intent_digest: null, receipt_path: null, receipt_digest: null,
+      started_at: null, verified_at: null, released_at: null, failure: null, verified: false,
+    },
+    structural_verification: "not_applicable",
+    live_verification: "not_applicable",
+  });
+  m.writeStateAtomic(paths.olaMigrationRoot, runId, state);
+
+  // Create physical sentinel
+  sentinel.createMigrationSentinel({
+    run_id: runId,
+    plan_digest: plan.plan_digest,
+    reason: "test backup failure",
+    operator: "test",
+  });
+
+  return { runId, state };
+}
+
+// Helper: read state safely
+function readStateSafe(root, runId) {
+  try { return m.readState(root, runId); } catch { return null; }
+}
+
+function main() {
+  console.log("");
+  console.log("═══════════════════════════════════════════════════════════════");
+  console.log("R2 Step 5: release-sentinel command tests");
+  console.log("═══════════════════════════════════════════════════════════════");
+
+  // ── Test 1: successful release ───────────────────────────────
+  console.log("\n=== Test 1: successful release ===");
+  var sharedRunId, sharedPaths;
+  {
+    const { plan, paths } = setupFixture("rel-1");
+    sharedPaths = paths;
+    const { runId } = createFailedRun(paths, plan);
+    sharedRunId = runId;
+
+    // Verify the system is locked before release
+    const evidence = m.collectQuiescenceEvidence(paths);
+    assert(evidence.processing_job_present === true, "system is locked before release (processing_job_present=true)");
+
+    // Execute release
+    const result = m.cmdReleaseSentinel(
+      { flags: { run: runId, "confirm-no-mutation": true } },
+      paths
+    );
+    assert(result.run_id === runId, "run_id returned");
+    assert(result.status === "released", "status=released");
+
+    // Verify state: owned=false, released_at set
+    const state = readStateSafe(paths.olaMigrationRoot, runId);
+    assert(state !== null, "run state exists");
+    if (state) {
+      assert(state.sentinel.owned === false, "sentinel.owned=false");
+      assert(state.sentinel.released_at !== null, "sentinel.released_at set");
+      assertValidState(state, "released backup_failed state");
+    }
+
+    // Physical sentinel absent
+    const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFile) === false, "physical sentinel absent");
+
+    // System is now unlocked
+    const evidence2 = m.collectQuiescenceEvidence(paths);
+    assert(evidence2.processing_job_present === false, "system unlocked after release (processing_job_present=false)");
+  }
+
+  // ── Test 2: missing --confirm-no-mutation refusal ───────────
+  console.log("\n=== Test 2: missing confirmation refusal ===");
+  {
+    const { plan, paths } = setupFixture("rel-2");
+    const { runId } = createFailedRun(paths, plan);
+
+    var threw = false, code = null;
+    try { m.cmdReleaseSentinel({ flags: { run: runId } }, paths); }
+    catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "throws without --confirm-no-mutation");
+    assert(code === "CONFIRMATION_REQUIRED", "error code (got: " + code + ")");
+
+    // State unchanged (still locked)
+    const state = readStateSafe(paths.olaMigrationRoot, runId);
+    if (state) assert(state.sentinel.owned === true, "sentinel.owned still true after refused release");
+    cleanup(paths);
+  }
+
+  // ── Test 3: non-backup_failed status refusal ────────────────
+  console.log("\n=== Test 3: non-backup_failed refusal ===");
+  {
+    const { plan, paths } = setupFixture("rel-3");
+    const { runId } = createFailedRun(paths, plan);
+
+    // Modify state to in_progress (not backup_failed)
+    var st = readStateSafe(paths.olaMigrationRoot, runId);
+    // Can't transition from backup_failed (terminal), so create a new run manually
+    const runId2 = fx.validRunId("rel3b");
+    const rd2 = m.runDir(paths.olaMigrationRoot, runId2);
+    fs.mkdirSync(rd2, { recursive: true });
+    fs.writeFileSync(path.join(rd2, "plan.json"), m.canonicalJson(plan) + "\n");
+    var st2 = m.buildInitialState({ runId: runId2, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString() });
+    st2 = m.transitionState(st2, { status: "in_progress", sentinel: { owned: true, released_at: null } });
+    m.writeStateAtomic(paths.olaMigrationRoot, runId2, st2);
+
+    var threw3 = false, code3 = null;
+    try { m.cmdReleaseSentinel({ flags: { run: runId2, "confirm-no-mutation": true } }, paths); }
+    catch (e) { threw3 = true; code3 = e.code; }
+    assert(threw3 === true, "throws on non-backup_failed status");
+    assert(code3 === "RELEASE_PRECONDITION_FAILED", "error code (got: " + code3 + ")");
+    cleanup(paths);
+  }
+
+  // ── Test 4: mutation-evidence refusal ────────────────────────
+  console.log("\n=== Test 4: mutation-evidence refusal ===");
+  {
+    const { plan, paths } = setupFixture("rel-4");
+    const { runId } = createFailedRun(paths, plan);
+
+    // Modify state to have completed_steps=["backup"] (mutation evidence)
+    // Can't transition from backup_failed (terminal), so create a new run
+    const runId2 = fx.validRunId("rel4b");
+    const rd2 = m.runDir(paths.olaMigrationRoot, runId2);
+    fs.mkdirSync(rd2, { recursive: true });
+    fs.writeFileSync(path.join(rd2, "plan.json"), m.canonicalJson(plan) + "\n");
+    var st2 = m.buildInitialState({ runId: runId2, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString() });
+    st2 = m.transitionState(st2, { status: "in_progress", sentinel: { owned: true, released_at: null } });
+    st2 = m.transitionState(st2, {
+      backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) },
+      completed_steps: ["backup"],
+      step_outputs: { backup: {} },
+    });
+    m.writeStateAtomic(paths.olaMigrationRoot, runId2, st2);
+
+    var threw4 = false, code4 = null;
+    try { m.cmdReleaseSentinel({ flags: { run: runId2, "confirm-no-mutation": true } }, paths); }
+    catch (e) { threw4 = true; code4 = e.code; }
+    assert(threw4 === true, "throws when completed_steps is non-empty");
+    assert(code4 === "RELEASE_PRECONDITION_FAILED", "error code (got: " + code4 + ")");
+    cleanup(paths);
+  }
+
+  // ── Test 5: idempotent invocation after successful release ──
+  console.log("\n=== Test 5: idempotent after release ===");
+  {
+    // Reuse the state from Test 1 (sharedRunId, sharedPaths)
+    if (sharedRunId && sharedPaths) {
+      const result = m.cmdReleaseSentinel(
+        { flags: { run: sharedRunId, "confirm-no-mutation": true } },
+        sharedPaths
+      );
+      assert(result.status === "already_released", "status=already_released on idempotent call");
+
+      const state = readStateSafe(sharedPaths.olaMigrationRoot, sharedRunId);
+      if (state) {
+        assert(state.sentinel.owned === false, "sentinel.owned still false");
+        assert(state.sentinel.released_at !== null, "released_at still set");
+      }
+    }
+    cleanup(sharedPaths);
+  }
+
+  // ── Test 6: CLI subprocess execution ─────────────────────────
+  console.log("\n=== Test 6: CLI subprocess ===");
+  {
+    const { plan, paths } = setupFixture("rel-cli");
+    const { runId } = createFailedRun(paths, plan);
+
+    const { spawnSync } = require("node:child_process");
+    const env = Object.assign({}, process.env, { HOME: paths.home });
+    const cliPath = path.join(__dirname, "..", "..", "bin", "migrate-r2.cjs");
+    const result = spawnSync(process.execPath, [cliPath, "release-sentinel", "--run", runId, "--confirm-no-mutation"], {
+      env: env, cwd: path.join(__dirname, "..", ".."), encoding: "utf-8", timeout: 30000,
+    });
+
+    assert(result.status === 0,
+      "CLI exit code=0 (got: " + result.status + ", stderr: " + (result.stderr || "").substring(0, 200) + ")");
+    assert(result.stdout.indexOf("SENTINEL RELEASED") >= 0, "stdout contains 'SENTINEL RELEASED'");
+
+    const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFile) === false, "physical sentinel absent after CLI release");
+    cleanup(paths);
+  }
+
+  console.log("");
+  console.log("═══════════════════════════════════════════════════════════════");
+  console.log("release-sentinel: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");
+  console.log("═══════════════════════════════════════════════════════════════");
+  process.exit(failed > 0 ? 1 : 0);
+}
+
+main();
