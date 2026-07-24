@@ -287,8 +287,8 @@ async function main() {
     assert(caught !== null, "cmdBackup throws");
     assert(caught.code === "MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
       "composite recovery error code (got: " + (caught && caught.code) + ")");
-    assert(caught.original_code === "BACKUP_EVIDENCE_PERSIST_FAILED",
-      "original boundary failure retained (got: " + (caught && caught.original_code) + ")");
+    assert(caught.original_code === "EIO",
+      "original boundary failure code retained (got: " + (caught && caught.original_code) + ")");
     assert(caught.persistence_code === "EPERM",
       "recovery-state persistence failure retained (got: " + (caught && caught.persistence_code) + ")");
     assert(typeof caught.run_id === "string" && caught.run_id.length > 0,
