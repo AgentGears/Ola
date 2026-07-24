@@ -11587,10 +11587,14 @@ async function cmdBackup(args, paths, injectedDeps) {
       _persistManualIntervention(root, runId, "backup-evidence", "BACKUP_EVIDENCE_PERSIST_FAILED",
         "backup exists but could not be durably bound to run state: " + e.message, e.code, d);
     } catch (miErr) {
-      throw new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
-        "original_code=" + (e.code || "unknown") + " persistence_code=" + (miErr.code || "unknown") +
-        " run_id=" + runId + " sentinel_expected_owned=true operator_action_required=true" +
-        " detail: evidence persist failed AND manual-intervention state write failed: " + miErr.message);
+      var comp1 = new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+        "evidence persist failed AND manual-intervention state write failed: " + miErr.message);
+      comp1.original_code = e.code || "unknown";
+      comp1.persistence_code = miErr.code || "unknown";
+      comp1.run_id = runId;
+      comp1.sentinel_expected_owned = true;
+      comp1.operator_action_required = true;
+      throw comp1;
     }
     throw new R2Error("BACKUP_STATE_PERSIST_FAILED", "backup created but evidence-state persistence failed: " + e.message, e.code);
   }
@@ -11602,10 +11606,14 @@ async function cmdBackup(args, paths, injectedDeps) {
       _persistManualIntervention(root, runId, "release-intent", "BACKUP_RELEASE_INTENT_PERSIST_FAILED",
         "could not persist backup_release_pending intent: " + e.message, e.code, d);
     } catch (miErr) {
-      throw new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
-        "original_code=" + (e.code || "unknown") + " persistence_code=" + (miErr.code || "unknown") +
-        " run_id=" + runId + " sentinel_expected_owned=true operator_action_required=true" +
-        " detail: release-intent persist failed AND manual-intervention state write failed: " + miErr.message);
+      var comp2 = new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+        "release-intent persist failed AND manual-intervention state write failed: " + miErr.message);
+      comp2.original_code = e.code || "unknown";
+      comp2.persistence_code = miErr.code || "unknown";
+      comp2.run_id = runId;
+      comp2.sentinel_expected_owned = true;
+      comp2.operator_action_required = true;
+      throw comp2;
     }
     throw new R2Error("BACKUP_RELEASE_INTENT_PERSIST_FAILED", "could not persist backup_release_pending intent: " + e.message, e.code);
   }
@@ -11618,10 +11626,14 @@ async function cmdBackup(args, paths, injectedDeps) {
       _persistManualIntervention(root, runId, "sentinel-removal", "SENTINEL_RELEASE_FAILED",
         "sentinel removal failed — physical sentinel still present: " + e.message, e.code, d);
     } catch (miErr) {
-      throw new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
-        "original_code=" + (e.code || "unknown") + " persistence_code=" + (miErr.code || "unknown") +
-        " run_id=" + runId + " sentinel_expected_owned=true operator_action_required=true" +
-        " detail: sentinel removal failed AND manual-intervention state write failed: " + miErr.message);
+      var comp3 = new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+        "sentinel removal failed AND manual-intervention state write failed: " + miErr.message);
+      comp3.original_code = e.code || "unknown";
+      comp3.persistence_code = miErr.code || "unknown";
+      comp3.run_id = runId;
+      comp3.sentinel_expected_owned = true;
+      comp3.operator_action_required = true;
+      throw comp3;
     }
     throw new R2Error("SENTINEL_RELEASE_FAILED",
       "sentinel removal failed — physical sentinel still present, authority retained: " + e.message, e.code);

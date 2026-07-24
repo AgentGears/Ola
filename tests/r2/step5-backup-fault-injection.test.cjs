@@ -61,8 +61,14 @@ function findRunState(root) {
 }
 
 function assertValidState(state, label) {
-  try { m.validateState(state); assert(true, label + ": validateState passes"); }
-  catch (e) { assert(false, label + ": validateState FAILS: " + e.message); }
+  var validationError = null;
+  try { m.validateState(state); } catch (error) { validationError = error; }
+  assert(
+    validationError === null,
+    validationError === null
+      ? label + ": validateState passes"
+      : label + ": validateState FAILS: " + validationError.message
+  );
 }
 
 function cleanup(paths) {
@@ -102,6 +108,9 @@ async function main() {
       assert(found.state.sentinel.released_at === null, "sentinel.released_at=null (not released)");
       assertValidState(found.state, "backup_failed state");
     }
+    // Physical sentinel must remain present (no auto-release on creation failure)
+    var sentinelFileA = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFileA) === true, "physical sentinel present (authority retained on creation failure)");
     cleanup(paths);
   }
 
@@ -164,6 +173,9 @@ async function main() {
       assert(found.state.failure.step === "release-intent", "failure.step=release-intent");
       assertValidState(found.state, "failed_manual_intervention state");
     }
+    // Physical sentinel must remain present (release-intent write failed before any removal)
+    var sentinelFileC = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFileC) === true, "physical sentinel present (authority retained on release-intent failure)");
     cleanup(paths);
   }
 
@@ -268,19 +280,32 @@ async function main() {
       },
     });
 
-    let threw = false, errCode = null;
+    var caught = null;
     try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
-    catch (e) { threw = true; errCode = e.code; }
+    catch (error) { caught = error; }
 
-    assert(threw === true, "throws");
-    assert(errCode === "MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
-      "composite error code (got: " + errCode + ")");
+    assert(caught !== null, "cmdBackup throws");
+    assert(caught.code === "MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+      "composite recovery error code (got: " + (caught && caught.code) + ")");
+    assert(caught.original_code === "BACKUP_EVIDENCE_PERSIST_FAILED",
+      "original boundary failure retained (got: " + (caught && caught.original_code) + ")");
+    assert(caught.persistence_code === "EPERM",
+      "recovery-state persistence failure retained (got: " + (caught && caught.persistence_code) + ")");
+    assert(typeof caught.run_id === "string" && caught.run_id.length > 0,
+      "run_id retained (got: " + (caught && caught.run_id) + ")");
+    assert(caught.sentinel_expected_owned === true,
+      "expected sentinel ownership retained");
+    assert(caught.operator_action_required === true,
+      "operator action explicitly required");
 
     const found = findRunState(paths.olaMigrationRoot);
+    assert(found !== null, "run state exists after recovery-state write failure");
     if (found) {
       assert(found.state.status === "in_progress",
-        "prior in_progress preserved (NOT overwritten by failed manual-intervention)");
-      assert(found.state.sentinel.owned === true, "sentinel.owned=true (untouched)");
+        "prior in_progress state preserved");
+      assert(found.state.sentinel.owned === true,
+        "durable sentinel ownership remains true");
+      assertValidState(found.state, "preserved in_progress state");
     }
     const sentinelFile = path.join(paths.home, ".ola-migration", ".migration-in-progress");
     assert(fs.existsSync(sentinelFile) === true, "physical sentinel present (untouched)");
