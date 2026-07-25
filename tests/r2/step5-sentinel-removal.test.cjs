@@ -114,6 +114,48 @@ function main() {
         "SENTINEL_STILL_PRESENT error code preserved");
     }
 
+    // ── Test 6: ENOENT retry path still runs directory fsync ──
+    console.log("\n=== Test 6: ENOENT retry path directory fsync ===");
+    {
+      // No sentinel file present (ENOENT path)
+      // The sentinel directory exists, so fsync should run
+      var fsyncCalled6 = false;
+      var origOpenSync6 = fs.openSync;
+      var origFsyncSync6 = fs.fsyncSync;
+      var caught6 = null;
+      try {
+        fs.openSync = function (p, mode) {
+          if (mode === "r" && p.endsWith(".ola-migration")) {
+            // Return a fake fd so fsync is called
+            return { fakeDirFd: true };
+          }
+          return origOpenSync6.call(fs, p, mode);
+        };
+        fs.fsyncSync = function (fd) {
+          if (fd && fd.fakeDirFd) fsyncCalled6 = true;
+          else origFsyncSync6.call(fs, fd);
+        };
+        try { sentinel.removeMigrationSentinel(); }
+        catch (e) { caught6 = e; }
+      } finally {
+        fs.openSync = origOpenSync6;
+        fs.fsyncSync = origFsyncSync6;
+      }
+      assert(caught6 === null, "ENOENT path does not throw");
+      assert(fsyncCalled6 === true, "directory fsync called on ENOENT retry path");
+    }
+
+    // ── Test 7: Absent sentinel directory remains idempotent ──
+    console.log("\n=== Test 7: absent sentinel directory idempotent ===");
+    {
+      // Remove the .ola-migration directory entirely
+      try { fs.rmSync(path.join(tmpHome, ".ola-migration"), { recursive: true, force: true }); } catch {}
+      var caught7 = null;
+      try { sentinel.removeMigrationSentinel(); }
+      catch (e) { caught7 = e; }
+      assert(caught7 === null, "absent sentinel directory is idempotent (no throw)");
+    }
+
   } finally {
     process.env.HOME = origHome;
     try { fs.rmSync(tmpHome, { recursive: true, force: true }); } catch {}

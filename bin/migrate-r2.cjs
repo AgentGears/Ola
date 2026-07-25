@@ -11540,9 +11540,10 @@ function cmdReleaseSentinel(args, paths) {
   if (!runId) throw new R2Error("RUN_ID_REQUIRED", "release-sentinel requires --run <run_id>");
   validateRunId(runId);
 
-  if (!args.flags["confirm-no-mutation"]) {
+  if (args.flags["confirm-no-mutation"] !== true) {
     throw new R2Error("CONFIRMATION_REQUIRED",
-      "release-sentinel requires --confirm-no-mutation (operator assertion that no mutation step completed)");
+      "release-sentinel requires the bare --confirm-no-mutation flag; " +
+      "values supplied after the flag are not accepted");
   }
 
   var root = paths.olaMigrationRoot;

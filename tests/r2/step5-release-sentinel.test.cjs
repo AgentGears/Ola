@@ -416,6 +416,61 @@ function main() {
     cleanup(paths);
   }
 
+  // ── Test 13: bare --confirm-no-mutation accepted; string values refused ──
+  console.log("\n=== Test 13: strict confirmation flag ===");
+  {
+    const { plan, paths } = setupFixture("rel-13");
+
+    // Sub-test: bare flag accepted
+    {
+      const { runId } = createFailedRun(paths, plan);
+      var result13a = m.cmdReleaseSentinel(
+        { flags: { run: runId, "confirm-no-mutation": true } }, paths
+      );
+      assert(result13a.status === "released", "bare --confirm-no-mutation accepted");
+      // Clean up sentinel for next sub-test
+      try { sentinel.removeMigrationSentinel(); } catch {}
+    }
+
+    // Sub-test: --confirm-no-mutation false refused
+    {
+      const { runId } = createFailedRun(paths, plan);
+      var threw13b = false, code13b = null;
+      try { m.cmdReleaseSentinel({ flags: { run: runId, "confirm-no-mutation": "false" } }, paths); }
+      catch (e) { threw13b = true; code13b = e.code; }
+      assert(threw13b === true, "--confirm-no-mutation false refused");
+      assert(code13b === "CONFIRMATION_REQUIRED", "error code (got: " + code13b + ")");
+      // Sentinel preserved
+      var sf13b = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+      assert(fs.existsSync(sf13b) === true, "sentinel preserved when confirmation has value 'false'");
+      try { sentinel.removeMigrationSentinel(); } catch {}
+    }
+
+    // Sub-test: --confirm-no-mutation no refused
+    {
+      const { runId } = createFailedRun(paths, plan);
+      var threw13c = false, code13c = null;
+      try { m.cmdReleaseSentinel({ flags: { run: runId, "confirm-no-mutation": "no" } }, paths); }
+      catch (e) { threw13c = true; code13c = e.code; }
+      assert(threw13c === true, "--confirm-no-mutation no refused");
+      assert(code13c === "CONFIRMATION_REQUIRED", "error code (got: " + code13c + ")");
+      try { sentinel.removeMigrationSentinel(); } catch {}
+    }
+
+    // Sub-test: --confirm-no-mutation true (string, not boolean) refused
+    {
+      const { runId } = createFailedRun(paths, plan);
+      var threw13d = false, code13d = null;
+      try { m.cmdReleaseSentinel({ flags: { run: runId, "confirm-no-mutation": "true" } }, paths); }
+      catch (e) { threw13d = true; code13d = e.code; }
+      assert(threw13d === true, "--confirm-no-mutation true (string) refused");
+      assert(code13d === "CONFIRMATION_REQUIRED", "error code (got: " + code13d + ")");
+      try { sentinel.removeMigrationSentinel(); } catch {}
+    }
+
+    cleanup(paths);
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("release-sentinel: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");

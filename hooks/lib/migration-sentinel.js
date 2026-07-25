@@ -286,31 +286,42 @@ function createMigrationSentinel(metadata) {
 // call assertSentinelOwnedBy() first.
 function removeMigrationSentinel() {
   const filePath = sentinelPath();
+  const dirPath = sentinelDir();
+
   try {
     fs.unlinkSync(filePath);
   } catch (error) {
     // ENOENT is acceptable (idempotent removal of an already-absent sentinel).
-    // All other errors (EPERM, EBUSY, locked file, filesystem error) must propagate.
-    if (error && error.code === "ENOENT") return;
-    throw error;
+    // But we must still continue to the directory fsync stage — an earlier
+    // process may have unlinked without fsyncing the directory, and this
+    // retry must make that prior deletion durable.
+    if (!(error && error.code === "ENOENT")) {
+      throw error;
+    }
   }
+
   // Fsync the parent directory so the directory-entry deletion is durable.
+  // This runs on BOTH the successful-unlink path and the ENOENT retry path.
   // Without this, a crash after unlink could let the sentinel reappear on
   // filesystems where directory-entry changes require a separate fsync.
-  try {
-    const dirFd = fs.openSync(sentinelDir(), "r");
+  // When the sentinel directory itself doesn't exist, this is idempotent.
+  if (fs.existsSync(dirPath)) {
     try {
-      fs.fsyncSync(dirFd);
-    } finally {
-      fs.closeSync(dirFd);
+      const dirFd = fs.openSync(dirPath, "r");
+      try {
+        fs.fsyncSync(dirFd);
+      } finally {
+        fs.closeSync(dirFd);
+      }
+    } catch (dirErr) {
+      // On win32, directory fsync via openSync("r") may not be supported.
+      // This is consistent with the existing directory-fsync tolerance
+      // documented in detectDirFsyncCapability (returns "unsupported" on win32).
+      // On other platforms, propagate the error — the removal is not durable.
+      if (process.platform !== "win32") throw dirErr;
     }
-  } catch (dirErr) {
-    // On win32, directory fsync via openSync("r") may not be supported.
-    // This is consistent with the existing directory-fsync tolerance
-    // documented in detectDirFsyncCapability (returns "unsupported" on win32).
-    // On other platforms, propagate the error — the removal is not durable.
-    if (process.platform !== "win32") throw dirErr;
   }
+
   // Verify the file is actually gone (catches race conditions or mock filesystems).
   if (fs.existsSync(filePath)) {
     const error = new Error(
