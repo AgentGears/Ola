@@ -894,7 +894,9 @@ function collectQuiescenceEvidence(paths) {
       for (const entry of fs.readdirSync(runsDir, { withFileTypes: true })) {
         if (!entry.isDirectory()) continue;
         const stateFile = path.join(runsDir, entry.name, "state.json");
-        if (!fs.existsSync(stateFile)) continue;
+        // No existsSync precheck — let readState() be the sole authority test.
+        // A missing state.json in a run directory is itself unresolved evidence
+        // and must block quiescence, not be silently skipped.
         try {
           const st = readState(paths.olaMigrationRoot, entry.name);
           // A run blocks quiescence if it is in an active status OR if its
