@@ -11944,6 +11944,24 @@ function cmdFinalizeBackup(args, paths, injectedDeps) {
       "physical sentinel appeared after directory sync — refusing to finalize with a present sentinel");
   }
 
+  // Mutation lock absence assertion: a stranded mutation lock means the
+  // sentinel removal was interrupted before its finally block released the
+  // lock. The operator must recover it explicitly before finalization.
+  var mutationLockPath = path.join(paths.olaMigrationRoot, sentinel.LOCK_NAME);
+  try {
+    fs.lstatSync(mutationLockPath);
+    throw new R2Error("SENTINEL_MUTATION_LOCK_PRESENT",
+      "cannot finalize backup while the sentinel mutation lock remains. " +
+      "Recover the lock explicitly (release-sentinel-mutation-lock), then rerun finalize-backup.");
+  } catch (lockErr) {
+    if (lockErr.code === "SENTINEL_MUTATION_LOCK_PRESENT") throw lockErr;
+    if (lockErr.code !== "ENOENT") {
+      throw new R2Error("SENTINEL_MUTATION_LOCK_UNREADABLE",
+        "cannot establish that the sentinel mutation lock is absent: " + lockErr.message, lockErr.code);
+    }
+    // ENOENT — lock absent, proceed
+  }
+
   // Finalize: reuse the internal helper.
   var d = injectedDeps || defaultBackupCommandDeps();
   _finalizeBackupCompleted(root, runId, d);
