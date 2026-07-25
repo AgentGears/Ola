@@ -190,18 +190,36 @@ async function main() {
     const { runId } = createReleasePendingRun(paths, plan);
     // Finalize first
     m.cmdFinalizeBackup({ flags: { run: runId } }, paths);
-    // Now create a foreign physical sentinel
+    // Now create a foreign physical sentinel (belongs to a different run)
     sentinel.createMigrationSentinel({
       run_id: "20260101T000000Z-foreign",
       plan_digest: "b".repeat(64),
       reason: "foreign", operator: "test",
     });
 
-    var threw5 = false, code5 = null;
+    // Foreign sentinel should NOT block finalize-backup for this run
+    var result5 = m.cmdFinalizeBackup({ flags: { run: runId } }, paths);
+    assert(result5.status === "already_finalized", "foreign sentinel does not block already-finalized run");
+
+    // Verify the foreign sentinel is unchanged
+    var sentinelFile5 = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sentinelFile5) === true, "foreign sentinel preserved");
+    var sentinelMeta5 = JSON.parse(fs.readFileSync(sentinelFile5, "utf8"));
+    assert(sentinelMeta5.run_id === "20260101T000000Z-foreign", "foreign sentinel run_id unchanged");
+
+    // Now create a sentinel bound to THIS run — that IS inconsistent
+    sentinel.removeMigrationSentinel();
+    sentinel.createMigrationSentinel({
+      run_id: runId,
+      plan_digest: plan.plan_digest,
+      reason: "same-run test", operator: "test",
+    });
+
+    var threw5b = false, code5b = null;
     try { m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
-    catch (e) { threw5 = true; code5 = e.code; }
-    assert(threw5 === true, "throws when backup_completed but physical sentinel present");
-    assert(code5 === "SENTINEL_STATE_INCONSISTENT", "error code (got: " + code5 + ")");
+    catch (e) { threw5b = true; code5b = e.code; }
+    assert(threw5b === true, "throws when backup_completed but own sentinel present");
+    assert(code5b === "SENTINEL_STATE_INCONSISTENT", "error code (got: " + code5b + ")");
     cleanup(paths);
   }
 
