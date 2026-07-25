@@ -9586,10 +9586,18 @@ function writeStateAtomic(olaMigrationRoot, runId, stateBody) {
     fs.closeSync(fd);
   }
 
-  // Parent-directory fsync attempt (Windows fallback: detectDirFsyncCapability
-  // returns "unsupported" on win32, and we skip without suppressing an
-  // unexpected failure on platforms that DO support it).
+  // Parent-directory fsync capability check.
+  //   "synced"      → perform pre-rename and post-rename directory fsync
+  //   "unsupported" → documented platform fallback (win32) — skip without error
+  //   "failed"      → the platform was expected to support fsync but the probe failed.
+  //                   Fail closed: refuse to publish a state transition whose durability
+  //                   cannot be guaranteed.
   const dirFsync = detectDirFsyncCapability(dir);
+  if (dirFsync === "failed") {
+    try { fs.unlinkSync(tmpPath); } catch {}
+    throw new R2Error("RUN_STATE_FSYNC_FAILED",
+      "directory fsync capability probe failed; refusing to publish state without a durability barrier");
+  }
   if (dirFsync === "synced") {
     try {
       const dfd = fs.openSync(dir, "r");

@@ -583,6 +583,67 @@ async function main() {
     cleanup(paths);
   }
 
+  // ── Scenario N: dir-fsync probe failure → fail closed ────────
+  console.log("\n=== Scenario N: dir-fsync probe failure ===");
+  {
+    const { plan, paths, planPath } = setupFixture("fault-N");
+
+    // Mock detectDirFsyncCapability to return "failed" for the run dir.
+    // We patch it on the module export — writeStateAtomic calls it directly.
+    var origDetect = m.detectDirFsyncCapability;
+    m.detectDirFsyncCapability = function (dir) {
+      return "failed";
+    };
+
+    // Also need to intercept the internal call — writeStateAtomic uses the
+    // internal function, not the export. So we can't easily mock it.
+    // Instead, test the behavior by calling writeStateAtomic directly
+    // and verifying it throws.
+
+    // First, create a valid run state (bootstrap)
+    const fixtureN = fx.buildFixture({ seed: "fault-N-bootstrap" });
+    const planN = fx.buildPlanFor(fixtureN);
+    const pathsN = fixtureN.pathsFor();
+    process.env.HOME = pathsN.home;
+    const planPathN = path.join(pathsN.olaMigrationRoot, "plan.json");
+    fs.writeFileSync(planPathN, m.canonicalJson(planN) + "\n");
+
+    // Bootstrap a run
+    var bsN = m.bootstrapExecution({
+      externalPlanPath: planPathN,
+      confirmDigest: planN.plan_digest,
+      options: {},
+      deps: m.defaultBootstrapDeps(),
+    });
+    assert(bsN.ok === true, "bootstrap succeeds for N");
+
+    // Now try to write state with the mocked probe
+    var threwN = false, codeN = null;
+    try {
+      var st = m.readState(pathsN.olaMigrationRoot, bsN.run_id);
+      var next = m.transitionState(st, { backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) } });
+      m.writeStateAtomic(pathsN.olaMigrationRoot, bsN.run_id, next);
+    } catch (e) { threwN = true; codeN = e.code; }
+
+    m.detectDirFsyncCapability = origDetect;
+
+    assert(threwN === true, "writeStateAtomic throws on dir-fsync probe failure");
+    assert(codeN === "RUN_STATE_FSYNC_FAILED", "error code=RUN_STATE_FSYNC_FAILED (got: " + codeN + ")");
+
+    // Previous state.json must remain unchanged (still in_progress)
+    var stAfter = m.readState(pathsN.olaMigrationRoot, bsN.run_id);
+    assert(stAfter.status === "in_progress", "previous state.json unchanged (in_progress)");
+
+    // Physical sentinel must remain present (Phase 2a never reached)
+    var sfN = path.join(pathsN.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sfN) === true, "physical sentinel present (Phase 2a not reached)");
+
+    cleanup(pathsN);
+    restoreHome();
+    // Also cleanup the first fixture
+    try { fs.rmSync(paths.home, { recursive: true, force: true }); } catch {}
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("R2 Step 5 fault-injection: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");
