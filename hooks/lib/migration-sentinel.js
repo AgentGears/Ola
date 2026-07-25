@@ -558,8 +558,25 @@ function createMigrationSentinelWithLock(metadata) {
   try {
     createdPayload = createMigrationSentinel(metadata);
   } catch (creationError) {
-    // Creation failed — attempt lock release, then rethrow the original error
-    try { releaseSentinelMutationLock(lock.token); } catch {}
+    // Creation failed — attempt lock release.
+    try {
+      releaseSentinelMutationLock(lock.token);
+    } catch (releaseError) {
+      var strandErr = new Error(
+        "sentinel creation failed and the mutation lock could not be released"
+      );
+      strandErr.code = "SENTINEL_LOCK_STRANDED";
+      strandErr.sentinel_created = false;
+      strandErr.sentinel_expected_owned = false;
+      strandErr.run_id = metadata.run_id;
+      strandErr.plan_digest = metadata.plan_digest;
+      strandErr.lock_path = lock.path;
+      strandErr.token = lock.token;
+      strandErr.original_code = creationError.code;
+      strandErr.cleanup_code = releaseError.code;
+      strandErr.operator_action_required = true;
+      throw strandErr;
+    }
     throw creationError;
   }
   // Creation succeeded — release the lock. If release fails, report that
@@ -600,6 +617,8 @@ function releaseSentinelMutationLockManually(token, confirmNoActiveMigration) {
   // Use the same strict reader as automatic release
   const existing = readMutationLockStrict();
   if (existing === null) {
+    // Already absent — fsync the directory so prior deletion is durable
+    fsyncMigrationSentinelDirectory();
     return { status: "already_absent" };
   }
   if (existing.token !== token) {
@@ -607,14 +626,9 @@ function releaseSentinelMutationLockManually(token, confirmNoActiveMigration) {
     err.code = "SENTINEL_LOCK_TOKEN_MISMATCH";
     throw err;
   }
-  // Token matches — safe to release
-  try {
-    fs.unlinkSync(lp);
-  } catch (e) {
-    if (e.code !== "ENOENT") throw e;
-  }
-  fsyncMigrationSentinelDirectory();
-  return { status: "released", token: existing ? existing.token : null };
+  // Token matches — delegate to the shared release primitive
+  releaseSentinelMutationLock(token);
+  return { status: "released", token: existing.token };
 }
 
 module.exports = {

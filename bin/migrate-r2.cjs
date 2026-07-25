@@ -10383,7 +10383,7 @@ function bootstrapExecution({ externalPlanPath, confirmDigest, options, deps }) 
     return {
       ok: false, code, message: e.message,
       run_created: true, run_id: runId,
-      final_status: RUN_STATUSES.initialization_failed,
+      final_status: failStatus,
       sentinel_released: false,
     };
   }
@@ -11606,9 +11606,20 @@ function cmdReleaseSentinel(args, paths) {
   var state = readState(root, runId);
 
   // Validate preconditions.
-  if (state.status !== RUN_STATUSES.backup_failed) {
+  // Accept two admissible states:
+  //   1. backup_failed (original backup creation failure)
+  //   2. failed_manual_intervention with failure.code=SENTINEL_CREATED_LOCK_RELEASE_FAILED
+  //      (sentinel was created but lock release failed — no mutation ran)
+  var admissibleStatus = state.status === RUN_STATUSES.backup_failed;
+  var admissibleLockRelease = (
+    state.status === RUN_STATUSES.failed_manual_intervention &&
+    state.failure &&
+    state.failure.code === "SENTINEL_CREATED_LOCK_RELEASE_FAILED" &&
+    state.failure.step === "sentinel-lock-release"
+  );
+  if (!admissibleStatus && !admissibleLockRelease) {
     throw new R2Error("RELEASE_PRECONDITION_FAILED",
-      "release-sentinel requires status=backup_failed (got: " + state.status + ")");
+      "release-sentinel requires status=backup_failed or failed_manual_intervention with SENTINEL_CREATED_LOCK_RELEASE_FAILED (got: " + state.status + ")");
   }
   if (state.completed_steps.length > 0) {
     throw new R2Error("RELEASE_PRECONDITION_FAILED",
