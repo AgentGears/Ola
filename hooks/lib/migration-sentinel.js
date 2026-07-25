@@ -445,13 +445,45 @@ function acquireSentinelMutationLock(operation, runId, planDigest) {
   return { token: token, path: lp };
 }
 
-function releaseSentinelMutationLock(expectedToken) {
+// Strict lock reader — used by both automatic and manual release.
+// Returns parsed metadata, or null if lock absent.
+// Throws SENTINEL_LOCK_MALFORMED if the file exists but is unreadable,
+// unparseable, or has invalid schema/fields.
+function readMutationLockStrict() {
   const lp = lockPath();
-  if (!fs.existsSync(lp)) return; // idempotent
-  // Verify the lock belongs to us
-  let existing = null;
-  try { existing = JSON.parse(fs.readFileSync(lp, "utf8")); } catch {}
-  if (existing && existing.token !== expectedToken) {
+  if (!fs.existsSync(lp)) return null;
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(lp, "utf8"));
+  } catch (cause) {
+    const error = new Error("sentinel mutation lock is unreadable or malformed");
+    error.code = "SENTINEL_LOCK_MALFORMED";
+    error.cause = cause;
+    throw error;
+  }
+  if (
+    !parsed ||
+    parsed.schema !== LOCK_SCHEMA ||
+    typeof parsed.token !== "string" ||
+    !["create", "remove-owned"].includes(parsed.operation) ||
+    typeof parsed.run_id !== "string" ||
+    typeof parsed.plan_digest !== "string"
+  ) {
+    const error = new Error("sentinel mutation lock metadata is invalid");
+    error.code = "SENTINEL_LOCK_MALFORMED";
+    throw error;
+  }
+  return parsed;
+}
+
+function releaseSentinelMutationLock(expectedToken) {
+  const existing = readMutationLockStrict();
+  if (existing === null) {
+    // Already absent — fsync the directory so prior deletion is durable
+    fsyncMigrationSentinelDirectory();
+    return;
+  }
+  if (existing.token !== expectedToken) {
     const err = new Error("refusing to release a foreign mutation lock");
     err.code = "SENTINEL_LOCK_FOREIGN";
     throw err;
@@ -521,15 +553,39 @@ function removeMigrationSentinelOwnedBy(runId, planDigest) {
 // Acquire the mutation lock around sentinel creation so creation and
 // owned-removal are serialized.
 function createMigrationSentinelWithLock(metadata) {
-  const lockInfo = acquireSentinelMutationLock("create", metadata.run_id, metadata.plan_digest);
+  const lock = acquireSentinelMutationLock("create", metadata.run_id, metadata.plan_digest);
+  var createdPayload;
   try {
-    createMigrationSentinel(metadata);
-  } finally {
-    releaseSentinelMutationLock(lockInfo.token);
+    createdPayload = createMigrationSentinel(metadata);
+  } catch (creationError) {
+    // Creation failed — attempt lock release, then rethrow the original error
+    try { releaseSentinelMutationLock(lock.token); } catch {}
+    throw creationError;
   }
+  // Creation succeeded — release the lock. If release fails, report that
+  // the sentinel was created but the lock could not be released.
+  try {
+    releaseSentinelMutationLock(lock.token);
+  } catch (releaseError) {
+    var error = new Error(
+      "sentinel was created, but its mutation lock could not be released"
+    );
+    error.code = "SENTINEL_CREATED_LOCK_RELEASE_FAILED";
+    error.sentinel_created = true;
+    error.sentinel_expected_owned = true;
+    error.run_id = metadata.run_id;
+    error.plan_digest = metadata.plan_digest;
+    error.lock_path = lock.path;
+    error.token = lock.token;
+    error.release_code = releaseError.code;
+    error.operator_action_required = true;
+    throw error;
+  }
+  return createdPayload;
 }
 
 // Explicit lock recovery (no auto-expiry).
+// Uses the same strict reader as automatic release.
 function releaseSentinelMutationLockManually(token, confirmNoActiveMigration) {
   if (confirmNoActiveMigration !== true) {
     const err = new Error("manual lock release requires bare --confirm-no-active-migration");
@@ -541,31 +597,17 @@ function releaseSentinelMutationLockManually(token, confirmNoActiveMigration) {
     err.code = "TOKEN_REQUIRED";
     throw err;
   }
-  const lp = lockPath();
-  if (!fs.existsSync(lp)) {
+  // Use the same strict reader as automatic release
+  const existing = readMutationLockStrict();
+  if (existing === null) {
     return { status: "already_absent" };
-  }
-  let existing = null;
-  var parseFailed = false;
-  try { existing = JSON.parse(fs.readFileSync(lp, "utf8")); } catch { parseFailed = true; }
-  // Malformed locks must NOT be deleted — require operator inspection
-  if (parseFailed || !existing) {
-    const err = new Error("lock file is malformed or unreadable — refusing to release without manual inspection");
-    err.code = "SENTINEL_LOCK_MALFORMED";
-    throw err;
-  }
-  // Validate lock schema
-  if (existing.schema !== LOCK_SCHEMA) {
-    const err = new Error("lock has wrong schema: " + existing.schema + " (expected " + LOCK_SCHEMA + ")");
-    err.code = "SENTINEL_LOCK_MALFORMED";
-    throw err;
   }
   if (existing.token !== token) {
     const err = new Error("lock token mismatch: expected=" + token + " actual=" + existing.token);
     err.code = "SENTINEL_LOCK_TOKEN_MISMATCH";
     throw err;
   }
-  // Token matches and schema is valid — safe to release
+  // Token matches — safe to release
   try {
     fs.unlinkSync(lp);
   } catch (e) {

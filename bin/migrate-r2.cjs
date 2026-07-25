@@ -10328,31 +10328,44 @@ function bootstrapExecution({ externalPlanPath, confirmDigest, options, deps }) 
       operator: process.env.USER || "unknown",
     });
   } catch (e) {
-    // Foreign/malformed/create-failed sentinel. Do NOT remove the existing
-    // sentinel — it may belong to another run.
     // Classify the failure.
     let code = "SENTINEL_CREATE_FAILED";
-    // Inspect the sentinel state to classify.
-    const existing = d.readSentinel ? d.readSentinel() : null;
-    if (existing && existing.raw === true) {
-      code = "SENTINEL_MALFORMED";
-    } else if (existing && existing.run_id !== undefined) {
-      code = "SENTINEL_ALREADY_ACTIVE";
+    let sentinelOwned = false; // default: we never acquired the sentinel
+    let failStatus = RUN_STATUSES.initialization_failed;
+
+    if (e.code === "SENTINEL_CREATED_LOCK_RELEASE_FAILED") {
+      // Sentinel was created but lock release failed. The sentinel IS owned
+      // by this run — persist as failed_manual_intervention with owned=true.
+      code = e.code;
+      sentinelOwned = true;
+      failStatus = RUN_STATUSES.failed_manual_intervention;
+    } else if (e.code === "SENTINEL_LOCK_HELD") {
+      code = "SENTINEL_LOCK_HELD";
+    } else if (e.code === "SENTINEL_LOCK_STRANDED") {
+      code = "SENTINEL_LOCK_STRANDED";
+    } else {
+      // Inspect the sentinel state to classify.
+      const existing = d.readSentinel ? d.readSentinel() : null;
+      if (existing && existing.raw === true) {
+        code = "SENTINEL_MALFORMED";
+      } else if (existing && existing.run_id !== undefined) {
+        code = "SENTINEL_ALREADY_ACTIVE";
+      }
     }
-    // Persist initialization_failed (sentinel.owned=false because we never
-    // acquired it).
+    // Persist the failure state.
     try {
       const failBody = transitionState(state, {
-        status: RUN_STATUSES.initialization_failed,
-        sentinel: { owned: false, released_at: null },
+        status: failStatus,
+        sentinel: { owned: sentinelOwned, released_at: null },
         rollback: { status: ROLLBACK_STATUSES.not_available, verified: false },
         structural_verification: VERIFICATION_STATUSES.not_applicable,
         live_verification: VERIFICATION_STATUSES.not_applicable,
         failure: {
-          step: "sentinel-create", code, message: e.message,
+          step: sentinelOwned ? "sentinel-lock-release" : "sentinel-create",
+          code, message: e.message,
           at: new Date().toISOString(),
         },
-      });
+      }, undefined, { skipTransitionCheck: true });
       d.writeStateAtomic(pathsFromPlan.olaMigrationRoot, runId, failBody);
     } catch (persistErr) {
       // State store itself unavailable. Cannot persist initialization_failed.
