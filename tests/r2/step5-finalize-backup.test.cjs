@@ -260,6 +260,68 @@ async function main() {
     cleanup(paths);
   }
 
+  // ── Test 8: directory fsync failure leaves backup_release_pending ──
+  console.log("\n=== Test 8: directory sync failure ===");
+  {
+    const { plan, paths } = setupFixture("fin-8");
+    const { runId } = createReleasePendingRun(paths, plan);
+
+    // Mock fsync to throw on non-win32
+    var origFsync = sentinel.fsyncMigrationSentinelDirectory;
+    var threw8 = false, code8 = null;
+    sentinel.fsyncMigrationSentinelDirectory = function () {
+      var e = new Error("fsync denied");
+      e.code = "EACCES";
+      throw e;
+    };
+    try {
+      // On Linux CI, this should throw SENTINEL_DIR_FSYNC_FAILED
+      // On win32, the helper swallows — so this test may pass silently
+      m.cmdFinalizeBackup({ flags: { run: runId } }, paths);
+    } catch (e) {
+      threw8 = true; code8 = e.code;
+    } finally {
+      sentinel.fsyncMigrationSentinelDirectory = origFsync;
+    }
+
+    if (process.platform !== "win32") {
+      assert(threw8 === true, "throws on directory fsync failure (Linux)");
+      assert(code8 === "SENTINEL_DIR_FSYNC_FAILED", "error code (got: " + code8 + ")");
+      var st8 = readStateSafe(paths.olaMigrationRoot, runId);
+      if (st8) assert(st8.status === "backup_release_pending", "state preserved after fsync failure");
+    } else {
+      // On win32, fsync is not supported and errors are swallowed
+      console.log("  (win32: directory fsync is unsupported — skipped)");
+    }
+    cleanup(paths);
+  }
+
+  // ── Test 9: sentinel appears after directory sync ────────────
+  console.log("\n=== Test 9: sentinel appears after sync ===");
+  {
+    const { plan, paths } = setupFixture("fin-9");
+    const { runId } = createReleasePendingRun(paths, plan);
+
+    // Mock: fsync succeeds, then a sentinel file appears (simulating unsynced reappearance)
+    var origFsync9 = sentinel.fsyncMigrationSentinelDirectory;
+    sentinel.fsyncMigrationSentinelDirectory = function () {
+      // Create a sentinel file (simulating unsynced reappearance after fsync)
+      var sf = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+      fs.writeFileSync(sf, "{}");
+    };
+    var threw9 = false, code9 = null;
+    try { m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
+    catch (e) { threw9 = true; code9 = e.code; }
+    finally { sentinel.fsyncMigrationSentinelDirectory = origFsync9; }
+
+    assert(threw9 === true, "throws when sentinel appears after sync");
+    assert(code9 === "PHYSICAL_SENTINEL_PRESENT", "error code (got: " + code9 + ")");
+    // State unchanged
+    var st9 = readStateSafe(paths.olaMigrationRoot, runId);
+    if (st9) assert(st9.status === "backup_release_pending", "state preserved");
+    cleanup(paths);
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("finalize-backup: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");

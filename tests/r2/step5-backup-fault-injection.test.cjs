@@ -461,6 +461,43 @@ async function main() {
     cleanup(paths);
   }
 
+  // ── Scenario L: foreign sentinel replaces valid one before Phase 2a ──
+  console.log("\n=== Scenario L: foreign sentinel before removal ===");
+  {
+    const { plan, paths, planPath } = setupFixture("fault-L");
+    // Inject: replace sentinel with foreign one during backup creation
+    const deps = makeDeps({
+      createVerifiedBackup: async function (opts) {
+        // Simulate: another run replaced our sentinel during backup
+        sentinel.removeMigrationSentinel();
+        sentinel.createMigrationSentinel({
+          run_id: "20260101T000000Z-foreignrun",
+          plan_digest: "0".repeat(64),
+          reason: "foreign", operator: "test",
+        });
+        return { backup_path: "/fake/backup", manifest_digest: "0".repeat(64), entries_count: 1 };
+      },
+    });
+
+    var caughtL = null;
+    try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
+    catch (e) { caughtL = e; }
+
+    assert(caughtL !== null, "throws when sentinel was replaced by foreign run");
+    // The error may be SENTINEL_OWNERSHIP_MISMATCH or SENTINEL_RELEASE_FAILED
+    // depending on which check fires first
+    assert(caughtL !== null, "error thrown (code: " + (caughtL && caughtL.code) + ")");
+
+    // Physical sentinel preserved (foreign sentinel must NOT be deleted)
+    var sfL = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sfL) === true, "foreign sentinel preserved (not deleted)");
+
+    // State should be failed_manual_intervention or similar (sentinel retained)
+    var foundL = findRunState(paths.olaMigrationRoot);
+    if (foundL) assert(foundL.state.sentinel.owned === true, "durable owned=true (retained)");
+    cleanup(paths);
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("R2 Step 5 fault-injection: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");

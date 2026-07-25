@@ -75,6 +75,25 @@ function sentinelPath() {
   return path.join(sentinelDir(), SENTINEL_NAME);
 }
 
+// Fsync the sentinel parent directory so prior directory-entry changes
+// (including a sentinel removal by another process) are durable.
+// On win32, directory fsync via openSync("r") may not be supported —
+// consistent with detectDirFsyncCapability (returns "unsupported").
+// On other platforms, failures propagate.
+function fsyncMigrationSentinelDirectory() {
+  if (!fs.existsSync(sentinelDir())) return; // idempotent if dir absent
+  try {
+    const dirFd = fs.openSync(sentinelDir(), "r");
+    try {
+      fs.fsyncSync(dirFd);
+    } finally {
+      fs.closeSync(dirFd);
+    }
+  } catch (dirErr) {
+    if (process.platform !== "win32") throw dirErr;
+  }
+}
+
 // True if a migration is currently in progress (sentinel file exists).
 // Never throws - treats unreadable/missing as "no sentinel" for this boolean.
 // NOTE: this is the proxy used by mutation guards. A malformed sentinel still
@@ -364,6 +383,7 @@ module.exports = {
   SENTINEL_DIR,
   sentinelDir,
   sentinelPath,
+  fsyncMigrationSentinelDirectory,
   isMigrationInProgress,
   readSentinel,
   assertSentinelOwnedBy,

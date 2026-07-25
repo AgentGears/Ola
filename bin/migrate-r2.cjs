@@ -10819,6 +10819,7 @@ function defaultBackupCommandDeps() {
     transitionState: (state, updates, ts, opts) => transitionState(state, updates, ts, opts),
     removeMigrationSentinel: () => sentinel.removeMigrationSentinel(),
     isMigrationInProgress: () => sentinel.isMigrationInProgress(),
+    assertSentinelOwnedBy: (runId, planDigest) => sentinel.assertSentinelOwnedBy(runId, planDigest),
     trace: () => {},
   };
 }
@@ -11744,6 +11745,23 @@ function cmdFinalizeBackup(args, paths, injectedDeps) {
       "or investigate why the sentinel still exists.");
   }
 
+  // Durably sync the absent sentinel: fsync the parent directory so any prior
+  // unlink by another process is durable before we write backup_completed.
+  // Without this, a crash could let an unsynced sentinel reappear after
+  // canonical state says owned=false.
+  try {
+    sentinel.fsyncMigrationSentinelDirectory();
+  } catch (syncErr) {
+    throw new R2Error("SENTINEL_DIR_FSYNC_FAILED",
+      "could not durably sync sentinel directory before finalization: " + syncErr.message, syncErr.code);
+  }
+
+  // Post-sync recheck: the sentinel must STILL be absent after fsync.
+  if (fs.existsSync(sentinelPath)) {
+    throw new R2Error("PHYSICAL_SENTINEL_PRESENT",
+      "physical sentinel appeared after directory sync — refusing to finalize with a present sentinel");
+  }
+
   // Finalize: reuse the internal helper.
   var d = injectedDeps || defaultBackupCommandDeps();
   _finalizeBackupCompleted(root, runId, d);
@@ -11912,12 +11930,15 @@ async function cmdBackup(args, paths, injectedDeps) {
     throw new R2Error("BACKUP_RELEASE_INTENT_PERSIST_FAILED", "could not persist backup_release_pending intent: " + e.message, e.code);
   }
 
-  // Phase 2a: remove physical sentinel.
+  // Phase 2a: verify ownership and remove physical sentinel.
   try {
+    // Ownership binding: verify the sentinel belongs to THIS run before removing.
+    // This prevents removing a sentinel that was replaced by another run during backup.
+    if (d.isMigrationInProgress()) {
+      d.assertSentinelOwnedBy(runId, plan.plan_digest);
+    }
     d.removeMigrationSentinel();
     // Postcondition: verify the sentinel is actually gone.
-    // This catches injected/alternative deps that return without removing,
-    // or race conditions where the file reappears.
     if (d.isMigrationInProgress()) {
       var stillPresentErr = new Error(
         "physical migration sentinel remains after removal returned"
