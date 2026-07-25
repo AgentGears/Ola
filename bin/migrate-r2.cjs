@@ -896,7 +896,7 @@ function collectQuiescenceEvidence(paths) {
         const stateFile = path.join(runsDir, entry.name, "state.json");
         if (!fs.existsSync(stateFile)) continue;
         try {
-          const st = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+          const st = readState(paths.olaMigrationRoot, entry.name);
           // A run blocks quiescence if it is in an active status OR if its
           // durable record claims sentinel ownership. The authority check
           // catches runs that still own the sentinel even after the physical
@@ -919,10 +919,31 @@ function collectQuiescenceEvidence(paths) {
               sentinel_owned: st.sentinel ? st.sentinel.owned : undefined,
             });
           }
-        } catch {}
+        } catch (error) {
+          // Unreadable, malformed, or invalid state files fail closed.
+          // This is an authority detector — false refusal is safer than
+          // false clearance.
+          evidence.processing_job_present = true;
+          evidence.detected_processes.push({
+            kind: "unreadable_run_state",
+            run_id: entry.name,
+            state_path: stateFile,
+            code: error.code || "STATE_READ_OR_VALIDATION_FAILED",
+            detail: error.message,
+          });
+        }
       }
     }
-  } catch {}
+  } catch (dirErr) {
+    // Failure to inspect the run-authority directory itself fails closed.
+    evidence.processing_job_present = true;
+    evidence.detected_processes.push({
+      kind: "run_state_directory_unreadable",
+      path: path.join(paths.olaMigrationRoot, "runs"),
+      code: dirErr.code || "RUNS_DIR_READ_FAILED",
+      detail: dirErr.message,
+    });
+  }
 
   // Sentinel mutation lock check. A present mutation lock blocks quiescence
   // regardless of whether its metadata is valid — it is an unresolved
