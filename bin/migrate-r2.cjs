@@ -12244,11 +12244,13 @@ async function cmdBackup(args, paths, injectedDeps) {
 // Throws GLOBAL_SENTINEL_UNREADABLE for raw/malformed/unreadable sentinels.
 function _classifySentinelForRun(active, runId, planDigest) {
   if (active === null) return "absent";
-  if (active.raw === true ||
-      typeof active.run_id !== "string" ||
-      typeof active.plan_digest !== "string") {
+  var validRunId =
+    typeof active.run_id === "string" && RUN_ID_RE.test(active.run_id);
+  var validPlanDigest =
+    typeof active.plan_digest === "string" && /^[0-9a-f]{64}$/.test(active.plan_digest);
+  if (active.raw === true || !validRunId || !validPlanDigest) {
     throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
-      "the active global sentinel is malformed, unreadable, or cannot be classified");
+      "the active global sentinel has invalid ownership metadata");
   }
   if (active.run_id === runId && active.plan_digest === planDigest) return "owned";
   return "foreign";
