@@ -318,24 +318,41 @@ function main() {
     cleanup(paths);
   }
 
-  // ── Test 9: already_released with physical sentinel present refused ──
-  console.log("\n=== Test 9: already_released + physical present refused ===");
+  // ── Test 9: already_released + foreign sentinel is NOT inconsistent ──
+  console.log("\n=== Test 9: already_released + foreign sentinel accepted ===");
   {
     const { plan, paths } = setupFixture("rel-9");
     const { runId } = createFailedRun(paths, plan);
     m.cmdReleaseSentinel({ flags: { run: runId, "confirm-no-mutation": true } }, paths);
-    // Create a foreign physical sentinel
+    // Create a foreign physical sentinel (belongs to a different run)
     sentinel.createMigrationSentinel({
-      run_id: "20260101T000000Z-foreignmal",
+      run_id: "20260101T000000Z-foreignrun",
       plan_digest: "a".repeat(64),
-      reason: "malformed test", operator: "test",
+      reason: "foreign test", operator: "test",
     });
 
-    var threw9 = false, code9 = null;
+    // Foreign sentinel should NOT block already-released run
+    var result9 = m.cmdReleaseSentinel({ flags: { run: runId, "confirm-no-mutation": true } }, paths);
+    assert(result9.status === "already_released", "foreign sentinel does not block already-released run");
+
+    // Verify foreign sentinel preserved
+    var sf9 = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sf9) === true, "foreign sentinel preserved");
+    var meta9 = JSON.parse(fs.readFileSync(sf9, "utf8"));
+    assert(meta9.run_id === "20260101T000000Z-foreignrun", "foreign sentinel run_id unchanged");
+
+    // Now create a sentinel bound to THIS run — that IS inconsistent
+    sentinel.removeMigrationSentinel();
+    sentinel.createMigrationSentinel({
+      run_id: runId,
+      plan_digest: plan.plan_digest,
+      reason: "same-run test", operator: "test",
+    });
+    var threw9b = false, code9b = null;
     try { m.cmdReleaseSentinel({ flags: { run: runId, "confirm-no-mutation": true } }, paths); }
-    catch (e) { threw9 = true; code9 = e.code; }
-    assert(threw9 === true, "throws when already_released but physical sentinel present");
-    assert(code9 === "SENTINEL_STATE_INCONSISTENT", "error code (got: " + code9 + ")");
+    catch (e) { threw9b = true; code9b = e.code; }
+    assert(threw9b === true, "throws when already_released but own sentinel present");
+    assert(code9b === "SENTINEL_STATE_INCONSISTENT", "error code (got: " + code9b + ")");
     cleanup(paths);
   }
 
