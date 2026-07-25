@@ -924,6 +924,31 @@ function collectQuiescenceEvidence(paths) {
     }
   } catch {}
 
+  // Sentinel mutation lock check. A present mutation lock blocks quiescence
+  // regardless of whether its metadata is valid — it is an unresolved
+  // authority object that requires explicit recovery.
+  try {
+    var mutationLockPath = path.join(paths.olaMigrationRoot, sentinel.LOCK_NAME);
+    try {
+      fs.lstatSync(mutationLockPath);
+      evidence.mutation_lock_present = true;
+      evidence.detected_processes.push({
+        kind: "sentinel_mutation_lock",
+        path: mutationLockPath,
+      });
+    } catch (lockErr) {
+      if (lockErr.code !== "ENOENT") {
+        // Unreadable or unstatable authority files fail closed.
+        evidence.mutation_lock_present = true;
+        evidence.detected_processes.push({
+          kind: "sentinel_mutation_lock_unreadable",
+          path: mutationLockPath,
+          code: lockErr.code || null,
+        });
+      }
+    }
+  } catch {}
+
   // Process detection (supplementary). On win32, look for ZCode.exe; on
   // posix, look for any process whose name contains "zcode". This is a hint,
   // not proof.
@@ -11661,24 +11686,33 @@ function cmdReleaseSentinel(args, paths) {
       throw new R2Error("SENTINEL_STATE_INCONSISTENT",
         "durable state says released (owned=false), but a physical sentinel is present — possible foreign sentinel or state corruption");
     }
+    // Already released — fsync the sentinel directory for durability
+    // (handles retries from defective/interrupted prior versions),
+    // then recheck that the sentinel is still absent.
+    sentinel.fsyncMigrationSentinelDirectory();
+    var stillPresentAfterIdempotent = sentinel.isMigrationInProgress();
+    if (stillPresentAfterIdempotent) {
+      throw new R2Error("SENTINEL_STATE_INCONSISTENT",
+        "durable state says released, fsync completed, but physical sentinel appeared — possible corruption");
+    }
     return { run_id: runId, status: "already_released", released_at: state.sentinel.released_at };
   }
 
   // Atomic ownership-verified removal via mutation lock.
-  // If the sentinel is absent (retry case), this is a no-op.
-  // If present, the lock ensures ownership verification and removal are
-  // serialized and cannot be interleaved by another process.
-  if (sentinel.isMigrationInProgress()) {
-    try {
-      sentinel.removeMigrationSentinelOwnedBy(runId, state.plan_digest);
-    } catch (e) {
-      if (e.code === "SENTINEL_FOREIGN" || e.code === "SENTINEL_MALFORMED") {
-        throw new R2Error("SENTINEL_OWNERSHIP_MISMATCH",
-          "refusing to remove a foreign or malformed sentinel: " + e.message, e.code);
-      }
-      throw new R2Error("SENTINEL_RELEASE_FAILED",
-        "physical sentinel could not be removed — ownership retained: " + e.message, e.code);
+  // Always call the combined primitive — even when the sentinel appears
+  // absent — because the primitive acquires the mutation lock and its
+  // finally block fsyncs the parent directory, making any prior unlink
+  // durable. This handles the recovery window where an earlier unlink
+  // succeeded but the directory fsync was skipped or crashed.
+  try {
+    sentinel.removeMigrationSentinelOwnedBy(runId, state.plan_digest);
+  } catch (e) {
+    if (e.code === "SENTINEL_FOREIGN" || e.code === "SENTINEL_MALFORMED") {
+      throw new R2Error("SENTINEL_OWNERSHIP_MISMATCH",
+        "refusing to remove a foreign or malformed sentinel: " + e.message, e.code);
     }
+    throw new R2Error("SENTINEL_RELEASE_FAILED",
+      "physical sentinel release could not be made durable: " + e.message, e.code);
   }
 
   // Verify sentinel is absent.
