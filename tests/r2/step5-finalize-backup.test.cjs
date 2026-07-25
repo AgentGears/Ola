@@ -340,6 +340,93 @@ async function main() {
     cleanup(paths);
   }
 
+  // ── Test 10: stranded mutation lock blocks finalization ──────
+  console.log("\n=== Test 10: stranded mutation lock blocks finalize ===");
+  {
+    const { plan, paths } = setupFixture("fin-10");
+    const { runId } = createReleasePendingRun(paths, plan);
+
+    // Create a valid mutation lock (simulating a crash before lock release)
+    var lockDir = path.join(paths.olaMigrationRoot);
+    fs.mkdirSync(lockDir, { recursive: true });
+    var lockFile = path.join(lockDir, sentinel.LOCK_NAME);
+    var lockToken = "test-token-1234567890";
+    var lockPayload = JSON.stringify({
+      schema: "ola.migration.sentinel-lock.v1",
+      token: lockToken,
+      operation: "remove-owned",
+      run_id: runId,
+      plan_digest: plan.plan_digest,
+      owner_pid: 99999,
+      created_at: new Date().toISOString(),
+    }, null, 2) + "\n";
+    fs.writeFileSync(lockFile, lockPayload);
+
+    // finalize-backup should refuse
+    var threw10 = false, code10 = null;
+    try { m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
+    catch (e) { threw10 = true; code10 = e.code; }
+
+    assert(threw10 === true, "throws when mutation lock is present");
+    assert(code10 === "SENTINEL_MUTATION_LOCK_PRESENT",
+      "error code (got: " + code10 + ")");
+
+    // State remains backup_release_pending
+    var st10 = readStateSafe(paths.olaMigrationRoot, runId);
+    if (st10) assert(st10.status === "backup_release_pending", "state preserved");
+
+    // Lock bytes remain unchanged
+    assert(fs.readFileSync(lockFile, "utf8") === lockPayload, "lock bytes unchanged");
+
+    // Quiescence still blocked (mutation_lock_present)
+    var ev10 = m.collectQuiescenceEvidence(paths);
+    assert(ev10.mutation_lock_present === true, "quiescence blocked by mutation lock");
+
+    // Explicit lock release
+    var releaseResult = sentinel.releaseSentinelMutationLockManually(lockToken, true);
+    assert(releaseResult.status === "released", "manual lock release succeeds");
+
+    // Retry finalize-backup — should succeed now
+    var result10b = m.cmdFinalizeBackup({ flags: { run: runId } }, paths);
+    assert(result10b.status === "finalized", "finalize succeeds after lock release");
+
+    // Full quiescence restored
+    var ev10b = m.collectQuiescenceEvidence(paths);
+    assert(ev10b.processing_job_present === false, "processing_job_present=false after finalize");
+    assert(ev10b.mutation_lock_present === false, "mutation_lock_present=false after finalize");
+    assert(m.isQuiescent(ev10b) === true, "full quiescence restored");
+
+    cleanup(paths);
+  }
+
+  // ── Test 11: malformed mutation lock fails closed ────────────
+  console.log("\n=== Test 11: malformed mutation lock fails closed ===");
+  {
+    const { plan, paths } = setupFixture("fin-11");
+    const { runId } = createReleasePendingRun(paths, plan);
+
+    // Create a malformed lock file
+    var lockFile11 = path.join(paths.olaMigrationRoot, sentinel.LOCK_NAME);
+    fs.writeFileSync(lockFile11, "NOT VALID JSON {{{");
+
+    var threw11 = false, code11 = null;
+    try { m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
+    catch (e) { threw11 = true; code11 = e.code; }
+
+    assert(threw11 === true, "throws on malformed mutation lock");
+    assert(code11 === "SENTINEL_MUTATION_LOCK_UNREADABLE",
+      "error code (got: " + code11 + ")");
+
+    // Lock bytes unchanged
+    assert(fs.readFileSync(lockFile11, "utf8") === "NOT VALID JSON {{{", "malformed lock bytes unchanged");
+
+    // State preserved
+    var st11 = readStateSafe(paths.olaMigrationRoot, runId);
+    if (st11) assert(st11.status === "backup_release_pending", "state preserved");
+
+    cleanup(paths);
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("finalize-backup: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");
