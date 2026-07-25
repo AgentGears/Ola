@@ -185,7 +185,7 @@ async function main() {
   {
     const { plan, paths, planPath } = setupFixture("fault-D2");
     const deps = makeDeps({
-      removeMigrationSentinel: function () { throw makeErr("EBUSY", "sentinel locked"); },
+      removeMigrationSentinelOwnedBy: function () { throw makeErr("EBUSY", "sentinel locked"); },
     });
 
     let threw = false, errCode = null;
@@ -213,9 +213,9 @@ async function main() {
     const { plan, paths, planPath } = setupFixture("fault-E2");
     let removalHappened = false;
     const deps = makeDeps({
-      removeMigrationSentinel: function () {
+      removeMigrationSentinelOwnedBy: function (runId, planDigest) {
         removalHappened = true;
-        m.defaultBackupCommandDeps().removeMigrationSentinel();
+        m.defaultBackupCommandDeps().removeMigrationSentinelOwnedBy(runId, planDigest);
       },
       writeStateAtomic: function (root, runId, body) {
         if (body.status === "backup_completed") throw makeErr("EIO", "final write error");
@@ -368,9 +368,9 @@ async function main() {
   {
     const { plan, paths, planPath } = setupFixture("fault-I");
     const deps = makeDeps({
-      // removeMigrationSentinel returns normally WITHOUT deleting the file.
+      // removeMigrationSentinelOwnedBy returns normally WITHOUT deleting the file.
       // This simulates the old defective behavior where catch {} swallowed errors.
-      removeMigrationSentinel: function () { /* silent no-op — does nothing */ },
+      removeMigrationSentinelOwnedBy: function () { /* silent no-op — does nothing */ },
       // isMigrationInProgress must still return true (sentinel file still exists)
       isMigrationInProgress: function () { return true; },
     });
@@ -470,25 +470,19 @@ async function main() {
     const deps = makeDeps({
       createVerifiedBackup: async function (opts) {
         // Simulate: another run replaced our sentinel during backup
-        try {
-          sentinel.removeMigrationSentinel();
-          sentinel.createMigrationSentinel({
-            run_id: "20260101T000000Z-foreignrnn",
-            plan_digest: "0".repeat(64),
-            reason: "foreign", operator: "test",
-          });
-          process.stderr.write("DEBUG Scenario L mock: foreign sentinel created successfully\n");
-        } catch (mockErr) {
-          process.stderr.write("DEBUG Scenario L mock ERROR: " + mockErr.message + " code=" + mockErr.code + "\n");
-          throw mockErr;
-        }
+        sentinel.removeMigrationSentinel();
+        sentinel.createMigrationSentinel({
+          run_id: "20260101T000000Z-foreignrnn",
+          plan_digest: "0".repeat(64),
+          reason: "foreign", operator: "test",
+        });
         return { backup_path: "/fake/backup", manifest_digest: "0".repeat(64), entries_count: 1 };
       },
     });
 
     var caughtL = null;
     try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
-    catch (e) { caughtL = e; console.log("    DEBUG Scenario L caught: code=" + (e && e.code) + " msg=" + (e && e.message ? e.message.substring(0, 120) : "none")); }
+    catch (e) { caughtL = e; }
 
     assert(caughtL !== null, "cmdBackup throws when sentinel was replaced by foreign run");
     assert(caughtL !== null && caughtL.code === "SENTINEL_OWNERSHIP_MISMATCH",
@@ -524,7 +518,7 @@ async function main() {
   {
     const { plan, paths, planPath } = setupFixture("fault-M");
     const deps = makeDeps({
-      removeMigrationSentinel: function () {
+      removeMigrationSentinelOwnedBy: function () {
         // Unlink succeeds, then fsync fails
         sentinel.removeMigrationSentinel(); // real unlink
         // Now cause fsync to fail by replacing the helper
@@ -548,7 +542,7 @@ async function main() {
     // We can't patch the internal fsync call, so inject a direct mock that
     // does the real unlink then throws.
     const deps2 = makeDeps({
-      removeMigrationSentinel: function () {
+      removeMigrationSentinelOwnedBy: function () {
         var sf = path.join(paths.home, ".ola-migration", ".migration-in-progress");
         try { fs.unlinkSync(sf); } catch (e) { if (e.code !== "ENOENT") throw e; }
         // Simulate directory fsync failure AFTER successful unlink

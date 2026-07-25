@@ -458,7 +458,6 @@ function removeMigrationSentinelOwnedBy(runId, planDigest) {
     }
     // 2. Validate ownership
     const meta = readSentinel();
-    process.stderr.write("DEBUG removeMigrationSentinelOwnedBy: present=" + present + " meta=" + (meta ? JSON.stringify({run_id: meta.run_id, plan_digest: meta.plan_digest ? meta.plan_digest.substring(0,8) : "?"}) : "null") + " expectedRunId=" + runId + "\n");
     if (!meta || meta.raw) {
       const err = new Error("sentinel is malformed or unreadable — refusing to remove");
       err.code = "SENTINEL_MALFORMED";
