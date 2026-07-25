@@ -9455,14 +9455,37 @@ function validateState(state) {
       // Sentinel remains owned until separately released via release-sentinel.
       break;
     case RUN_STATUSES.failed_manual_intervention:
-      // Sentinel remains active; failure must be recorded.
-      if (state.sentinel.owned !== true) {
-        throw new R2Error("RUN_STATE_INVALID",
-          "failed_manual_intervention requires sentinel.owned=true (sentinel remains active)");
-      }
+      // Failure must be recorded.
       if (!state.failure) {
         throw new R2Error("RUN_STATE_INVALID",
           "failed_manual_intervention requires state.failure to be set");
+      }
+      if (state.sentinel.owned === true) {
+        // Active-sentinel substate: released_at must be null.
+        if (state.sentinel.released_at !== null) {
+          throw new R2Error("RUN_STATE_INVALID",
+            "owned failed_manual_intervention requires released_at=null");
+        }
+        break;
+      }
+      // Released substate: permitted only for the exact sentinel-lock-release
+      // recovery case (no mutation ran; sentinel was created but lock release
+      // failed; operator has since removed the sentinel via release-sentinel).
+      var isReleasedLockFailure =
+        state.sentinel.owned === false &&
+        typeof state.sentinel.released_at === "string" &&
+        state.sentinel.released_at.length > 0 &&
+        state.failure.step === "sentinel-lock-release" &&
+        state.failure.code === "SENTINEL_CREATED_LOCK_RELEASE_FAILED" &&
+        state.completed_steps.length === 0 &&
+        state.backup.verified === false &&
+        state.rollback.status === ROLLBACK_STATUSES.not_available &&
+        state.structural_verification === VERIFICATION_STATUSES.not_applicable &&
+        state.live_verification === VERIFICATION_STATUSES.not_applicable;
+      if (!isReleasedLockFailure) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "released failed_manual_intervention is permitted only for " +
+          "the no-mutation sentinel-lock-release recovery case");
       }
       break;
     case RUN_STATUSES.rollback_in_progress:
@@ -11666,12 +11689,33 @@ function cmdReleaseSentinel(args, paths) {
 
   // Persist sentinel-released state.
   var releaseTs = new Date().toISOString();
-  var nextState = transitionState(state, {
+  // For failed_manual_intervention lock-release recovery, ensure all
+  // companion fields match the released substate requirements.
+  var releaseUpdates = {
     sentinel: {
       owned: false,
       released_at: releaseTs,
     },
-  });
+  };
+  if (admissibleLockRelease) {
+    releaseUpdates.rollback = {
+      schema: "ola.migration.r2.rollback-state.v1",
+      status: ROLLBACK_STATUSES.not_available,
+      trigger_failure_digest: null,
+      intent_path: null, intent_digest: null, completed_steps: [],
+      target_quarantine: null, source_quarantine: null,
+      quarantine_manifest_path: null, quarantine_manifest_digest: null,
+      quarantine_manifest_input_state_digest: null,
+      attestation_path: null, attestation_digest: null,
+      release_intent_path: null, release_intent_digest: null,
+      receipt_path: null, receipt_digest: null,
+      started_at: null, verified_at: null, released_at: null,
+      failure: null, verified: false,
+    };
+    releaseUpdates.structural_verification = VERIFICATION_STATUSES.not_applicable;
+    releaseUpdates.live_verification = VERIFICATION_STATUSES.not_applicable;
+  }
+  var nextState = transitionState(state, releaseUpdates);
   writeStateAtomic(root, runId, nextState);
 
   // Reopen and verify.
