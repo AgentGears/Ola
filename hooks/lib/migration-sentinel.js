@@ -393,8 +393,10 @@ function acquireSentinelMutationLock(operation, runId, planDigest) {
     owner_pid: process.pid,
     created_at: new Date().toISOString(),
   };
+  var exclusiveCreated = false;
   try {
     const fd = fs.openSync(lp, "wx");
+    exclusiveCreated = true;
     try {
       fs.writeFileSync(fd, JSON.stringify(payload, null, 2) + "\n", "utf8");
       fs.fsyncSync(fd);
@@ -414,6 +416,29 @@ function acquireSentinelMutationLock(operation, runId, planDigest) {
       const err = new Error("sentinel mutation lock is held: " + detail);
       err.code = "SENTINEL_LOCK_HELD";
       throw err;
+    }
+    // Acquisition-strand guard: if exclusive creation succeeded but a later
+    // step (write, fsync, dir-fsync) failed, attempt token-verified cleanup.
+    if (exclusiveCreated) {
+      try {
+        try { fs.unlinkSync(lp); } catch (cleanupErr) {
+          if (cleanupErr.code !== "ENOENT") throw cleanupErr;
+        }
+        fsyncMigrationSentinelDirectory();
+      } catch (cleanupErr) {
+        // Cleanup also failed — throw composite with recovery metadata
+        var compErr = new Error(
+          "lock acquisition failed AND cleanup failed: original=" + e.message +
+          " cleanup=" + cleanupErr.message
+        );
+        compErr.code = "SENTINEL_LOCK_STRANDED";
+        compErr.lock_path = lp;
+        compErr.token = token;
+        compErr.original_code = e.code;
+        compErr.cleanup_code = cleanupErr.code;
+        compErr.operator_action_required = true;
+        throw compErr;
+      }
     }
     throw e;
   }
@@ -506,9 +531,14 @@ function createMigrationSentinelWithLock(metadata) {
 
 // Explicit lock recovery (no auto-expiry).
 function releaseSentinelMutationLockManually(token, confirmNoActiveMigration) {
-  if (!confirmNoActiveMigration) {
-    const err = new Error("manual lock release requires --confirm-no-active-migration");
+  if (confirmNoActiveMigration !== true) {
+    const err = new Error("manual lock release requires bare --confirm-no-active-migration");
     err.code = "CONFIRMATION_REQUIRED";
+    throw err;
+  }
+  if (!token) {
+    const err = new Error("manual lock release requires --token");
+    err.code = "TOKEN_REQUIRED";
     throw err;
   }
   const lp = lockPath();
@@ -516,18 +546,26 @@ function releaseSentinelMutationLockManually(token, confirmNoActiveMigration) {
     return { status: "already_absent" };
   }
   let existing = null;
-  try { existing = JSON.parse(fs.readFileSync(lp, "utf8")); } catch {}
-  if (existing && token && existing.token !== token) {
+  var parseFailed = false;
+  try { existing = JSON.parse(fs.readFileSync(lp, "utf8")); } catch { parseFailed = true; }
+  // Malformed locks must NOT be deleted — require operator inspection
+  if (parseFailed || !existing) {
+    const err = new Error("lock file is malformed or unreadable — refusing to release without manual inspection");
+    err.code = "SENTINEL_LOCK_MALFORMED";
+    throw err;
+  }
+  // Validate lock schema
+  if (existing.schema !== LOCK_SCHEMA) {
+    const err = new Error("lock has wrong schema: " + existing.schema + " (expected " + LOCK_SCHEMA + ")");
+    err.code = "SENTINEL_LOCK_MALFORMED";
+    throw err;
+  }
+  if (existing.token !== token) {
     const err = new Error("lock token mismatch: expected=" + token + " actual=" + existing.token);
     err.code = "SENTINEL_LOCK_TOKEN_MISMATCH";
     throw err;
   }
-  // Foreign/malformed locks with no matching token are refused
-  if (existing && !token) {
-    const err = new Error("refusing to release lock without matching token");
-    err.code = "SENTINEL_LOCK_TOKEN_REQUIRED";
-    throw err;
-  }
+  // Token matches and schema is valid — safe to release
   try {
     fs.unlinkSync(lp);
   } catch (e) {

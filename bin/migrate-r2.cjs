@@ -10183,10 +10183,12 @@ function defaultBootstrapDeps() {
     },
     writeStateAtomic: (olaMigrationRoot, runId, stateBody) =>
       writeStateAtomic(olaMigrationRoot, runId, stateBody),
-    createMigrationSentinel: (metadata) => sentinel.createMigrationSentinel(metadata),
+    createMigrationSentinel: (metadata) => sentinel.createMigrationSentinelWithLock(metadata),
     assertSentinelOwnedBy: (runId, planDigest) =>
       sentinel.assertSentinelOwnedBy(runId, planDigest),
     removeMigrationSentinel: () => sentinel.removeMigrationSentinel(),
+    removeMigrationSentinelOwnedBy: (runId, planDigest) =>
+      sentinel.removeMigrationSentinelOwnedBy(runId, planDigest),
     readSentinel: () => sentinel.readSentinel(),
     isMigrationInProgress: () => sentinel.isMigrationInProgress(),
     beginBackup: null,  // 10b.2 supplies the real primitive; 10b.1 test passes a stub
@@ -10384,12 +10386,17 @@ function bootstrapExecution({ externalPlanPath, confirmDigest, options, deps }) 
     inProgressState = d.writeStateAtomic(pathsFromPlan.olaMigrationRoot, runId, nextBody);
   } catch (e) {
     // Sentinel acquired but in_progress persistence failed.
-    // Attempt safe sentinel removal (verify ownership first).
+    // Attempt safe owned removal via the combined lock-backed primitive.
     let released = false;
     let releaseErr = null;
     try {
-      d.assertSentinelOwnedBy(runId, plan.plan_digest);
-      d.removeMigrationSentinel();
+      if (d.removeMigrationSentinelOwnedBy) {
+        d.removeMigrationSentinelOwnedBy(runId, plan.plan_digest);
+      } else {
+        // Backward compat: old deps without the combined primitive
+        d.assertSentinelOwnedBy(runId, plan.plan_digest);
+        d.removeMigrationSentinel();
+      }
       released = true;
     } catch (releaseError) {
       releaseErr = releaseError;
@@ -11820,6 +11827,47 @@ function renderFinalizeBackupSummary(result) {
   return lines.join("\n");
 }
 
+// ── release-sentinel-mutation-lock: crash recovery for mutation lock ──────
+//
+// A crash after exclusive lock creation can leave a lock file that blocks
+// all locked sentinel operations. This command provides explicit recovery.
+//
+// Usage:
+//   node bin/migrate-r2.cjs release-sentinel-mutation-lock \
+//     --token <uuid> --confirm-no-active-migration
+
+function cmdReleaseSentinelMutationLock(args, paths) {
+  var token = args.flags.token;
+  var confirm = args.flags["confirm-no-active-migration"];
+
+  if (confirm !== true) {
+    throw new R2Error("CONFIRMATION_REQUIRED",
+      "release-sentinel-mutation-lock requires the bare --confirm-no-active-migration flag; " +
+      "values supplied after the flag are not accepted");
+  }
+  if (!token) {
+    throw new R2Error("TOKEN_REQUIRED",
+      "release-sentinel-mutation-lock requires --token <uuid>");
+  }
+
+  var result = sentinel.releaseSentinelMutationLockManually(token, true);
+  return result;
+}
+
+function renderReleaseLockSummary(result) {
+  var lines = [];
+  lines.push("********************************************************");
+  lines.push("* SENTINEL MUTATION LOCK RELEASED");
+  lines.push("********************************************************");
+  lines.push("");
+  lines.push("status:   " + result.status);
+  if (result.token) lines.push("token:    " + result.token);
+  lines.push("");
+  lines.push("The mutation lock has been released.");
+  lines.push("Locked sentinel operations are now unblocked.");
+  return lines.join("\n");
+}
+
 // ── Step 5: Backup ────────────────────────────────────────────────────────
 //
 // cmdBackup is the CLI entry point for the standalone backup subcommand.
@@ -12211,6 +12259,9 @@ function renderHelp() {
     "                                    Finalize a backup_release_pending run to backup_completed.",
     "                                    Used after a crash between physical sentinel removal and",
     "                                    final state persistence. Requires physical sentinel absent.",
+    "  release-sentinel-mutation-lock --token <uuid> --confirm-no-active-migration",
+    "                                    Release a stranded sentinel mutation lock after a crash.",
+    "                                    Requires exact token match and bare confirmation flag.",
     "",
     "Subcommands implemented in later steps:",
     "  execute --plan <path> --confirm <digest>   (Step 10)",
@@ -12287,6 +12338,11 @@ function main() {
     case "finalize-backup": {
       var fbResult = cmdFinalizeBackup(args, paths);
       process.stdout.write(renderFinalizeBackupSummary(fbResult) + "\n");
+      return 0;
+    }
+    case "release-sentinel-mutation-lock": {
+      var rlResult = cmdReleaseSentinelMutationLock(args, paths);
+      process.stdout.write(renderReleaseLockSummary(rlResult) + "\n");
       return 0;
     }
     default:
@@ -12401,6 +12457,7 @@ module.exports = {
   renderBackupSummary,
   // CLI commands (for tests)
   cmdInventory, cmdPreview, cmdPlan, cmdBackup, cmdReleaseSentinel, cmdFinalizeBackup,
+  cmdReleaseSentinelMutationLock,
 };
 
 if (require.main === module) {
