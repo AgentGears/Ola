@@ -583,75 +583,71 @@ async function main() {
     cleanup(paths);
   }
 
-  // ── Scenario N: dir-fsync probe failure → fail closed ────────
-  console.log("\n=== Scenario N: dir-fsync probe failure ===");
+  // ── Scenario N: dir-fsync probe failure → fail closed (injected) ──
+  console.log("\n=== Scenario N: dir-fsync probe failure (injected) ===");
   {
-    if (process.platform === "win32") {
-      console.log("  (win32: detectDirFsyncCapability returns 'unsupported' — skipped)");
-    } else {
-      // On Linux, force detectDirFsyncCapability to fail by making the run dir
-      // inaccessible (chmod 000 after creating it). The probe tries openSync("r")
-      // which will fail with EACCES.
-      const fixtureN = fx.buildFixture({ seed: "fault-N" });
-      const planN = fx.buildPlanFor(fixtureN);
-      const pathsN = fixtureN.pathsFor();
-      process.env.HOME = pathsN.home;
-      const planPathN = path.join(pathsN.olaMigrationRoot, "plan.json");
-      fs.writeFileSync(planPathN, m.canonicalJson(planN) + "\n");
+    const { plan, paths, planPath } = setupFixture("fault-N");
 
-      // Bootstrap a run (this succeeds because bootstrap writes state before we break the dir)
-      var bsN = m.bootstrapExecution({
-        externalPlanPath: planPathN,
-        confirmDigest: planN.plan_digest,
-        options: {},
-        deps: m.defaultBootstrapDeps(),
+    // Bootstrap a run to get a valid prior state
+    const deps = makeDeps({});
+    const bsN = m.bootstrapExecution({
+      externalPlanPath: path.resolve(planPath),
+      confirmDigest: plan.plan_digest,
+      options: {},
+      deps: deps.bootstrapDeps,
+    });
+    assert(bsN.ok === true, "bootstrap succeeds");
+
+    // Read the current state
+    var priorState = m.readState(paths.olaMigrationRoot, bsN.run_id);
+    var priorStateJson = fs.readFileSync(m.runStatePath(paths.olaMigrationRoot, bsN.run_id), "utf8");
+
+    // Snapshot the state file bytes for comparison
+    var stateFile = m.runStatePath(paths.olaMigrationRoot, bsN.run_id);
+    var priorBytes = fs.readFileSync(stateFile);
+
+    // Inject: detectDirFsyncCapability returns "failed"
+    var renameCalled = false;
+    var threwN = false, codeN = null;
+    try {
+      var next = m.transitionState(priorState, {
+        backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) },
       });
-      assert(bsN.ok === true, "bootstrap succeeds before dir break");
+      m.writeStateAtomic(paths.olaMigrationRoot, bsN.run_id, next, {
+        detectDirFsyncCapability: function () { return "failed"; },
+        renameSync: function () { renameCalled = true; },
+      });
+    } catch (e) { threwN = true; codeN = e.code; }
 
-      // Reset the fsync capability cache so the next probe re-checks
-      m._resetDirFsyncCacheForTests();
+    assert(threwN === true, "writeStateAtomic throws on injected probe failure");
+    assert(codeN === "RUN_STATE_FSYNC_FAILED",
+      "error code=RUN_STATE_FSYNC_FAILED (got: " + codeN + ")");
+    assert(renameCalled === false, "rename was NOT called after probe failure");
 
-      // Break the run directory: make it unreadable so openSync("r") fails
-      var runDirN = m.runDir(pathsN.olaMigrationRoot, bsN.run_id);
-      fs.chmodSync(runDirN, 0o000);
+    // Previous state.json bytes unchanged
+    var postBytes = fs.readFileSync(stateFile);
+    assert(priorBytes.equals(postBytes) === true,
+      "canonical state.json bytes unchanged after probe failure");
 
-      // Now try to write state — should fail closed
-      var threwN = false, codeN = null;
-      try {
-        var st = m.readState(pathsN.olaMigrationRoot, bsN.run_id);
-      } catch (readErr) {
-        // readState may also fail if dir is unreadable — that's fine, the point is
-        // that writeStateAtomic fails closed. Test it directly.
-        threwN = true;
-        codeN = "READ_FAILED";
-      }
+    // No .tmp-* file remains in the run directory
+    var runDirN = m.runDir(paths.olaMigrationRoot, bsN.run_id);
+    var tmpFiles = fs.readdirSync(runDirN).filter(function (f) { return f.indexOf(".tmp-") >= 0; });
+    assert(tmpFiles.length === 0, "no temporary state file remains");
 
-      if (!threwN) {
-        // If readState somehow succeeded (dir permissions may not block reads on all systems),
-        // try writeStateAtomic directly
-        try {
-          var next = m.transitionState(st, { backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) } });
-          m.writeStateAtomic(pathsN.olaMigrationRoot, bsN.run_id, next);
-        } catch (e) { threwN = true; codeN = e.code; }
-      }
+    // Physical sentinel must remain present (Phase 2a never reached)
+    var sfN = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    assert(fs.existsSync(sfN) === true, "physical sentinel present");
 
-      // Restore permissions for cleanup
-      fs.chmodSync(runDirN, 0o755);
+    // Second call also fails closed (cached "failed" result)
+    var threwN2 = false;
+    try {
+      m.writeStateAtomic(paths.olaMigrationRoot, bsN.run_id, next, {
+        detectDirFsyncCapability: function () { return "failed"; },
+      });
+    } catch (e) { threwN2 = true; }
+    assert(threwN2 === true, "second writeStateAtomic also fails closed");
 
-      assert(threwN === true, "state operation fails when dir is inaccessible");
-      // The key assertion: either readState or writeStateAtomic fails
-      // (both are correct — the durability barrier is not bypassed)
-
-      // Restore cache
-      m._resetDirFsyncCacheForTests();
-
-      // Physical sentinel must remain present
-      var sfN = path.join(pathsN.home, ".ola-migration", ".migration-in-progress");
-      assert(fs.existsSync(sfN) === true, "physical sentinel present");
-
-      try { fs.rmSync(pathsN.home, { recursive: true, force: true }); } catch {}
-      restoreHome();
-    }
+    cleanup(paths);
   }
 
   console.log("");

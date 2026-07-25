@@ -9559,7 +9559,10 @@ function readState(olaMigrationRoot, runId) {
 // content changed since last read — callers should always read → mutate →
 // write, never write a stale body. (This is enforced by the post-write
 // verify, which recomputes the digest from what was actually written.)
-function writeStateAtomic(olaMigrationRoot, runId, stateBody) {
+function writeStateAtomic(olaMigrationRoot, runId, stateBody, options) {
+  var opts = options || {};
+  var detectFn = opts.detectDirFsyncCapability || detectDirFsyncCapability;
+  var renameFn = opts.renameSync || fs.renameSync;
   if (stateBody.state_digest !== undefined) {
     throw new R2Error("NON_CANONICAL_PLAN_VALUE",
       "stateBody already has state_digest set; writeStateAtomic computes it");
@@ -9597,7 +9600,7 @@ function writeStateAtomic(olaMigrationRoot, runId, stateBody) {
   //   "failed"      → the platform was expected to support fsync but the probe failed.
   //                   Fail closed: refuse to publish a state transition whose durability
   //                   cannot be guaranteed.
-  const dirFsync = detectDirFsyncCapability(dir);
+  const dirFsync = detectFn(dir);
   if (dirFsync === "failed") {
     try { fs.unlinkSync(tmpPath); } catch {}
     throw new R2Error("RUN_STATE_FSYNC_FAILED",
@@ -9617,7 +9620,7 @@ function writeStateAtomic(olaMigrationRoot, runId, stateBody) {
 
   // Atomic rename.
   try {
-    fs.renameSync(tmpPath, finalPath);
+    renameFn(tmpPath, finalPath);
   } catch (e) {
     try { fs.unlinkSync(tmpPath); } catch {}
     throw new R2Error("RUN_STATE_FSYNC_FAILED",
@@ -10846,6 +10849,7 @@ function defaultBackupCommandDeps() {
     removeMigrationSentinel: () => sentinel.removeMigrationSentinel(),
     isMigrationInProgress: () => sentinel.isMigrationInProgress(),
     assertSentinelOwnedBy: (runId, planDigest) => sentinel.assertSentinelOwnedBy(runId, planDigest),
+    removeMigrationSentinelOwnedBy: (runId, planDigest) => sentinel.removeMigrationSentinelOwnedBy(runId, planDigest),
     trace: () => {},
   };
 }
@@ -11606,27 +11610,18 @@ function cmdReleaseSentinel(args, paths) {
     return { run_id: runId, status: "already_released", released_at: state.sentinel.released_at };
   }
 
-  // Before removing, verify the physical sentinel belongs to THIS run.
-  // A missing physical sentinel with owned=true is a valid retry case
-  // (previous removal succeeded but state write failed).
-  var physicalPresentBefore = sentinel.isMigrationInProgress();
-  if (physicalPresentBefore) {
+  // Atomic ownership-verified removal via mutation lock.
+  // If the sentinel is absent (retry case), this is a no-op.
+  // If present, the lock ensures ownership verification and removal are
+  // serialized and cannot be interleaved by another process.
+  if (sentinel.isMigrationInProgress()) {
     try {
-      sentinel.assertSentinelOwnedBy(runId, state.plan_digest);
-    } catch (error) {
-      throw new R2Error("SENTINEL_OWNERSHIP_MISMATCH",
-        "refusing to remove a foreign or malformed sentinel: " + error.message, error.code);
-    }
-  }
-
-  // Remove physical sentinel if present. ENOENT is acceptable (retry after partial failure).
-  // All other errors (EPERM, EBUSY, SENTINEL_STILL_PRESENT) are classified as
-  // SENTINEL_RELEASE_FAILED — durable ownership remains unchanged.
-  try {
-    sentinel.removeMigrationSentinel();
-  } catch (e) {
-    if (e.code === "ENOENT") { /* acceptable — already absent */ }
-    else {
+      sentinel.removeMigrationSentinelOwnedBy(runId, state.plan_digest);
+    } catch (e) {
+      if (e.code === "SENTINEL_FOREIGN" || e.code === "SENTINEL_MALFORMED") {
+        throw new R2Error("SENTINEL_OWNERSHIP_MISMATCH",
+          "refusing to remove a foreign or malformed sentinel: " + e.message, e.code);
+      }
       throw new R2Error("SENTINEL_RELEASE_FAILED",
         "physical sentinel could not be removed — ownership retained: " + e.message, e.code);
     }
@@ -11956,49 +11951,48 @@ async function cmdBackup(args, paths, injectedDeps) {
     throw new R2Error("BACKUP_RELEASE_INTENT_PERSIST_FAILED", "could not persist backup_release_pending intent: " + e.message, e.code);
   }
 
-  // Phase 2a: verify ownership and remove physical sentinel.
-  // Ownership check is separated from removal so mismatch is classified distinctly.
+  // Phase 2a: atomic ownership-verified removal via mutation lock.
+  // Uses removeMigrationSentinelOwnedBy which acquires a cross-process
+  // mutation lock, re-validates ownership, unlinks, fsyncs, and releases
+  // the lock — all as one serialized operation.
   try {
-    if (d.isMigrationInProgress()) {
-      d.assertSentinelOwnedBy(runId, plan.plan_digest);
-    }
-  } catch (ownershipErr) {
-    // Foreign/malformed sentinel: preserve it, retain ownership.
-    try {
-      _persistManualIntervention(root, runId, "sentinel-ownership", "SENTINEL_OWNERSHIP_MISMATCH",
-        "sentinel does not belong to this run: " + ownershipErr.message, ownershipErr.code, d);
-    } catch (miErr) {
-      throw new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
-        "ownership mismatch AND state write failed: " + miErr.message);
-    }
-    throw new R2Error("SENTINEL_OWNERSHIP_MISMATCH",
-      "refusing to remove a foreign or malformed sentinel: " + ownershipErr.message, ownershipErr.code);
-  }
-
-  try {
-    d.removeMigrationSentinel();
+    d.removeMigrationSentinelOwnedBy(runId, plan.plan_digest);
     // Postcondition: verify the sentinel is actually gone.
     if (d.isMigrationInProgress()) {
       var stillPresentErr = new Error(
-        "physical migration sentinel remains after removal returned"
+        "physical migration sentinel remains after owned removal returned"
       );
       stillPresentErr.code = "SENTINEL_STILL_PRESENT";
       throw stillPresentErr;
     }
   }
   catch (e) {
-    // Branch by physical post-failure state:
-    // If the sentinel is ABSENT, unlink may have succeeded but directory fsync
-    // failed. Preserve backup_release_pending for finalize-backup recovery.
-    // If the sentinel is PRESENT, removal genuinely failed.
+    // Classify the error by code:
+    // SENTINEL_OWNERSHIP_MISMATCH → foreign sentinel, preserve it
+    // SENTINEL_FOREIGN / SENTINEL_MALFORMED → same
+    // SENTINEL_LOCK_HELD → another mutation in progress
+    // Others → removal failure
+    var errCode = e.code || "SENTINEL_RELEASE_FAILED";
     var physicalPresentAfterFail = d.isMigrationInProgress();
+
+    if (errCode === "SENTINEL_FOREIGN" || errCode === "SENTINEL_MALFORMED" || errCode === "SENTINEL_OWNERSHIP_MISMATCH") {
+      try {
+        _persistManualIntervention(root, runId, "sentinel-ownership", "SENTINEL_OWNERSHIP_MISMATCH",
+          "sentinel does not belong to this run: " + e.message, errCode, d);
+      } catch (miErr) {
+        throw new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+          "ownership mismatch AND state write failed: " + miErr.message);
+      }
+      throw new R2Error("SENTINEL_OWNERSHIP_MISMATCH",
+        "refusing to remove a foreign or malformed sentinel: " + e.message, errCode);
+    }
 
     if (!physicalPresentAfterFail) {
       // Unlink succeeded but fsync failed (or post-unlink check raced).
-      // Preserve backup_release_pending — finalize-backup can retry the dir sync.
+      // Preserve backup_release_pending — finalize-backup can retry.
       var durabilityErr = new R2Error("SENTINEL_RELEASE_DURABILITY_FAILED",
         "sentinel is absent but its directory sync failed; " +
-        "backup_release_pending was preserved for finalize-backup: " + e.message, e.code);
+        "backup_release_pending was preserved for finalize-backup: " + e.message, errCode);
       durabilityErr.run_id = runId;
       durabilityErr.sentinel_expected_owned = true;
       durabilityErr.operator_action_required = true;
@@ -12008,11 +12002,11 @@ async function cmdBackup(args, paths, injectedDeps) {
     // Physical sentinel still present — genuine removal failure.
     try {
       _persistManualIntervention(root, runId, "sentinel-removal", "SENTINEL_RELEASE_FAILED",
-        "sentinel removal failed — physical sentinel still present: " + e.message, e.code, d);
+        "sentinel removal failed — physical sentinel still present: " + e.message, errCode, d);
     } catch (miErr) {
       var comp3 = new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
         "sentinel removal failed AND manual-intervention state write failed: " + miErr.message);
-      comp3.original_code = e.code || "unknown";
+      comp3.original_code = errCode;
       comp3.persistence_code = miErr.code || "unknown";
       comp3.run_id = runId;
       comp3.sentinel_expected_owned = true;
@@ -12020,7 +12014,7 @@ async function cmdBackup(args, paths, injectedDeps) {
       throw comp3;
     }
     throw new R2Error("SENTINEL_RELEASE_FAILED",
-      "sentinel removal failed — physical sentinel still present, authority retained: " + e.message, e.code);
+      "sentinel removal failed — physical sentinel still present, authority retained: " + e.message, errCode);
   }
 
   // Phase 2b: persist backup_completed (sentinel already removed physically).
@@ -12332,7 +12326,7 @@ module.exports = {
   assertPathInside, snapshotTreeForBackup, copyFileExact, reproduceSymlink,
   copyTreeExact, verifyBackupTree, backupTranscriptDatabase,
   assertMemoryStatsWalQuiescent, computeManifestDigest, verifyBackupManifest,
-  createVerifiedBackup, detectDirFsyncCapability, _resetDirFsyncCacheForTests,
+  createVerifiedBackup, detectDirFsyncCapability,
   // DB rebind (Step 6)
   DB_REBIND_RESULT_SCHEMA, REBIND_TABLES, REBIND_RULESET_ID,
   validateRebindBinding, bindingMutationsFor, setDigest,
