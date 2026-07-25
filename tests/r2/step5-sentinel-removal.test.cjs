@@ -122,24 +122,29 @@ function main() {
       var fsyncCalled6 = false;
       var origOpenSync6 = fs.openSync;
       var origFsyncSync6 = fs.fsyncSync;
+      var origCloseSync6 = fs.closeSync;
       var caught6 = null;
       try {
         fs.openSync = function (p, mode) {
           if (mode === "r" && p.endsWith(".ola-migration")) {
-            // Return a fake fd so fsync is called
-            return { fakeDirFd: true };
+            return 99999; // fake fd number
           }
           return origOpenSync6.call(fs, p, mode);
         };
         fs.fsyncSync = function (fd) {
-          if (fd && fd.fakeDirFd) fsyncCalled6 = true;
-          else origFsyncSync6.call(fs, fd);
+          if (fd === 99999) { fsyncCalled6 = true; return; }
+          return origFsyncSync6.call(fs, fd);
+        };
+        fs.closeSync = function (fd) {
+          if (fd === 99999) return; // no-op for fake fd
+          return origCloseSync6.call(fs, fd);
         };
         try { sentinel.removeMigrationSentinel(); }
         catch (e) { caught6 = e; }
       } finally {
         fs.openSync = origOpenSync6;
         fs.fsyncSync = origFsyncSync6;
+        fs.closeSync = origCloseSync6;
       }
       assert(caught6 === null, "ENOENT path does not throw");
       assert(fsyncCalled6 === true, "directory fsync called on ENOENT retry path");
