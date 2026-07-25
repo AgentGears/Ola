@@ -11651,6 +11651,136 @@ function renderReleaseSentinelSummary(result) {
   return lines.join("\n");
 }
 
+// ── finalize-backup: recovery for release-pending backup state ───────────
+//
+// After a crash between physical sentinel removal and the final state write,
+// a run may be stuck in `backup_release_pending` with no physical sentinel.
+// No other CLI command can finalize this state. This command reuses the
+// internal _finalizeBackupCompleted helper to complete the transition.
+//
+// Usage:
+//   node bin/migrate-r2.cjs finalize-backup --run <run_id>
+//
+// Preconditions (validated before any action):
+//   status === backup_release_pending
+//   backup.verified === true
+//   completed_steps contains backup and no later mutation steps
+//   sentinel.owned === true
+//   sentinel.released_at === null
+//   rollback.status === not_applicable
+//   structural_verification === not_applicable
+//   live_verification === not_applicable
+//   physical sentinel absent
+//
+// A present physical sentinel must cause refusal; this command never removes it.
+
+function cmdFinalizeBackup(args, paths) {
+  var runId = args.flags.run;
+  if (!runId) throw new R2Error("RUN_ID_REQUIRED", "finalize-backup requires --run <run_id>");
+  validateRunId(runId);
+
+  var root = paths.olaMigrationRoot;
+  var statePath = runStatePath(root, runId);
+  if (!fs.existsSync(statePath)) {
+    throw new R2Error("RUN_NOT_FOUND", "no run state found for run_id: " + runId);
+  }
+
+  var state = readState(root, runId);
+  var sentinelPath = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+  var physicalPresent = fs.existsSync(sentinelPath);
+
+  // Idempotency: already backup_completed
+  if (state.status === RUN_STATUSES.backup_completed) {
+    if (physicalPresent) {
+      throw new R2Error("SENTINEL_STATE_INCONSISTENT",
+        "status=backup_completed but physical sentinel is present — state corruption");
+    }
+    if (state.sentinel.owned !== false || state.sentinel.released_at === null) {
+      throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+        "backup_completed state has inconsistent sentinel ownership");
+    }
+    return { run_id: runId, status: "already_finalized", released_at: state.sentinel.released_at };
+  }
+
+  // Preconditions for backup_release_pending
+  if (state.status !== RUN_STATUSES.backup_release_pending) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires status=backup_release_pending (got: " + state.status + ")");
+  }
+  if (state.backup.verified !== true) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires backup.verified=true");
+  }
+  if (state.completed_steps.length !== 1 || state.completed_steps[0] !== "backup") {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires completed_steps=['backup'] only");
+  }
+  if (state.sentinel.owned !== true) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires sentinel.owned=true (release was intended but not completed)");
+  }
+  if (state.sentinel.released_at !== null) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires sentinel.released_at=null (not yet released)");
+  }
+  if (state.rollback.status !== ROLLBACK_STATUSES.not_applicable) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires rollback.status=not_applicable");
+  }
+  if (state.structural_verification !== VERIFICATION_STATUSES.not_applicable) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires structural_verification=not_applicable");
+  }
+  if (state.live_verification !== VERIFICATION_STATUSES.not_applicable) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires live_verification=not_applicable");
+  }
+
+  // Physical sentinel must be absent — this command never removes it.
+  if (physicalPresent) {
+    throw new R2Error("PHYSICAL_SENTINEL_PRESENT",
+      "finalize-backup requires the physical sentinel to be absent (it was removed during the backup command). " +
+      "A present sentinel suggests the release did not complete. Use release-sentinel for backup_failed states, " +
+      "or investigate why the sentinel still exists.");
+  }
+
+  // Finalize: reuse the internal helper.
+  var d = defaultBackupCommandDeps();
+  _finalizeBackupCompleted(root, runId, d);
+
+  // Reopen and verify.
+  var reopened = readState(root, runId);
+  if (reopened.status !== RUN_STATUSES.backup_completed) {
+    throw new R2Error("FINALIZE_FAILED",
+      "final state status is not backup_completed (got: " + reopened.status + ")");
+  }
+  if (reopened.sentinel.owned !== false) {
+    throw new R2Error("FINALIZE_FAILED",
+      "final state sentinel.owned is not false");
+  }
+  if (reopened.sentinel.released_at === null) {
+    throw new R2Error("FINALIZE_FAILED",
+      "final state sentinel.released_at is null");
+  }
+
+  return { run_id: runId, status: "finalized", released_at: reopened.sentinel.released_at };
+}
+
+function renderFinalizeBackupSummary(result) {
+  var lines = [];
+  lines.push("********************************************************");
+  lines.push("* R2 BACKUP FINALIZED");
+  lines.push("********************************************************");
+  lines.push("");
+  lines.push("run_id:       " + result.run_id);
+  lines.push("status:       " + result.status);
+  if (result.released_at) lines.push("released_at:  " + result.released_at);
+  lines.push("");
+  lines.push("The backup_release_pending state has been finalized to backup_completed.");
+  lines.push("The system is now unblocked.");
+  return lines.join("\n");
+}
+
 // ── Step 5: Backup ────────────────────────────────────────────────────────
 //
 // cmdBackup is the CLI entry point for the standalone backup subcommand.
@@ -12005,6 +12135,10 @@ function renderHelp() {
     "                                    Release the migration sentinel after a failed backup.",
     "                                    Requires status=backup_failed, completed_steps=[],",
     "                                    backup.verified=false, and --confirm-no-mutation.",
+    "  finalize-backup --run <run_id>",
+    "                                    Finalize a backup_release_pending run to backup_completed.",
+    "                                    Used after a crash between physical sentinel removal and",
+    "                                    final state persistence. Requires physical sentinel absent.",
     "",
     "Subcommands implemented in later steps:",
     "  execute --plan <path> --confirm <digest>   (Step 10)",
@@ -12076,6 +12210,11 @@ function main() {
     case "release-sentinel": {
       var rsResult = cmdReleaseSentinel(args, paths);
       process.stdout.write(renderReleaseSentinelSummary(rsResult) + "\n");
+      return 0;
+    }
+    case "finalize-backup": {
+      var fbResult = cmdFinalizeBackup(args, paths);
+      process.stdout.write(renderFinalizeBackupSummary(fbResult) + "\n");
       return 0;
     }
     default:
@@ -12189,7 +12328,7 @@ module.exports = {
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
   // CLI commands (for tests)
-  cmdInventory, cmdPreview, cmdPlan, cmdBackup, cmdReleaseSentinel,
+  cmdInventory, cmdPreview, cmdPlan, cmdBackup, cmdReleaseSentinel, cmdFinalizeBackup,
 };
 
 if (require.main === module) {

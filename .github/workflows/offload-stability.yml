@@ -26,6 +26,7 @@ on:
       - 'tests/r2/step5-backup-fault-injection.test.cjs'
       - 'tests/r2/step5-sentinel-removal.test.cjs'
       - 'tests/r2/step5-release-sentinel.test.cjs'
+      - 'tests/r2/step5-finalize-backup.test.cjs'
       - 'tests/helpers/managed-offload-worker.cjs'
       - '.github/workflows/offload-stability.yml'
       - '.github/workflows/baseline-tests.yml'
@@ -45,6 +46,7 @@ on:
       - 'tests/r2/step5-backup-fault-injection.test.cjs'
       - 'tests/r2/step5-sentinel-removal.test.cjs'
       - 'tests/r2/step5-release-sentinel.test.cjs'
+      - 'tests/r2/step5-finalize-backup.test.cjs'
       - 'tests/helpers/managed-offload-worker.cjs'
       - '.github/workflows/offload-stability.yml'
 
@@ -161,6 +163,7 @@ jobs:
             "tests/r2/step5-backup-fault-injection.test.cjs"
             "tests/r2/step5-sentinel-removal.test.cjs"
             "tests/r2/step5-release-sentinel.test.cjs"
+            "tests/r2/step5-finalize-backup.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
