@@ -470,12 +470,18 @@ async function main() {
     const deps = makeDeps({
       createVerifiedBackup: async function (opts) {
         // Simulate: another run replaced our sentinel during backup
-        sentinel.removeMigrationSentinel();
-        sentinel.createMigrationSentinel({
-          run_id: "20260101T000000Z-foreignrnn",
-          plan_digest: "0".repeat(64),
-          reason: "foreign", operator: "test",
-        });
+        try {
+          sentinel.removeMigrationSentinel();
+          sentinel.createMigrationSentinel({
+            run_id: "20260101T000000Z-foreignrnn",
+            plan_digest: "0".repeat(64),
+            reason: "foreign", operator: "test",
+          });
+          process.stderr.write("DEBUG Scenario L mock: foreign sentinel created successfully\n");
+        } catch (mockErr) {
+          process.stderr.write("DEBUG Scenario L mock ERROR: " + mockErr.message + " code=" + mockErr.code + "\n");
+          throw mockErr;
+        }
         return { backup_path: "/fake/backup", manifest_digest: "0".repeat(64), entries_count: 1 };
       },
     });
