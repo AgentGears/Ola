@@ -11712,23 +11712,32 @@ function cmdReleaseSentinel(args, paths) {
       "release-sentinel requires backup.verified=false (a verified backup should use backup_completed, not release)");
   }
 
-  // If already released (owned=false), accept as idempotent — but only if
-  // no physical sentinel is present (which would be an inconsistent state).
+  // If already released (owned=false), accept as idempotent.
+  // Ownership-aware: a foreign sentinel is not inconsistent with this run's released state.
   if (state.sentinel.owned === false && state.sentinel.released_at !== null) {
-    var physicalPresent = sentinel.isMigrationInProgress();
-    if (physicalPresent) {
-      throw new R2Error("SENTINEL_STATE_INCONSISTENT",
-        "durable state says released (owned=false), but a physical sentinel is present — possible foreign sentinel or state corruption");
+    var rsClassification;
+    try {
+      rsClassification = _classifySentinelForRun(sentinel.readSentinel(), runId, state.plan_digest);
+    } catch (classErr) {
+      throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
+        "durable state says released, but the active global sentinel cannot be classified: " + classErr.message, classErr.code);
     }
-    // Already released — fsync the sentinel directory for durability
-    // (handles retries from defective/interrupted prior versions),
-    // then recheck that the sentinel is still absent.
-    sentinel.fsyncMigrationSentinelDirectory();
-    var stillPresentAfterIdempotent = sentinel.isMigrationInProgress();
-    if (stillPresentAfterIdempotent) {
-      throw new R2Error("SENTINEL_STATE_INCONSISTENT",
-        "durable state says released, fsync completed, but physical sentinel appeared — possible corruption");
+    if (rsClassification === "absent") {
+      // Complete durability for a prior unlink that may have crashed before fsync.
+      sentinel.fsyncMigrationSentinelDirectory();
+      // Reclassify after the barrier — another run may have created a sentinel concurrently.
+      try {
+        rsClassification = _classifySentinelForRun(sentinel.readSentinel(), runId, state.plan_digest);
+      } catch (reclassErr) {
+        throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
+          "after directory fsync, the active global sentinel cannot be classified: " + reclassErr.message, reclassErr.code);
+      }
     }
+    if (rsClassification === "owned") {
+      throw new R2Error("SENTINEL_STATE_INCONSISTENT",
+        "durable state says released, but this run's sentinel is present");
+    }
+    // absent or foreign — return idempotent success
     return { run_id: runId, status: "already_released", released_at: state.sentinel.released_at };
   }
 
@@ -11860,23 +11869,19 @@ function cmdFinalizeBackup(args, paths, injectedDeps) {
       throw new R2Error("FINALIZE_PRECONDITION_FAILED",
         "backup_completed state has inconsistent sentinel ownership");
     }
-    // Ownership-aware sentinel check: a foreign sentinel (belonging to a later
-    // run) is not inconsistent with this run's terminal state. Only a sentinel
-    // bound to THIS run indicates corruption.
-    if (physicalPresent) {
-      var activeSentinel;
-      try {
-        activeSentinel = sentinel.readSentinel();
-      } catch (readErr) {
-        throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
-          "run is already finalized, but the active global sentinel cannot be classified: " + readErr.message, readErr.code);
-      }
-      if (activeSentinel && activeSentinel.run_id === runId && activeSentinel.plan_digest === state.plan_digest) {
-        throw new R2Error("SENTINEL_STATE_INCONSISTENT",
-          "run is backup_completed, but its own physical sentinel is present");
-      }
-      // Foreign sentinel — not inconsistent with this run's terminal state.
+    // Ownership-aware sentinel classification.
+    var fbClassification;
+    try {
+      fbClassification = _classifySentinelForRun(sentinel.readSentinel(), runId, state.plan_digest);
+    } catch (classErr) {
+      throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
+        "run is already finalized, but the active global sentinel cannot be classified: " + classErr.message, classErr.code);
     }
+    if (fbClassification === "owned") {
+      throw new R2Error("SENTINEL_STATE_INCONSISTENT",
+        "run is backup_completed, but its own physical sentinel is present");
+    }
+    // absent or foreign — not inconsistent
     return { run_id: runId, status: "already_finalized", released_at: state.sentinel.released_at };
   }
 
@@ -12233,6 +12238,21 @@ async function cmdBackup(args, paths, injectedDeps) {
 }
 
 // ── Standalone-backup state helpers (all accept deps) ────────────────────
+
+// Shared sentinel classifier for idempotent paths.
+// Returns: "absent" | "owned" | "foreign"
+// Throws GLOBAL_SENTINEL_UNREADABLE for raw/malformed/unreadable sentinels.
+function _classifySentinelForRun(active, runId, planDigest) {
+  if (active === null) return "absent";
+  if (active.raw === true ||
+      typeof active.run_id !== "string" ||
+      typeof active.plan_digest !== "string") {
+    throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
+      "the active global sentinel is malformed, unreadable, or cannot be classified");
+  }
+  if (active.run_id === runId && active.plan_digest === planDigest) return "owned";
+  return "foreign";
+}
 
 function _persistBackupEvidence(root, runId, backupResult, projected, d) {
   var cur = d.readState(root, runId);
