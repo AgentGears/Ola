@@ -451,12 +451,14 @@ function removeMigrationSentinelOwnedBy(runId, planDigest) {
   const lockInfo = acquireSentinelMutationLock("remove-owned", runId, planDigest);
   try {
     // 1. Re-read the sentinel
-    if (!isMigrationInProgress()) {
+    const present = isMigrationInProgress();
+    if (!present) {
       // Already absent — valid retry case
       return;
     }
     // 2. Validate ownership
     const meta = readSentinel();
+    process.stderr.write("DEBUG removeMigrationSentinelOwnedBy: present=" + present + " meta=" + (meta ? JSON.stringify({run_id: meta.run_id, plan_digest: meta.plan_digest ? meta.plan_digest.substring(0,8) : "?"}) : "null") + " expectedRunId=" + runId + "\n");
     if (!meta || meta.raw) {
       const err = new Error("sentinel is malformed or unreadable — refusing to remove");
       err.code = "SENTINEL_MALFORMED";
