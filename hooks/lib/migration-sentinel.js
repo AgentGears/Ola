@@ -358,6 +358,185 @@ function refusalMessage() {
   return lines.filter((l) => l !== "").join("\n");
 }
 
+// ── Sentinel mutation lock (cross-process serialization) ──────────────────
+//
+// The mutation lock serializes sentinel creation and owned removal so that
+// ownership verification and file deletion are atomic across processes.
+//
+// Lock path: ~/.ola-migration/.sentinel-mutation.lock
+// Schema: ola.migration.sentinel-lock.v1
+//
+// Acquisition is via exclusive creation (wx). The lock contains structured
+// metadata: schema, token, operation, run_id, plan_digest, owner_pid, created_at.
+//
+// A crashed lock does NOT auto-expire. Recovery requires an explicit
+// release-sentinel-mutation-lock command with the recorded token.
+
+const LOCK_SCHEMA = "ola.migration.sentinel-lock.v1";
+const LOCK_NAME = ".sentinel-mutation.lock";
+
+function lockPath() {
+  return path.join(sentinelDir(), LOCK_NAME);
+}
+
+function acquireSentinelMutationLock(operation, runId, planDigest) {
+  const lp = lockPath();
+  // Ensure directory exists
+  fs.mkdirSync(sentinelDir(), { recursive: true });
+  const token = crypto.randomUUID();
+  const payload = {
+    schema: LOCK_SCHEMA,
+    token: token,
+    operation: operation, // "create" | "remove-owned"
+    run_id: runId,
+    plan_digest: planDigest,
+    owner_pid: process.pid,
+    created_at: new Date().toISOString(),
+  };
+  try {
+    const fd = fs.openSync(lp, "wx");
+    try {
+      fs.writeFileSync(fd, JSON.stringify(payload, null, 2) + "\n", "utf8");
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
+    // Fsync parent directory so lock creation is durable
+    fsyncMigrationSentinelDirectory();
+  } catch (e) {
+    if (e.code === "EEXIST") {
+      // Read the existing lock for the error message
+      let existing = null;
+      try { existing = JSON.parse(fs.readFileSync(lp, "utf8")); } catch {}
+      const detail = existing
+        ? "held by run_id=" + existing.run_id + " operation=" + existing.operation + " token=" + existing.token
+        : "unreadable or malformed";
+      const err = new Error("sentinel mutation lock is held: " + detail);
+      err.code = "SENTINEL_LOCK_HELD";
+      throw err;
+    }
+    throw e;
+  }
+  return { token: token, path: lp };
+}
+
+function releaseSentinelMutationLock(expectedToken) {
+  const lp = lockPath();
+  if (!fs.existsSync(lp)) return; // idempotent
+  // Verify the lock belongs to us
+  let existing = null;
+  try { existing = JSON.parse(fs.readFileSync(lp, "utf8")); } catch {}
+  if (existing && existing.token !== expectedToken) {
+    const err = new Error("refusing to release a foreign mutation lock");
+    err.code = "SENTINEL_LOCK_FOREIGN";
+    throw err;
+  }
+  try {
+    fs.unlinkSync(lp);
+  } catch (e) {
+    if (e.code !== "ENOENT") throw e;
+  }
+  fsyncMigrationSentinelDirectory();
+}
+
+// Combined ownership-verified removal primitive.
+// While holding the mutation lock:
+//   1. Re-read the sentinel
+//   2. Validate schema, run_id, plan_digest
+//   3. Unlink
+//   4. Fsync parent directory
+//   5. Verify absence
+//   6. Release lock
+function removeMigrationSentinelOwnedBy(runId, planDigest) {
+  const lockInfo = acquireSentinelMutationLock("remove-owned", runId, planDigest);
+  try {
+    // 1. Re-read the sentinel
+    const present = isMigrationInProgress();
+    if (!present) {
+      // Already absent — valid retry case
+      return;
+    }
+    // 2. Validate ownership
+    const meta = readSentinel();
+    if (!meta || meta.raw) {
+      const err = new Error("sentinel is malformed or unreadable — refusing to remove");
+      err.code = "SENTINEL_MALFORMED";
+      throw err;
+    }
+    if (meta.run_id !== runId) {
+      const err = new Error("sentinel belongs to run_id=" + meta.run_id + ", not " + runId);
+      err.code = "SENTINEL_FOREIGN";
+      throw err;
+    }
+    if (meta.plan_digest !== planDigest) {
+      const err = new Error("sentinel has plan_digest=" + meta.plan_digest + ", not " + planDigest);
+      err.code = "SENTINEL_FOREIGN";
+      throw err;
+    }
+    // 3. Unlink
+    try {
+      fs.unlinkSync(sentinelPath());
+    } catch (e) {
+      if (e.code !== "ENOENT") throw e;
+    }
+    // 4. Fsync parent directory
+    fsyncMigrationSentinelDirectory();
+    // 5. Verify absence
+    if (fs.existsSync(sentinelPath())) {
+      const err = new Error("sentinel still present after unlink");
+      err.code = "SENTINEL_STILL_PRESENT";
+      throw err;
+    }
+  } finally {
+    // 6. Release lock (always, even on error)
+    releaseSentinelMutationLock(lockInfo.token);
+  }
+}
+
+// Acquire the mutation lock around sentinel creation so creation and
+// owned-removal are serialized.
+function createMigrationSentinelWithLock(metadata) {
+  const lockInfo = acquireSentinelMutationLock("create", metadata.run_id, metadata.plan_digest);
+  try {
+    createMigrationSentinel(metadata);
+  } finally {
+    releaseSentinelMutationLock(lockInfo.token);
+  }
+}
+
+// Explicit lock recovery (no auto-expiry).
+function releaseSentinelMutationLockManually(token, confirmNoActiveMigration) {
+  if (!confirmNoActiveMigration) {
+    const err = new Error("manual lock release requires --confirm-no-active-migration");
+    err.code = "CONFIRMATION_REQUIRED";
+    throw err;
+  }
+  const lp = lockPath();
+  if (!fs.existsSync(lp)) {
+    return { status: "already_absent" };
+  }
+  let existing = null;
+  try { existing = JSON.parse(fs.readFileSync(lp, "utf8")); } catch {}
+  if (existing && token && existing.token !== token) {
+    const err = new Error("lock token mismatch: expected=" + token + " actual=" + existing.token);
+    err.code = "SENTINEL_LOCK_TOKEN_MISMATCH";
+    throw err;
+  }
+  // Foreign/malformed locks with no matching token are refused
+  if (existing && !token) {
+    const err = new Error("refusing to release lock without matching token");
+    err.code = "SENTINEL_LOCK_TOKEN_REQUIRED";
+    throw err;
+  }
+  try {
+    fs.unlinkSync(lp);
+  } catch (e) {
+    if (e.code !== "ENOENT") throw e;
+  }
+  fsyncMigrationSentinelDirectory();
+  return { status: "released", token: existing ? existing.token : null };
+}
+
 module.exports = {
   SENTINEL_SCHEMA,
   SENTINEL_NAME,
@@ -369,6 +548,15 @@ module.exports = {
   readSentinel,
   assertSentinelOwnedBy,
   createMigrationSentinel,
+  createMigrationSentinelWithLock,
   removeMigrationSentinel,
+  removeMigrationSentinelOwnedBy,
   refusalMessage,
+  // Mutation lock
+  LOCK_SCHEMA,
+  LOCK_NAME,
+  lockPath,
+  acquireSentinelMutationLock,
+  releaseSentinelMutationLock,
+  releaseSentinelMutationLockManually,
 };

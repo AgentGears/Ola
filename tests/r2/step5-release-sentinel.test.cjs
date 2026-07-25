@@ -365,11 +365,12 @@ function main() {
     const { plan, paths } = setupFixture("rel-11");
     const { runId } = createFailedRun(paths, plan);
 
-    // Temporarily replace removeMigrationSentinel to throw EPERM
-    var origRemove = sentinel.removeMigrationSentinel;
+    // Temporarily replace removeMigrationSentinelOwnedBy to throw EPERM
+    // (cmdReleaseSentinel now uses the combined owned-removal primitive)
+    var origOwnedRemove = sentinel.removeMigrationSentinelOwnedBy;
     var threw11 = false, code11 = null;
     try {
-      sentinel.removeMigrationSentinel = function () {
+      sentinel.removeMigrationSentinelOwnedBy = function () {
         var err = new Error("sentinel locked");
         err.code = "EPERM";
         throw err;
@@ -377,7 +378,7 @@ function main() {
       try { m.cmdReleaseSentinel({ flags: { run: runId, "confirm-no-mutation": true } }, paths); }
       catch (e) { threw11 = true; code11 = e.code; }
     } finally {
-      sentinel.removeMigrationSentinel = origRemove;
+      sentinel.removeMigrationSentinelOwnedBy = origOwnedRemove;
     }
 
     assert(threw11 === true, "throws on EPERM removal failure");
