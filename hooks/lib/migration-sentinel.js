@@ -305,7 +305,6 @@ function createMigrationSentinel(metadata) {
 // call assertSentinelOwnedBy() first.
 function removeMigrationSentinel() {
   const filePath = sentinelPath();
-  const dirPath = sentinelDir();
 
   try {
     fs.unlinkSync(filePath);
@@ -319,27 +318,9 @@ function removeMigrationSentinel() {
     }
   }
 
-  // Fsync the parent directory so the directory-entry deletion is durable.
+  // Use the shared helper for directory durability.
   // This runs on BOTH the successful-unlink path and the ENOENT retry path.
-  // Without this, a crash after unlink could let the sentinel reappear on
-  // filesystems where directory-entry changes require a separate fsync.
-  // When the sentinel directory itself doesn't exist, this is idempotent.
-  if (fs.existsSync(dirPath)) {
-    try {
-      const dirFd = fs.openSync(dirPath, "r");
-      try {
-        fs.fsyncSync(dirFd);
-      } finally {
-        fs.closeSync(dirFd);
-      }
-    } catch (dirErr) {
-      // On win32, directory fsync via openSync("r") may not be supported.
-      // This is consistent with the existing directory-fsync tolerance
-      // documented in detectDirFsyncCapability (returns "unsupported" on win32).
-      // On other platforms, propagate the error — the removal is not durable.
-      if (process.platform !== "win32") throw dirErr;
-    }
-  }
+  fsyncMigrationSentinelDirectory();
 
   // Verify the file is actually gone (catches race conditions or mock filesystems).
   if (fs.existsSync(filePath)) {

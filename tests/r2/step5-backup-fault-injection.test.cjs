@@ -15,6 +15,7 @@ const path = require("node:path");
 
 const m = require("../../bin/migrate-r2.cjs");
 const fx = require("./fixtures/migration-fixture.cjs");
+const sentinel = require("../../hooks/lib/migration-sentinel");
 
 let passed = 0;
 let failed = 0;
@@ -471,7 +472,7 @@ async function main() {
         // Simulate: another run replaced our sentinel during backup
         sentinel.removeMigrationSentinel();
         sentinel.createMigrationSentinel({
-          run_id: "20260101T000000Z-foreignrun",
+          run_id: "20260101T000000Z-foreignrnn",
           plan_digest: "0".repeat(64),
           reason: "foreign", operator: "test",
         });
@@ -483,18 +484,32 @@ async function main() {
     try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
     catch (e) { caughtL = e; }
 
-    assert(caughtL !== null, "throws when sentinel was replaced by foreign run");
-    // The error may be SENTINEL_OWNERSHIP_MISMATCH or SENTINEL_RELEASE_FAILED
-    // depending on which check fires first
-    assert(caughtL !== null, "error thrown (code: " + (caughtL && caughtL.code) + ")");
+    assert(caughtL !== null, "cmdBackup throws when sentinel was replaced by foreign run");
+    assert(caughtL !== null && caughtL.code === "SENTINEL_OWNERSHIP_MISMATCH",
+      "error classified as SENTINEL_OWNERSHIP_MISMATCH (got: " + (caughtL && caughtL.code) + ")");
 
-    // Physical sentinel preserved (foreign sentinel must NOT be deleted)
+    // Foreign sentinel preserved (must NOT be deleted)
     var sfL = path.join(paths.home, ".ola-migration", ".migration-in-progress");
     assert(fs.existsSync(sfL) === true, "foreign sentinel preserved (not deleted)");
 
-    // State should be failed_manual_intervention or similar (sentinel retained)
+    // Foreign sentinel content unchanged
+    var sentinelContent = fs.readFileSync(sfL, "utf8");
+    var sentinelMeta = JSON.parse(sentinelContent);
+    assert(sentinelMeta.run_id === "20260101T000000Z-foreignrnn", "foreign sentinel run_id unchanged");
+    assert(sentinelMeta.plan_digest === "0".repeat(64), "foreign sentinel plan_digest unchanged");
+
+    // State: failed_manual_intervention with sentinel retained
     var foundL = findRunState(paths.olaMigrationRoot);
-    if (foundL) assert(foundL.state.sentinel.owned === true, "durable owned=true (retained)");
+    assert(foundL !== null, "run state exists");
+    if (foundL) {
+      assert(foundL.state.status === "failed_manual_intervention", "status=failed_manual_intervention");
+      assert(foundL.state.sentinel.owned === true, "durable owned=true (retained)");
+      assert(foundL.state.failure.step === "sentinel-ownership", "failure.step=sentinel-ownership");
+      // validateState passes
+      var vErr = null;
+      try { m.validateState(foundL.state); } catch (e) { vErr = e; }
+      assert(vErr === null, "failed_manual_intervention state validates");
+    }
     cleanup(paths);
   }
 

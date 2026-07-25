@@ -11931,12 +11931,25 @@ async function cmdBackup(args, paths, injectedDeps) {
   }
 
   // Phase 2a: verify ownership and remove physical sentinel.
+  // Ownership check is separated from removal so mismatch is classified distinctly.
   try {
-    // Ownership binding: verify the sentinel belongs to THIS run before removing.
-    // This prevents removing a sentinel that was replaced by another run during backup.
     if (d.isMigrationInProgress()) {
       d.assertSentinelOwnedBy(runId, plan.plan_digest);
     }
+  } catch (ownershipErr) {
+    // Foreign/malformed sentinel: preserve it, retain ownership.
+    try {
+      _persistManualIntervention(root, runId, "sentinel-ownership", "SENTINEL_OWNERSHIP_MISMATCH",
+        "sentinel does not belong to this run: " + ownershipErr.message, ownershipErr.code, d);
+    } catch (miErr) {
+      throw new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+        "ownership mismatch AND state write failed: " + miErr.message);
+    }
+    throw new R2Error("SENTINEL_OWNERSHIP_MISMATCH",
+      "refusing to remove a foreign or malformed sentinel: " + ownershipErr.message, ownershipErr.code);
+  }
+
+  try {
     d.removeMigrationSentinel();
     // Postcondition: verify the sentinel is actually gone.
     if (d.isMigrationInProgress()) {
