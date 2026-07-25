@@ -11856,13 +11856,26 @@ function cmdFinalizeBackup(args, paths, injectedDeps) {
 
   // Idempotency: already backup_completed
   if (state.status === RUN_STATUSES.backup_completed) {
-    if (physicalPresent) {
-      throw new R2Error("SENTINEL_STATE_INCONSISTENT",
-        "status=backup_completed but physical sentinel is present — state corruption");
-    }
     if (state.sentinel.owned !== false || state.sentinel.released_at === null) {
       throw new R2Error("FINALIZE_PRECONDITION_FAILED",
         "backup_completed state has inconsistent sentinel ownership");
+    }
+    // Ownership-aware sentinel check: a foreign sentinel (belonging to a later
+    // run) is not inconsistent with this run's terminal state. Only a sentinel
+    // bound to THIS run indicates corruption.
+    if (physicalPresent) {
+      var activeSentinel;
+      try {
+        activeSentinel = sentinel.readSentinel();
+      } catch (readErr) {
+        throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
+          "run is already finalized, but the active global sentinel cannot be classified: " + readErr.message, readErr.code);
+      }
+      if (activeSentinel && activeSentinel.run_id === runId && activeSentinel.plan_digest === state.plan_digest) {
+        throw new R2Error("SENTINEL_STATE_INCONSISTENT",
+          "run is backup_completed, but its own physical sentinel is present");
+      }
+      // Foreign sentinel — not inconsistent with this run's terminal state.
     }
     return { run_id: runId, status: "already_finalized", released_at: state.sentinel.released_at };
   }
