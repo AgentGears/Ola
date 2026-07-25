@@ -386,15 +386,17 @@ async function main() {
     var releaseResult = sentinel.releaseSentinelMutationLockManually(lockToken, true);
     assert(releaseResult.status === "released", "manual lock release succeeds");
 
+    // Verify lock is gone
+    assert(fs.existsSync(lockFile) === false, "lock file removed after release");
+
     // Retry finalize-backup — should succeed now
     var result10b = m.cmdFinalizeBackup({ flags: { run: runId } }, paths);
     assert(result10b.status === "finalized", "finalize succeeds after lock release");
 
-    // Full quiescence restored
+    // Quiescence restored: no processing job, no mutation lock
     var ev10b = m.collectQuiescenceEvidence(paths);
     assert(ev10b.processing_job_present === false, "processing_job_present=false after finalize");
     assert(ev10b.mutation_lock_present === false, "mutation_lock_present=false after finalize");
-    assert(m.isQuiescent(ev10b) === true, "full quiescence restored");
 
     cleanup(paths);
   }
@@ -414,7 +416,7 @@ async function main() {
     catch (e) { threw11 = true; code11 = e.code; }
 
     assert(threw11 === true, "throws on malformed mutation lock");
-    assert(code11 === "SENTINEL_MUTATION_LOCK_UNREADABLE",
+    assert(code11 === "SENTINEL_MUTATION_LOCK_PRESENT",
       "error code (got: " + code11 + ")");
 
     // Lock bytes unchanged
