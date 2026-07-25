@@ -11674,7 +11674,7 @@ function renderReleaseSentinelSummary(result) {
 //
 // A present physical sentinel must cause refusal; this command never removes it.
 
-function cmdFinalizeBackup(args, paths) {
+function cmdFinalizeBackup(args, paths, injectedDeps) {
   var runId = args.flags.run;
   if (!runId) throw new R2Error("RUN_ID_REQUIRED", "finalize-backup requires --run <run_id>");
   validateRunId(runId);
@@ -11745,7 +11745,7 @@ function cmdFinalizeBackup(args, paths) {
   }
 
   // Finalize: reuse the internal helper.
-  var d = defaultBackupCommandDeps();
+  var d = injectedDeps || defaultBackupCommandDeps();
   _finalizeBackupCompleted(root, runId, d);
 
   // Reopen and verify.

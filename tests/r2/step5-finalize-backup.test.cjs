@@ -211,30 +211,29 @@ async function main() {
     const { plan, paths } = setupFixture("fin-6");
     const { runId } = createReleasePendingRun(paths, plan);
 
-    // Inject write failure on backup_completed write
-    var origWrite = m.writeStateAtomic;
-    var attempts = 0;
-    m.writeStateAtomic = function (root, rid, body) {
-      if (body.status === "backup_completed" && attempts === 0) {
-        attempts++;
+    // Inject write failure via deps (cmdFinalizeBackup now accepts injectedDeps)
+    var depsFail = m.defaultBackupCommandDeps();
+    var attempts6 = 0;
+    var origWrite6 = depsFail.writeStateAtomic;
+    depsFail.writeStateAtomic = function (root, rid, body) {
+      if (body.status === "backup_completed" && attempts6 === 0) {
+        attempts6++;
         var e = new Error("write error");
         e.code = "EIO";
         throw e;
       }
-      return origWrite.call(m, root, rid, body);
+      return origWrite6.call(null, root, rid, body);
     };
 
     var threw6 = false;
-    try { m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
+    try { m.cmdFinalizeBackup({ flags: { run: runId } }, paths, depsFail); }
     catch (e) { threw6 = true; }
-    m.writeStateAtomic = origWrite;
 
     assert(threw6 === true, "first finalize attempt fails on write error");
-    // State should still be backup_release_pending
     var st6 = readStateSafe(paths.olaMigrationRoot, runId);
     if (st6) assert(st6.status === "backup_release_pending", "state preserved as backup_release_pending after write failure");
 
-    // Retry should succeed
+    // Retry without the failing deps — should succeed
     var result6 = m.cmdFinalizeBackup({ flags: { run: runId } }, paths);
     assert(result6.status === "finalized", "retry succeeds (status=finalized)");
 
