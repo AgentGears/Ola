@@ -564,12 +564,28 @@ function cmdExecute(resolveConflictsPolicy) {
 function cmdNeutralize() {
   const canon = shared.resolveDataDir();
   const legacy = legacyStores.detectLegacyStores(canon);
+
+  // Safety: refuse to operate if an R2 migration sentinel is active.
+  // The legacy neutralize workflow predates R2 and uses raw removeMigrationSentinel(),
+  // which bypasses ownership verification and mutation-lock serialization.
+  // An R2 sentinel must only be removed through R2 commands.
+  if (sentinel.isMigrationInProgress()) {
+    const sentinelMeta = sentinel.readSentinel();
+    if (sentinelMeta && sentinelMeta.schema === "ola.migration.sentinel.v1") {
+      console.error("ERROR: An R2 migration sentinel is active.");
+      console.error("Legacy neutralize cannot remove an R2 sentinel without ownership verification.");
+      console.error("Use R2 commands instead: release-sentinel or finalize-backup.");
+      process.exit(1);
+    }
+    // Non-R2 sentinel (legacy format) — legacy neutralize may proceed
+  }
+
   if (legacy.length === 0) {
     console.log("No populated legacy stores detected. Already neutralized (or never existed).");
-    // Still remove sentinel if present
+    // Remove legacy sentinel if present (only if it's not an R2 sentinel)
     if (sentinel.isMigrationInProgress()) {
       sentinel.removeMigrationSentinel();
-      console.log("Sentinel removed.");
+      console.log("Legacy sentinel removed.");
     }
     return;
   }

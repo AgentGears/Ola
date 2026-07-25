@@ -451,7 +451,21 @@ function acquireSentinelMutationLock(operation, runId, planDigest) {
 // unparseable, or has invalid schema/fields.
 function readMutationLockStrict() {
   const lp = lockPath();
-  if (!fs.existsSync(lp)) return null;
+  let stat;
+  try {
+    stat = fs.lstatSync(lp);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    const malformed = new Error("sentinel mutation lock cannot be inspected");
+    malformed.code = "SENTINEL_LOCK_MALFORMED";
+    malformed.cause = error;
+    throw malformed;
+  }
+  if (!stat.isFile()) {
+    const malformed = new Error("sentinel mutation lock is not a regular file");
+    malformed.code = "SENTINEL_LOCK_MALFORMED";
+    throw malformed;
+  }
   let parsed;
   try {
     parsed = JSON.parse(fs.readFileSync(lp, "utf8"));
