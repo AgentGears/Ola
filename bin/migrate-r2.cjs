@@ -2504,6 +2504,11 @@ async function createVerifiedBackup(options) {
 // Detect platform dir-fsync capability (memoized). Returns "synced" |
 // "unsupported" | "failed".
 let dirFsyncCache = null;
+
+// Test-only: reset the fsync capability cache so the next probe re-checks.
+function _resetDirFsyncCacheForTests() {
+  dirFsyncCache = null;
+}
 function detectDirFsyncCapability(dirPath) {
   if (dirFsyncCache !== null) return dirFsyncCache;
   if (process.platform === "win32") {
@@ -12327,7 +12332,7 @@ module.exports = {
   assertPathInside, snapshotTreeForBackup, copyFileExact, reproduceSymlink,
   copyTreeExact, verifyBackupTree, backupTranscriptDatabase,
   assertMemoryStatsWalQuiescent, computeManifestDigest, verifyBackupManifest,
-  createVerifiedBackup, detectDirFsyncCapability,
+  createVerifiedBackup, detectDirFsyncCapability, _resetDirFsyncCacheForTests,
   // DB rebind (Step 6)
   DB_REBIND_RESULT_SCHEMA, REBIND_TABLES, REBIND_RULESET_ID,
   validateRebindBinding, bindingMutationsFor, setDigest,
