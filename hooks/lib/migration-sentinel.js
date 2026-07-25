@@ -489,7 +489,7 @@ function releaseSentinelMutationLock(expectedToken) {
     throw err;
   }
   try {
-    fs.unlinkSync(lp);
+    fs.unlinkSync(lockPath());
   } catch (e) {
     if (e.code !== "ENOENT") throw e;
   }
