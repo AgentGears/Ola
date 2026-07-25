@@ -9611,6 +9611,19 @@ function writeStateAtomic(olaMigrationRoot, runId, stateBody) {
       "atomic rename failed: " + e.message);
   }
 
+  // Post-rename directory fsync: ensures the rename itself is durable.
+  // Without this, a crash after rename could revert to the pre-rename state,
+  // making backup_release_pending (or any state transition) non-durable.
+  if (dirFsync === "synced") {
+    try {
+      const dfd = fs.openSync(dir, "r");
+      try { fs.fsyncSync(dfd); } finally { fs.closeSync(dfd); }
+    } catch (e) {
+      throw new R2Error("RUN_STATE_FSYNC_FAILED",
+        "post-rename dir fsync failed: " + e.message);
+    }
+  }
+
   // Reopen and verify. Reads back the file and recomputes the digest; any
   // tampering or write corruption surfaces here.
   const written = readState(olaMigrationRoot, runId);
@@ -11961,7 +11974,25 @@ async function cmdBackup(args, paths, injectedDeps) {
     }
   }
   catch (e) {
-    // Sentinel removal failed. Physical sentinel still present.
+    // Branch by physical post-failure state:
+    // If the sentinel is ABSENT, unlink may have succeeded but directory fsync
+    // failed. Preserve backup_release_pending for finalize-backup recovery.
+    // If the sentinel is PRESENT, removal genuinely failed.
+    var physicalPresentAfterFail = d.isMigrationInProgress();
+
+    if (!physicalPresentAfterFail) {
+      // Unlink succeeded but fsync failed (or post-unlink check raced).
+      // Preserve backup_release_pending — finalize-backup can retry the dir sync.
+      var durabilityErr = new R2Error("SENTINEL_RELEASE_DURABILITY_FAILED",
+        "sentinel is absent but its directory sync failed; " +
+        "backup_release_pending was preserved for finalize-backup: " + e.message, e.code);
+      durabilityErr.run_id = runId;
+      durabilityErr.sentinel_expected_owned = true;
+      durabilityErr.operator_action_required = true;
+      throw durabilityErr;
+    }
+
+    // Physical sentinel still present — genuine removal failure.
     try {
       _persistManualIntervention(root, runId, "sentinel-removal", "SENTINEL_RELEASE_FAILED",
         "sentinel removal failed — physical sentinel still present: " + e.message, e.code, d);

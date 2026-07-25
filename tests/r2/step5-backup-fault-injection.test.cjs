@@ -513,6 +513,76 @@ async function main() {
     cleanup(paths);
   }
 
+  // ── Scenario M: unlink succeeds but dir fsync fails → preserve backup_release_pending ──
+  console.log("\n=== Scenario M: unlink ok + fsync fail → preserve backup_release_pending ===");
+  {
+    const { plan, paths, planPath } = setupFixture("fault-M");
+    const deps = makeDeps({
+      removeMigrationSentinel: function () {
+        // Unlink succeeds, then fsync fails
+        sentinel.removeMigrationSentinel(); // real unlink
+        // Now cause fsync to fail by replacing the helper
+        var origFsync = sentinel.fsyncMigrationSentinelDirectory;
+        sentinel.fsyncMigrationSentinelDirectory = function () {
+          var e = new Error("fsync denied");
+          e.code = "EACCES";
+          throw e;
+        };
+        // The removeMigrationSentinel call already returned — we need to
+        // simulate the failure INSIDE the removal call itself.
+        // Since removeMigrationSentinel uses fsyncMigrationSentinelDirectory internally,
+        // we patch it BEFORE calling. But we already called removeMigrationSentinel above.
+        // Instead, simulate by having the mock throw after real unlink:
+        sentinel.fsyncMigrationSentinelDirectory = origFsync;
+        // Actually, the correct simulation: replace removeMigrationSentinel entirely
+      },
+    });
+
+    // Better approach: mock removeMigrationSentinel to unlink then throw on fsync
+    const deps2 = makeDeps({
+      removeMigrationSentinel: function () {
+        var origRemove = sentinel.removeMigrationSentinel;
+        var origFsyncM = sentinel.fsyncMigrationSentinelDirectory;
+        sentinel.fsyncMigrationSentinelDirectory = function () {
+          var e = new Error("fsync denied");
+          e.code = "EACCES";
+          throw e;
+        };
+        try {
+          sentinel.removeMigrationSentinel();
+        } finally {
+          sentinel.fsyncMigrationSentinelDirectory = origFsyncM;
+        }
+      },
+    });
+
+    var caughtM = null;
+    try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps2); }
+    catch (e) { caughtM = e; }
+
+    if (process.platform !== "win32") {
+      assert(caughtM !== null, "throws on dir-fsync failure after unlink");
+      assert(caughtM.code === "SENTINEL_RELEASE_DURABILITY_FAILED",
+        "classified as SENTINEL_RELEASE_DURABILITY_FAILED (got: " + (caughtM && caughtM.code) + ")");
+
+      var foundM = findRunState(paths.olaMigrationRoot);
+      assert(foundM !== null, "run state exists");
+      if (foundM) {
+        assert(foundM.state.status === "backup_release_pending",
+          "status=backup_release_pending PRESERVED (not failed_manual_intervention)");
+      }
+      var sfM = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+      assert(fs.existsSync(sfM) === false, "physical sentinel absent (unlink succeeded)");
+
+      // finalize-backup should be able to recover
+      var finResult = m.cmdFinalizeBackup({ flags: { run: foundM ? foundM.runId : "" } }, paths);
+      assert(finResult.status === "finalized", "finalize-backup recovers after dir-fsync failure");
+    } else {
+      console.log("  (win32: dir fsync is unsupported — fsync failure path not exercised)");
+    }
+    cleanup(paths);
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("R2 Step 5 fault-injection: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");
