@@ -888,63 +888,74 @@ function collectQuiescenceEvidence(paths) {
   // in_progress or verified_pending_release). We don't need to be exhaustive
   // — the presence of a sentinel above is the real signal; this is a
   // secondary check that flags half-cleaned-up runs.
+  // Authority namespace scan: classify the runs/ directory explicitly.
+  // No existsSync prefilter — distinguish absent (OK) from inaccessible (block).
+  // Non-directory entries (symlinks, regular files) are unresolved evidence.
+  const runsDir = path.join(paths.olaMigrationRoot, "runs");
+  let runEntries;
   try {
-    const runsDir = path.join(paths.olaMigrationRoot, "runs");
-    if (fs.existsSync(runsDir)) {
-      for (const entry of fs.readdirSync(runsDir, { withFileTypes: true })) {
-        if (!entry.isDirectory()) continue;
-        const stateFile = path.join(runsDir, entry.name, "state.json");
-        // No existsSync precheck — let readState() be the sole authority test.
-        // A missing state.json in a run directory is itself unresolved evidence
-        // and must block quiescence, not be silently skipped.
-        try {
-          const st = readState(paths.olaMigrationRoot, entry.name);
-          // A run blocks quiescence if it is in an active status OR if its
-          // durable record claims sentinel ownership. The authority check
-          // catches runs that still own the sentinel even after the physical
-          // file was externally deleted (e.g., backup_release_pending, or
-          // failed_manual_intervention with owned=true).
-          const activeByStatus =
-            st.status === RUN_STATUSES.initializing ||
-            st.status === RUN_STATUSES.in_progress ||
-            st.status === RUN_STATUSES.backup_release_pending ||
-            st.status === RUN_STATUSES.rollback_in_progress ||
-            st.status === RUN_STATUSES.verified_pending_release;
-          const activeByAuthority =
-            st.sentinel && st.sentinel.owned === true;
-          if (activeByStatus || activeByAuthority) {
-            evidence.processing_job_present = true;
-            evidence.detected_processes.push({
-              kind: "incomplete_run",
-              run_id: entry.name,
-              status: st.status,
-              sentinel_owned: st.sentinel ? st.sentinel.owned : undefined,
-            });
-          }
-        } catch (error) {
-          // Unreadable, malformed, or invalid state files fail closed.
-          // This is an authority detector — false refusal is safer than
-          // false clearance.
-          evidence.processing_job_present = true;
-          evidence.detected_processes.push({
-            kind: "unreadable_run_state",
-            run_id: entry.name,
-            state_path: stateFile,
-            code: error.code || "STATE_READ_OR_VALIDATION_FAILED",
-            detail: error.message,
-          });
-        }
-      }
-    }
+    runEntries = fs.readdirSync(runsDir, { withFileTypes: true });
   } catch (dirErr) {
-    // Failure to inspect the run-authority directory itself fails closed.
-    evidence.processing_job_present = true;
-    evidence.detected_processes.push({
-      kind: "run_state_directory_unreadable",
-      path: path.join(paths.olaMigrationRoot, "runs"),
-      code: dirErr.code || "RUNS_DIR_READ_FAILED",
-      detail: dirErr.message,
-    });
+    if (dirErr.code !== "ENOENT") {
+      // Inaccessible runs directory fails closed.
+      evidence.processing_job_present = true;
+      evidence.detected_processes.push({
+        kind: "run_state_directory_unreadable",
+        path: runsDir,
+        code: dirErr.code || "RUNS_DIR_READ_FAILED",
+        detail: dirErr.message,
+      });
+    }
+    runEntries = [];
+  }
+
+  for (const entry of runEntries) {
+    if (!entry.isDirectory()) {
+      // Symlinks, regular files, or other non-directory entries in the
+      // canonical runs/ namespace are unresolved authority evidence.
+      evidence.processing_job_present = true;
+      evidence.detected_processes.push({
+        kind: "invalid_run_authority_entry",
+        run_id: entry.name,
+        path: path.join(runsDir, entry.name),
+        entry_type: entry.isSymbolicLink() ? "symlink" : "non_directory",
+      });
+      continue;
+    }
+
+    const stateFile = path.join(runsDir, entry.name, "state.json");
+    // readState() is the sole authority test. A missing state.json in a run
+    // directory is itself unresolved evidence and must block quiescence.
+    try {
+      const st = readState(paths.olaMigrationRoot, entry.name);
+      const activeByStatus =
+        st.status === RUN_STATUSES.initializing ||
+        st.status === RUN_STATUSES.in_progress ||
+        st.status === RUN_STATUSES.backup_release_pending ||
+        st.status === RUN_STATUSES.rollback_in_progress ||
+        st.status === RUN_STATUSES.verified_pending_release;
+      const activeByAuthority =
+        st.sentinel && st.sentinel.owned === true;
+      if (activeByStatus || activeByAuthority) {
+        evidence.processing_job_present = true;
+        evidence.detected_processes.push({
+          kind: "incomplete_run",
+          run_id: entry.name,
+          status: st.status,
+          sentinel_owned: st.sentinel ? st.sentinel.owned : undefined,
+        });
+      }
+    } catch (error) {
+      // Unreadable, malformed, or invalid state files fail closed.
+      evidence.processing_job_present = true;
+      evidence.detected_processes.push({
+        kind: "unreadable_run_state",
+        run_id: entry.name,
+        state_path: stateFile,
+        code: error.code || "STATE_READ_OR_VALIDATION_FAILED",
+        detail: error.message,
+      });
+    }
   }
 
   // Sentinel mutation lock check. A present mutation lock blocks quiescence
