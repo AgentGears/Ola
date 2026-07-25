@@ -482,7 +482,7 @@ async function main() {
 
     var caughtL = null;
     try { await m.cmdBackup({ flags: { plan: planPath, confirm: plan.plan_digest } }, paths, deps); }
-    catch (e) { caughtL = e; }
+    catch (e) { caughtL = e; console.log("    DEBUG Scenario L caught: code=" + (e && e.code) + " msg=" + (e && e.message ? e.message.substring(0, 120) : "none")); }
 
     assert(caughtL !== null, "cmdBackup throws when sentinel was replaced by foreign run");
     assert(caughtL !== null && caughtL.code === "SENTINEL_OWNERSHIP_MISMATCH",
