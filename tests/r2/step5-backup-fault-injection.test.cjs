@@ -538,21 +538,21 @@ async function main() {
       },
     });
 
-    // Better approach: mock removeMigrationSentinel to unlink then throw on fsync
+    // Inject: removeMigrationSentinel unlinks but then fails on directory fsync.
+    // We can't patch the internal fsync call, so inject a direct mock that
+    // does the real unlink then throws.
     const deps2 = makeDeps({
       removeMigrationSentinel: function () {
-        var origRemove = sentinel.removeMigrationSentinel;
-        var origFsyncM = sentinel.fsyncMigrationSentinelDirectory;
-        sentinel.fsyncMigrationSentinelDirectory = function () {
-          var e = new Error("fsync denied");
-          e.code = "EACCES";
-          throw e;
-        };
-        try {
-          sentinel.removeMigrationSentinel();
-        } finally {
-          sentinel.fsyncMigrationSentinelDirectory = origFsyncM;
-        }
+        var sf = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+        try { fs.unlinkSync(sf); } catch (e) { if (e.code !== "ENOENT") throw e; }
+        // Simulate directory fsync failure AFTER successful unlink
+        var err = new Error("fsync denied");
+        err.code = "EACCES";
+        throw err;
+      },
+      isMigrationInProgress: function () {
+        // After the mock unlink, sentinel is absent
+        return false;
       },
     });
 
