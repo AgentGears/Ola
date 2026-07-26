@@ -130,74 +130,31 @@ function readSentinel() {
 
 // Strict sentinel-entry reader for authority-mutation paths.
 //
-// Unlike isMigrationInProgress()/readSentinel() (which use fs.existsSync and
-// therefore treat a DANGLING SYMLINK as absent — its target doesn't exist,
-// even though the symlink entry itself remains), this helper uses lstatSync:
-//   lstat ENOENT             → { status: "absent" }
-//   regular file             → { status: "present", metadata: <parsed R2 object> }
-//   symlink/directory/device → throws SENTINEL_MALFORMED (entry is physically present)
-//   other lstat/read error   → throws SENTINEL_UNREADABLE
+// This is a THIN WRAPPER over openSentinelEntryStrict (the fd-bound reader).
+// It exists for callers that need the parsed metadata but do not need the
+// open file descriptor. Delegating to the fd-bound reader ensures the same
+// protections: O_NOFOLLOW at open, fstat dev/ino identity verification, and
+// read-from-fd (no path-rebinding race). The fd is closed before return.
 //
-// For a present regular file, metadata is the parsed R2 sentinel object (same
-// validation as readSentinel's R2 branch: schema must match SENTINEL_SCHEMA).
-// A regular file that fails to parse or lacks the R2 schema throws
-// SENTINEL_MALFORMED — authority mutation requires a positively-identified
-// R2 sentinel, not a foreign or corrupt one.
-//
-// This is deliberately SEPARATE from readSentinel() to avoid changing the
-// latter's behavior for its existing callers without a full audit.
-function readSentinelEntryStrict() {
-  const sp = sentinelPath();
-  let stat;
+//   absent (ENOENT)         → { status: "absent" }
+//   present regular R2 file → { status: "present", metadata: <parsed R2> }
+//   symlink/directory/etc   → throws SENTINEL_MALFORMED
+//   read failure (any code) → throws SENTINEL_UNREADABLE
+//   parse/schema failure    → throws SENTINEL_MALFORMED
+function readSentinelEntryStrict(deps) {
+  const opened = openSentinelEntryStrict(deps);
+  if (opened.status === "absent") {
+    return opened;
+  }
+  // Close the fd the caller doesn't need. Always runs — even if a future
+  // extension between open and here throws.
   try {
-    stat = fs.lstatSync(sp);
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return { status: "absent" };
-    }
-    const err = new Error("sentinel entry cannot be inspected: " + sp);
-    err.code = "SENTINEL_UNREADABLE";
-    err.cause = error;
-    throw err;
+    return { status: "present", metadata: opened.metadata };
+  } finally {
+    try {
+      fs.closeSync(opened.fd);
+    } catch {}
   }
-  if (!stat.isFile()) {
-    const err = new Error(
-      "sentinel entry is not a regular file (dangling symlink, directory, or special): " + sp
-    );
-    err.code = "SENTINEL_MALFORMED";
-    throw err;
-  }
-  let parsed;
-  try {
-    parsed = JSON.parse(fs.readFileSync(sp, "utf8"));
-  } catch (cause) {
-    // Distinguish read failures (EACCES/EIO — filesystem unreadable) from
-    // parse failures (corrupt/foreign content). The single combined catch
-    // previously mapped read failures to SENTINEL_MALFORMED, misclassifying
-    // unreadable authority state as corrupt metadata.
-    if (cause && (cause.code === "ENOENT" || cause.code === "EACCES" || cause.code === "EIO" || cause.code === "EPERM")) {
-      const err = new Error("sentinel entry contents cannot be read: " + sp);
-      err.code = "SENTINEL_UNREADABLE";
-      err.cause = cause;
-      throw err;
-    }
-    const err = new Error("sentinel entry is not valid JSON: " + sp);
-    err.code = "SENTINEL_MALFORMED";
-    err.cause = cause;
-    throw err;
-  }
-  if (
-    !parsed ||
-    typeof parsed !== "object" ||
-    parsed.schema !== SENTINEL_SCHEMA
-  ) {
-    const err = new Error(
-      "sentinel entry lacks R2 schema (foreign or unknown format): " + sp
-    );
-    err.code = "SENTINEL_MALFORMED";
-    throw err;
-  }
-  return { status: "present", metadata: parsed };
 }
 
 // Open the sentinel entry bound to a file descriptor with identity verification.
@@ -333,7 +290,16 @@ function openSentinelEntryStrict(deps) {
 
 // Verify the current path entry's identity matches a previously-opened identity.
 // Used immediately before unlink to catch replacement after the open but before
-// removal. Throws SENTINEL_ENTRY_CHANGED if the inode differs.
+// removal.
+//
+// Returns "matched" if the entry is present with the same dev/ino, or "absent"
+// if the entry has disappeared (ENOENT). Throws SENTINEL_ENTRY_CHANGED if the
+// entry is present but identity differs, or SENTINEL_UNREADABLE on inspection
+// failure.
+//
+// The caller MUST branch on the result: only unlink when "matched". When
+// "absent", there is no identity-bound entry to remove — unlinking the pathname
+// would risk deleting a new entry that appeared after the ENOENT observation.
 function assertSentinelPathIdentityMatches(identity) {
   const sp = sentinelPath();
   let current;
@@ -341,8 +307,9 @@ function assertSentinelPathIdentityMatches(identity) {
     current = fs.lstatSync(sp);
   } catch (error) {
     if (error && error.code === "ENOENT") {
-      // Entry disappeared — let the absence path handle it.
-      return;
+      // Entry disappeared — caller must NOT unlink (nothing identity-bound
+      // remains; a new entry could appear before the unlink).
+      return "absent";
     }
     const err = new Error("sentinel entry cannot be inspected before unlink: " + sp);
     err.code = "SENTINEL_UNREADABLE";
@@ -361,6 +328,7 @@ function assertSentinelPathIdentityMatches(identity) {
       { code: "SENTINEL_ENTRY_CHANGED" }
     );
   }
+  return "matched";
 }
 
 // Strict absence assertion via lstat. Used for post-unlink verification.
@@ -847,28 +815,37 @@ function removeMigrationSentinelOwnedBy(runId, planDigest) {
       throw err;
     }
 
-    // 4. Re-verify path identity immediately before unlink. Catches replacement
-    //    after the open. Throws SENTINEL_ENTRY_CHANGED if the inode differs.
-    assertSentinelPathIdentityMatches(inspected.identity);
+    // 4. Re-verify path identity immediately before unlink. Returns "matched"
+    //    (same dev/ino), "absent" (entry disappeared — ENOENT), or throws
+    //    SENTINEL_ENTRY_CHANGED / SENTINEL_UNREADABLE.
+    const identityState = assertSentinelPathIdentityMatches(inspected.identity);
 
-    // Close the fd BEFORE unlinking (unlink targets the pathname; holding an
-    // open fd on Linux would keep the inode alive but the postcondition checks
-    // the path entry, which is the correct authority surface).
+    // Close the fd BEFORE any pathname operation (unlink targets the pathname;
+    // holding an open fd on Linux would keep the inode alive but the
+    // postcondition checks the path entry, which is the correct authority
+    // surface).
     try {
       fs.closeSync(openedFd);
     } catch {}
     openedFd = null;
 
-    // 5. Unlink the pathname.
-    try {
-      fs.unlinkSync(sentinelPath());
-    } catch (e) {
-      if (e.code !== "ENOENT") throw e;
+    // 5. Only unlink when the identity MATCHED. When "absent", there is no
+    //    identity-bound entry to remove — unlinking the pathname would risk
+    //    deleting a new entry that appeared after the ENOENT observation.
+    //    The mutation lock prevents cooperative creation, but the protocol
+    //    explicitly does not claim immunity from non-cooperative mutation.
+    if (identityState === "matched") {
+      try {
+        fs.unlinkSync(sentinelPath());
+      } catch (e) {
+        if (e.code !== "ENOENT") throw e;
+      }
     }
-    // 6. Fsync parent directory.
+    // 6. Fsync parent directory (establishes durability of whatever state
+    //    resulted — either the unlink, or confirming the prior absence).
     fsyncMigrationSentinelDirectory();
-    // 7. Strict absence verification (lstat — a dangling symlink or replacement
-    //    left after unlink must NOT pass this postcondition).
+    // 7. Strict absence verification (lstat — a dangling symlink, replacement,
+    //    or new entry must NOT pass this postcondition).
     assertSentinelEntryAbsentStrict();
   } finally {
     // Ensure the fd is closed on every path (success already closed it; this

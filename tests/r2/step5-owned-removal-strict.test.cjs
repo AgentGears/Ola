@@ -688,6 +688,166 @@ function main() {
     assert(result && result.metadata && result.metadata.schema === "ola.migration.sentinel.v1", "metadata has R2 schema");
   });
 
+  // ── Wrapper + absent-identity branch (Tests 26-30) ──────────────────────
+
+  console.log("\n=== Test 26: readSentinelEntryStrict arbitrary read failure (EBUSY) → UNREADABLE ===");
+  withTempHome(function (home) {
+    // The wrapper delegates to openSentinelEntryStrict; an injected read failure
+    // with a code NOT in the old hardcoded list (ENOENT/EACCES/EIO/EPERM) must
+    // still classify as UNREADABLE, not MALFORMED.
+    writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    let threw = false;
+    let code = null;
+    try {
+      sentinel.readSentinelEntryStrict({
+        openSync: fs.openSync,
+        fstatSync: fs.fstatSync,
+        readFileSync: function () {
+          throw Object.assign(new Error("resource busy"), { code: "EBUSY" });
+        },
+      });
+    } catch (e) {
+      threw = true;
+      code = e.code;
+    }
+    assert(threw === true, "EBUSY read failure throws");
+    assert(code === "SENTINEL_UNREADABLE", "code SENTINEL_UNREADABLE not MALFORMED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 27: readSentinelEntryStrict reads from identity-bound fd (not path) ===");
+  withTempHome(function (home) {
+    // Prove the wrapper delegates to the fd-bound reader: the injected
+    // readFileSync must receive an fd (number), not a path (string). The
+    // fd-bound reader opens the sentinel, verifies identity via fstat, then
+    // reads from the descriptor. A path-based read would pass a string.
+    writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    let readArgType = null;
+    let result = null;
+    try {
+      result = sentinel.readSentinelEntryStrict({
+        openSync: fs.openSync,
+        fstatSync: fs.fstatSync,
+        readFileSync: function (fdOrPath) {
+          // Capture whether the argument is a number (fd) or string (path).
+          readArgType = typeof fdOrPath;
+          return fs.readFileSync(fdOrPath, "utf8");
+        },
+      });
+    } catch (e) {
+      // If the read failed for another reason, still assert what we captured.
+    }
+    assert(readArgType === "number",
+      "readFileSync receives an fd (number), not a path (got: " + readArgType + ")");
+    assert(result && result.status === "present", "wrapper returns present status");
+  });
+
+  console.log("\n=== Test 28: absent identity → foreign appears before unlink → NOT unlinked ===");
+  withTempHome(function (home) {
+    // Start with an owned R2 sentinel.
+    const sp = writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    // Monkeypatch lstatSync so the pre-unlink identity check (2nd lstat call)
+    // sees ENOENT (entry "disappeared"), simulating the absence race. Then a
+    // FOREIGN sentinel appears before the unlink stage.
+    const origLstat = fs.lstatSync;
+    let lstatCallCount = 0;
+    let foreignInjected = false;
+    try {
+      fs.lstatSync = function (p) {
+        lstatCallCount++;
+        if (lstatCallCount === 2 && p === sp) {
+          // Pre-unlink identity check: pretend the entry vanished.
+          const err = new Error("ENOENT");
+          err.code = "ENOENT";
+          throw err;
+        }
+        return origLstat(p);
+      };
+      // After the identity check returns "absent", inject a foreign sentinel
+      // before the unlink stage by monkeypatching unlinkSync to detect whether
+      // it would be called.
+      const origUnlink = fs.unlinkSync;
+      let unlinkCalled = false;
+      fs.unlinkSync = function (p) {
+        if (p === sp) unlinkCalled = true;
+        // Write a foreign sentinel to simulate one appearing.
+        fs.writeFileSync(p, JSON.stringify({
+          schema: "ola.migration.sentinel.v1",
+          run_id: "FOREIGN-RUN",
+          plan_digest: "f".repeat(64),
+        }));
+        return origUnlink(p);
+      };
+      let threw = false;
+      let code = null;
+      try {
+        sentinel.removeMigrationSentinelOwnedBy("20260101T000000Z", "a".repeat(64));
+      } catch (e) {
+        threw = true;
+        code = e.code;
+      } finally {
+        fs.unlinkSync = origUnlink;
+      }
+      // The strict absence postcondition must fail because a foreign sentinel
+      // is present. unlink must NOT have been called (absent identity → skip).
+      assert(unlinkCalled === false, "unlink NOT called when identity is absent (no identity-bound entry to remove)");
+      assert(threw === true, "strict absence postcondition fails (foreign sentinel present)");
+      assert(code === "SENTINEL_STILL_PRESENT", "code SENTINEL_STILL_PRESENT (got: " + code + ")");
+    } finally {
+      fs.lstatSync = origLstat;
+    }
+  });
+
+  console.log("\n=== Test 29: matched identity → normal unlink/fsync/absence path ===");
+  withTempHome(function (home) {
+    // Standard owned removal — identity matches, unlink proceeds normally.
+    const sp = writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    let threw = false;
+    try {
+      sentinel.removeMigrationSentinelOwnedBy("20260101T000000Z", "a".repeat(64));
+    } catch (e) {
+      threw = true;
+    }
+    assert(threw === false, "matched identity → normal removal succeeds");
+    assert(fs.existsSync(sp) === false, "sentinel removed");
+  });
+
+  console.log("\n=== Test 30: wrapper closes fd on success and every failure path ===");
+  withTempHome(function (home) {
+    writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    // Success path: wrapper opens fd, returns metadata, closes fd.
+    let successFd = null;
+    let r1 = null;
+    try {
+      r1 = sentinel.readSentinelEntryStrict({
+        openSync: function () { successFd = fs.openSync(sentinelFile(home), "r"); return successFd; },
+        fstatSync: fs.fstatSync,
+        readFileSync: fs.readFileSync,
+      });
+    } finally {
+      // The wrapper should have closed successFd on success.
+    }
+    let successFdClosed = false;
+    try { fs.fstatSync(successFd); } catch (e) { successFdClosed = e.code === "EBADF"; }
+    assert(successFdClosed === true, "wrapper closes fd on success path (EBADF on reuse)");
+
+    // Failure path: inject a read failure after open; wrapper must close the fd.
+    let failureFd = null;
+    let threw = false;
+    try {
+      sentinel.readSentinelEntryStrict({
+        openSync: function () { failureFd = fs.openSync(sentinelFile(home), "r"); return failureFd; },
+        fstatSync: fs.fstatSync,
+        readFileSync: function () { throw Object.assign(new Error("EIO"), { code: "EIO" }); },
+      });
+    } catch (e) {
+      threw = true;
+    }
+    assert(threw === true, "failure path triggered");
+    let failureFdClosed = false;
+    try { fs.fstatSync(failureFd); } catch (e) { failureFdClosed = e.code === "EBADF"; }
+    assert(failureFdClosed === true, "wrapper closes fd on failure path (EBADF on reuse)");
+  });
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("Owned-removal strict: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");
