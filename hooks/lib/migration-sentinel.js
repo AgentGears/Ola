@@ -369,6 +369,14 @@ function refusalMessage() {
 // Acquisition is via exclusive creation (wx). The lock contains structured
 // metadata: schema, token, operation, run_id, plan_digest, owner_pid, created_at.
 //
+// Operations:
+//   "create"             — R2 sentinel creation. Requires string run_id + plan_digest.
+//   "remove-owned"       — R2 ownership-verified removal. Requires string run_id + plan_digest.
+//   "remove-legacy-empty" — Legacy empty-sentinel removal (historical touch contract).
+//                          Ownership fields are null: legacy removal is authorized by the
+//                          exact zero-byte regular-file contract + operator attestation,
+//                          NOT by R2 run ownership.
+//
 // A crashed lock does NOT auto-expire. Recovery requires an explicit
 // release-sentinel-mutation-lock command with the recorded token.
 
@@ -445,6 +453,35 @@ function acquireSentinelMutationLock(operation, runId, planDigest) {
   return { token: token, path: lp };
 }
 
+// Operation-specific lock-metadata validation.
+// create/remove-owned require non-empty string run_id +plan_digest.
+// remove-legacy-empty requires null/null (legacy authority is the zero-byte
+// contract + attestation, not R2 run ownership).
+function _isValidLockMetadata(parsed) {
+  if (
+    !parsed ||
+    parsed.schema !== LOCK_SCHEMA ||
+    typeof parsed.token !== "string" ||
+    parsed.token.length === 0
+  ) {
+    return false;
+  }
+  switch (parsed.operation) {
+    case "create":
+    case "remove-owned":
+      return (
+        typeof parsed.run_id === "string" &&
+        parsed.run_id.length > 0 &&
+        typeof parsed.plan_digest === "string" &&
+        parsed.plan_digest.length > 0
+      );
+    case "remove-legacy-empty":
+      return parsed.run_id === null && parsed.plan_digest === null;
+    default:
+      return false;
+  }
+}
+
 // Strict lock reader — used by both automatic and manual release.
 // Returns parsed metadata, or null if lock absent.
 // Throws SENTINEL_LOCK_MALFORMED if the file exists but is unreadable,
@@ -475,14 +512,7 @@ function readMutationLockStrict() {
     error.cause = cause;
     throw error;
   }
-  if (
-    !parsed ||
-    parsed.schema !== LOCK_SCHEMA ||
-    typeof parsed.token !== "string" ||
-    !["create", "remove-owned"].includes(parsed.operation) ||
-    typeof parsed.run_id !== "string" ||
-    typeof parsed.plan_digest !== "string"
-  ) {
+  if (!_isValidLockMetadata(parsed)) {
     const error = new Error("sentinel mutation lock metadata is invalid");
     error.code = "SENTINEL_LOCK_MALFORMED";
     throw error;
@@ -645,6 +675,455 @@ function releaseSentinelMutationLockManually(token, confirmNoActiveMigration) {
   return { status: "released", token: existing.token };
 }
 
+// ── Legacy empty-sentinel removal protocol ─────────────────────────────────
+//
+// Historical pre-R2 sentinel contract: an operator ran `touch sentinel` to
+// create a zero-byte file whose PRESENCE (not content) was the safety barrier.
+// There is no structured legacy JSON format. The R2 createMigrationSentinel()
+// performs openSync("wx") BEFORE writeFileSync, so a crashed R2 creation can
+// also leave a zero-byte regular file — therefore zero bytes is a LEGACY-
+// COMPATIBLE SHAPE, not proof of legacy authority.
+//
+// The legacy-empty removal protocol therefore requires ALL of:
+//   - exact zero-byte regular file (lstat-confirmed, not existsSync)
+//   - explicit bare operator attestation (--confirm-legacy-empty-sentinel)
+//   - mutation lock successfully acquired (operation="remove-legacy-empty")
+//   - authoritative recheck under that lock still sees zero bytes
+//   - durable legacy-store rename (parent-dir fsync) before sentinel unlink
+//
+// All sentinel operations in this protocol are owned by the primitive, not the
+// caller, so the safety sequence cannot be omitted by a future caller.
+
+// Observe the state of a filesystem path via lstat (does not follow symlinks).
+// Returns "absent" (ENOENT), "present" (regular file), or "unreadable"
+// (any other error, or a non-regular entry which we treat as not-cleanly-absent).
+// Never throws — used for recovery-context decoration.
+function observePathState(lstatFn, filePath) {
+  try {
+    const stat = lstatFn(filePath);
+    return stat.isFile() ? "present" : "unreadable";
+  } catch (error) {
+    if (error && error.code === "ENOENT") return "absent";
+    return "unreadable";
+  }
+}
+
+// Derive sentinel_preserved as tri-state: true (present), false (absent),
+// null (unreadable — preservation unknown). Never collapse "unreadable" to
+// false, which would over-claim that the sentinel was removed.
+function preservationFromObservation(observed) {
+  if (observed === "present") return true;
+  if (observed === "absent") return false;
+  return null;
+}
+
+// Classify a sentinel file at an EXACT caller-supplied path.
+// Does NOT call readSentinel() (which reads the module-global sentinelPath()).
+// Uses lstatSync so symlinks/directories are detected as non-regular.
+// Returns: "absent" | "legacy_empty_candidate" | "r2" | "unknown_nonempty"
+// Throws SENTINEL_MALFORMED (non-regular) or SENTINEL_UNREADABLE (inspection failure).
+//
+// "legacy_empty_candidate" (not "legacy_empty") reflects that zero bytes is a
+// legacy-compatible shape, not proof of legacy authority — a crashed R2
+// openSync("wx") can also leave a zero-byte file.
+function classifyLegacySentinelFile(filePath) {
+  let stat;
+  try {
+    stat = fs.lstatSync(filePath);
+  } catch (error) {
+    if (error.code === "ENOENT") return "absent";
+    const err = new Error("sentinel cannot be inspected: " + filePath);
+    err.code = "SENTINEL_UNREADABLE";
+    err.cause = error;
+    throw err;
+  }
+  if (!stat.isFile()) {
+    const err = new Error("sentinel is not a regular file: " + filePath);
+    err.code = "SENTINEL_MALFORMED";
+    throw err;
+  }
+  let bytes;
+  try {
+    bytes = fs.readFileSync(filePath);
+  } catch (error) {
+    const err = new Error("sentinel bytes cannot be read: " + filePath);
+    err.code = "SENTINEL_UNREADABLE";
+    err.cause = error;
+    throw err;
+  }
+  if (bytes.length === 0) {
+    return "legacy_empty_candidate";
+  }
+  try {
+    const parsed = JSON.parse(bytes.toString("utf8"));
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.schema === SENTINEL_SCHEMA
+    ) {
+      return "r2";
+    }
+  } catch {
+    // Non-empty malformed content remains unknown and protected.
+  }
+  return "unknown_nonempty";
+}
+
+// Per-directory fsync using the capability model.
+//
+// detectPlatformDirFsync() is a MODULE-LEVEL MEMOIZED capability probe: after
+// the first call it returns the cached result for ANY dirPath without opening
+// or syncing the new path. Therefore this function uses the probe ONLY to
+// decide whether directory fsync is supported, then performs an ACTUAL
+// openSync+fsyncSync on the target directory every time.
+//
+// Returns "synced" | "unsupported".
+// Throws DIRECTORY_FSYNC_CAPABILITY_FAILED (probe failed) or
+// DIRECTORY_FSYNC_FAILED (real open/fsync error on a supported platform).
+//
+// options accepts injectable { detectCapability, openSync, fsyncSync, closeSync }
+// for deterministic testing without mutating global fs or relying on cache order.
+function fsyncDirectory(dirPath, options) {
+  const d = Object.assign(
+    {
+      detectCapability: detectPlatformDirFsync,
+      openSync: fs.openSync,
+      fsyncSync: fs.fsyncSync,
+      closeSync: fs.closeSync,
+    },
+    options || {}
+  );
+  const capability = d.detectCapability(dirPath);
+  if (capability === "unsupported") {
+    return "unsupported";
+  }
+  if (capability !== "synced") {
+    const err = new Error(
+      "directory fsync capability could not be established: " + dirPath
+    );
+    err.code = "DIRECTORY_FSYNC_CAPABILITY_FAILED";
+    throw err;
+  }
+  let fd;
+  let primaryError;
+  try {
+    fd = d.openSync(dirPath, "r");
+    d.fsyncSync(fd);
+  } catch (cause) {
+    primaryError = cause;
+  }
+  if (fd !== undefined) {
+    try {
+      d.closeSync(fd);
+    } catch (closeError) {
+      if (!primaryError) primaryError = closeError;
+    }
+  }
+  if (primaryError) {
+    const err = new Error("directory fsync failed: " + dirPath);
+    err.code = "DIRECTORY_FSYNC_FAILED";
+    err.cause = primaryError;
+    throw err;
+  }
+  return "synced";
+}
+
+// Durable, dependency-injectable lock release.
+//
+// Unlike releaseSentinelMutationLock() (which calls fsyncMigrationSentinelDirectory,
+// a helper that blanket-swallows every win32 error and returns no outcome),
+// this function uses fsyncDirectory() (per-directory, outcome-returning,
+// capability-based). The new legacy-empty protocol uses THIS release path.
+//
+// Returns { status: "released" | "already_absent", directory_fsync } where
+// directory_fsync is "synced" | "unsupported".
+// Throws SENTINEL_LOCK_FOREIGN (token mismatch) or DIRECTORY_FSYNC_FAILED
+// (real durability failure on a supported platform).
+function releaseSentinelMutationLockDurably(expectedToken, deps) {
+  const d = Object.assign(
+    {
+      readLock: readMutationLockStrict,
+      unlinkSync: fs.unlinkSync,
+      fsyncDirectory: fsyncDirectory,
+      lockPath: lockPath,
+    },
+    deps || {}
+  );
+  const existing = d.readLock();
+  if (existing === null) {
+    const outcome = d.fsyncDirectory(path.dirname(d.lockPath()));
+    return { status: "already_absent", directory_fsync: outcome };
+  }
+  if (existing.token !== expectedToken) {
+    const err = new Error("refusing to release a foreign mutation lock");
+    err.code = "SENTINEL_LOCK_FOREIGN";
+    throw err;
+  }
+  d.unlinkSync(d.lockPath());
+  const outcome = d.fsyncDirectory(path.dirname(d.lockPath()));
+  return { status: "released", directory_fsync: outcome };
+}
+
+// Build the dependency bundle for the legacy-empty primitive.
+// All filesystem and lock operations route through this object so tests can
+// inject failures without mutating module globals or relying on cache state.
+function buildLegacySentinelDeps(options) {
+  return Object.assign(
+    {
+      lstatSync: fs.lstatSync,
+      readFileSync: fs.readFileSync,
+      unlinkSync: fs.unlinkSync,
+      renameSync: fs.renameSync,
+      acquireLock: acquireSentinelMutationLock,
+      releaseLock: releaseSentinelMutationLockDurably,
+      fsyncDirectory: fsyncDirectory,
+      classifyLegacySentinelFile: classifyLegacySentinelFile,
+      observePathState: observePathState,
+      sentinelPath: sentinelPath,
+      lockPath: lockPath,
+    },
+    options || {}
+  );
+}
+
+// Internal: assert the sentinel is a legacy-empty candidate at the canonical
+// sentinel path. Throws a coded error otherwise.
+function _assertLegacyEmptyCandidate(d) {
+  const classification = d.classifyLegacySentinelFile(d.sentinelPath());
+  if (classification !== "legacy_empty_candidate") {
+    const err = new Error(
+      "sentinel is not a legacy-empty candidate (classified as: " +
+        classification +
+        "); refusing legacy removal"
+    );
+    err.code =
+      classification === "r2"
+        ? "SENTINEL_IS_R2"
+        : classification === "unknown_nonempty"
+        ? "SENTINEL_NOT_LEGACY_EMPTY"
+        : classification === "absent"
+        ? "SENTINEL_ABSENT_UNDER_LOCK"
+        : "SENTINEL_NOT_LEGACY_EMPTY";
+    err.sentinel_classification = classification;
+    throw err;
+  }
+}
+
+// Internal: assert sentinel absence via lstat (ENOENT-only). Throws if the
+// sentinel is still present or its state is unreadable.
+function _assertSentinelAbsentViaLstat(d) {
+  const observed = d.observePathState(d.lstatSync, d.sentinelPath());
+  if (observed !== "absent") {
+    const err = new Error(
+      "sentinel still " +
+        (observed === "present" ? "present" : "unreadable") +
+        " after unlink"
+    );
+    err.code =
+      observed === "present"
+        ? "SENTINEL_STILL_PRESENT"
+        : "SENTINEL_ABSENCE_UNVERIFIABLE";
+    throw err;
+  }
+}
+
+// Internal: decorate an error with recovery context derived from observed
+// filesystem state and the progress tracker.
+function _decorateError(
+  error,
+  ctx,
+  progress,
+  d,
+  legacyDirectoryPath,
+  legacyFsyncOutcome,
+  sentinelFsyncOutcome
+) {
+  const sentinelObserved = d.observePathState(d.lstatSync, d.sentinelPath());
+  error.progress = progress;
+  error.sentinel_observed_state = sentinelObserved;
+  error.sentinel_preserved = preservationFromObservation(sentinelObserved);
+  error.legacy_store_may_be_renamed =
+    legacyDirectoryPath !== null && progress.legacy_mutation_completed === true;
+  error.legacy_directory_fsync = legacyFsyncOutcome;
+  error.sentinel_directory_fsync = sentinelFsyncOutcome;
+  error.legacy_path = ctx.legacy_path || null;
+  error.renamed_path = ctx.renamed_path || null;
+  error.manual_verification_required = true;
+  return error;
+}
+
+// Legacy empty-sentinel removal primitive.
+//
+// Owns the FIXED safety sequence; the caller provides only the legacy-store
+// mutation and verification specific to this invocation:
+//   classify candidate → mutateLegacyStore() → fsync legacyDirectoryPath
+//   → verifyLegacyStore() → reclassify candidate → unlink sentinel
+//   → fsync sentinel directory → verify sentinel absence → release lock
+//
+// The primitive prints nothing. Callers print success only after the primitive
+// and lock release both succeed.
+//
+// options shape:
+//   mutateLegacyStore(d)     — function performing the legacy rename (or no-op)
+//   verifyLegacyStore(d)     — function confirming detectLegacyStores is empty
+//   legacyDirectoryPath      — dir to fsync after rename (null if no rename)
+//   context                  — { legacy_path, renamed_path } for recovery
+//   deps                     — injected dependencies (buildLegacySentinelDeps)
+//
+// Returns { legacy_directory_fsync, sentinel_directory_fsync, store_result }.
+// Throws a coded error decorated with progress + observed state on any failure.
+function withLegacyEmptySentinelLock(options) {
+  const d = buildLegacySentinelDeps(options.deps);
+  const ctx = options.context || {};
+  const legacyDirectoryPath =
+    options.legacyDirectoryPath !== undefined
+      ? options.legacyDirectoryPath
+      : null;
+  const mutateLegacyStore = options.mutateLegacyStore || function () {};
+  const verifyLegacyStore = options.verifyLegacyStore || function () {};
+
+  const progress = {
+    callback_started: false,
+    legacy_mutation_completed: false,
+    legacy_directory_synced: false,
+    legacy_verification_completed: false,
+    sentinel_recheck_completed: false,
+    sentinel_unlinked: false,
+    sentinel_directory_synced: false,
+    sentinel_absence_verified: false,
+  };
+  let legacyFsyncOutcome = null;
+  let sentinelFsyncOutcome = null;
+  let lock;
+  let operationResult;
+  let operationError;
+
+  // Lock acquisition — decorate with progress + observed state so the
+  // invariant "every protocol error carries progress + recovery context"
+  // holds even for SENTINEL_LOCK_HELD.
+  try {
+    lock = d.acquireLock("remove-legacy-empty", null, null);
+  } catch (acqError) {
+    acqError.progress = progress;
+    acqError.sentinel_observed_state = d.observePathState(
+      d.lstatSync,
+      d.sentinelPath()
+    );
+    acqError.sentinel_preserved = preservationFromObservation(
+      acqError.sentinel_observed_state
+    );
+    acqError.lock_observed_state = d.observePathState(d.lstatSync, d.lockPath());
+    acqError.legacy_store_may_be_renamed = false;
+    acqError.legacy_path = ctx.legacy_path || null;
+    acqError.renamed_path = ctx.renamed_path || null;
+    acqError.manual_verification_required = true;
+    throw acqError;
+  }
+
+  try {
+    _assertLegacyEmptyCandidate(d);
+    progress.callback_started = true;
+    operationResult = mutateLegacyStore(d);
+    progress.legacy_mutation_completed = true;
+    if (legacyDirectoryPath !== null) {
+      try {
+        legacyFsyncOutcome = d.fsyncDirectory(legacyDirectoryPath);
+      } catch (fsyncError) {
+        const wrapped = new Error(
+          "legacy directory fsync failed: " + legacyDirectoryPath
+        );
+        wrapped.code = "LEGACY_DIRECTORY_FSYNC_FAILED";
+        wrapped.cause = fsyncError;
+        throw wrapped;
+      }
+      progress.legacy_directory_synced = true;
+    }
+    verifyLegacyStore(d);
+    progress.legacy_verification_completed = true;
+    _assertLegacyEmptyCandidate(d);
+    progress.sentinel_recheck_completed = true;
+    d.unlinkSync(d.sentinelPath());
+    progress.sentinel_unlinked = true;
+    try {
+      sentinelFsyncOutcome = d.fsyncDirectory(path.dirname(d.sentinelPath()));
+    } catch (fsyncError) {
+      const wrapped = new Error("sentinel directory fsync failed");
+      wrapped.code = "SENTINEL_DIRECTORY_FSYNC_FAILED";
+      wrapped.cause = fsyncError;
+      throw wrapped;
+    }
+    progress.sentinel_directory_synced = true;
+    _assertSentinelAbsentViaLstat(d);
+    progress.sentinel_absence_verified = true;
+  } catch (error) {
+    _decorateError(
+      error,
+      ctx,
+      progress,
+      d,
+      legacyDirectoryPath,
+      legacyFsyncOutcome,
+      sentinelFsyncOutcome
+    );
+    operationError = error;
+  }
+
+  // EXPLICIT release (not finally) with 3-way classification by observed lock state.
+  // preserve the operation error as .cause when both operation and release fail.
+  if (lock !== undefined) {
+    try {
+      d.releaseLock(lock.token);
+    } catch (releaseError) {
+      const observedLock = d.observePathState(d.lstatSync, d.lockPath());
+      const observedSentinel = d.observePathState(
+        d.lstatSync,
+        d.sentinelPath()
+      );
+      const code =
+        observedLock === "present"
+          ? "LEGACY_NEUTRALIZE_LOCK_STRANDED"
+          : observedLock === "absent"
+          ? "LEGACY_NEUTRALIZE_LOCK_RELEASE_DURABILITY_FAILED"
+          : "LEGACY_NEUTRALIZE_LOCK_RELEASE_STATE_UNKNOWN";
+      const composite = new Error(
+        "legacy neutralization " +
+          (operationError ? "operation failed and " : "") +
+          "lock release failed (lock observed: " +
+          observedLock +
+          ")"
+      );
+      composite.code = code;
+      composite.operation_error = operationError || null;
+      composite.release_error = releaseError;
+      composite.operation_code = operationError ? operationError.code : null;
+      composite.release_code = releaseError.code;
+      composite.progress = progress;
+      composite.sentinel_observed_state = observedSentinel;
+      composite.sentinel_preserved = preservationFromObservation(observedSentinel);
+      composite.lock_observed_state = observedLock;
+      composite.legacy_store_may_be_renamed =
+        legacyDirectoryPath !== null &&
+        progress.legacy_mutation_completed === true;
+      composite.legacy_directory_fsync = legacyFsyncOutcome;
+      composite.sentinel_directory_fsync = sentinelFsyncOutcome;
+      composite.token = lock.token;
+      composite.lock_path = lock.path;
+      composite.legacy_path = ctx.legacy_path || null;
+      composite.renamed_path = ctx.renamed_path || null;
+      composite.manual_verification_required = true;
+      composite.cause = operationError || releaseError;
+      throw composite;
+    }
+  }
+
+  if (operationError) throw operationError;
+  return {
+    legacy_directory_fsync: legacyFsyncOutcome,
+    sentinel_directory_fsync: sentinelFsyncOutcome,
+    store_result: operationResult,
+  };
+}
+
 module.exports = {
   SENTINEL_SCHEMA,
   SENTINEL_NAME,
@@ -667,4 +1146,13 @@ module.exports = {
   acquireSentinelMutationLock,
   releaseSentinelMutationLock,
   releaseSentinelMutationLockManually,
+  // Legacy empty-sentinel removal protocol
+  _isValidLockMetadata,
+  classifyLegacySentinelFile,
+  observePathState,
+  preservationFromObservation,
+  fsyncDirectory,
+  releaseSentinelMutationLockDurably,
+  buildLegacySentinelDeps,
+  withLegacyEmptySentinelLock,
 };

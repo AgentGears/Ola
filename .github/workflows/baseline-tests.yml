@@ -34,11 +34,12 @@ permissions:
 
 jobs:
   # ── Job 1: Zero-process deterministic gate ─────────────────────────
-  # 21 zero-process tests (no real worker spawns) + 3 independent R2
+  # Zero-process tests (no real worker spawns) + 3 independent R2
   # aggregators + ADR package integrity + prohibited-path absence check.
-  # This job never spawns real OS worker processes.
+  # This job never spawns real OS worker processes. Suite count is computed
+  # in the run step (not hand-maintained).
   zero-process-deterministic:
-    name: Zero-process deterministic (21 tests + 3 R2 + ADR)
+    name: Zero-process deterministic (computed count + 3 R2 + ADR)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,13 +85,15 @@ jobs:
           fi
           echo "PASS: no prohibited runtime-state paths"
 
-      - name: Run 21 zero-process deterministic suites
+      - name: Run zero-process deterministic suites (count computed)
         run: |
           set -euo pipefail
           # Deterministic suites that do NOT spawn real worker processes.
           # offload-hook-structural and offload-spawn-contract use injected fakes
           # (zero real processes) and are safe everywhere.
           # offload-latency spawns real managed workers and runs in the formal-suite job below.
+          # The legacy-sentinel-classification suite is registered here for clean-clone
+          # evidence and also in offload-stability.yml.
           deterministic_tests=(
             "tests/test-sentinel-survives-canonical-destruction.cjs"
             "tests/test-resolver-ignores-zcode-plugin-data.cjs"
@@ -113,6 +116,7 @@ jobs:
             "tests/rename-inventory.test.cjs"
             "tests/offload-hook-structural.test.cjs"
             "tests/offload-spawn-contract.test.cjs"
+            "tests/r2/step5-legacy-sentinel-classification.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
@@ -129,7 +133,7 @@ jobs:
             echo "::error::At least one deterministic suite failed"
             exit 1
           fi
-          echo "PASS: 21/21 zero-process deterministic suites"
+          echo "PASS: ${#deterministic_tests[@]}/${#deterministic_tests[@]} zero-process deterministic suites"
 
       - name: Run 3 R2 aggregators independently
         run: |

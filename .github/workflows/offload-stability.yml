@@ -17,6 +17,7 @@ on:
       - 'hooks/lib/migration-sentinel.js'
       - 'hooks/post-tool-use.js'
       - 'bin/migrate-r2.cjs'
+      - 'bin/migrate-data-dir.cjs'
       - 'tests/offload-latency.test.cjs'
       - 'tests/offload-hook-structural.test.cjs'
       - 'tests/offload-spawn-contract.test.cjs'
@@ -27,6 +28,7 @@ on:
       - 'tests/r2/step5-sentinel-removal.test.cjs'
       - 'tests/r2/step5-release-sentinel.test.cjs'
       - 'tests/r2/step5-finalize-backup.test.cjs'
+      - 'tests/r2/step5-legacy-sentinel-classification.test.cjs'
       - 'tests/helpers/managed-offload-worker.cjs'
       - '.github/workflows/offload-stability.yml'
       - '.github/workflows/baseline-tests.yml'
@@ -37,6 +39,7 @@ on:
       - 'hooks/lib/migration-sentinel.js'
       - 'hooks/post-tool-use.js'
       - 'bin/migrate-r2.cjs'
+      - 'bin/migrate-data-dir.cjs'
       - 'tests/offload-latency.test.cjs'
       - 'tests/offload-hook-structural.test.cjs'
       - 'tests/offload-spawn-contract.test.cjs'
@@ -47,6 +50,7 @@ on:
       - 'tests/r2/step5-sentinel-removal.test.cjs'
       - 'tests/r2/step5-release-sentinel.test.cjs'
       - 'tests/r2/step5-finalize-backup.test.cjs'
+      - 'tests/r2/step5-legacy-sentinel-classification.test.cjs'
       - 'tests/helpers/managed-offload-worker.cjs'
       - '.github/workflows/offload-stability.yml'
 
@@ -129,7 +133,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: 19 deterministic suites (excludes real-spawn offload tests)
+      - name: deterministic suites (excludes real-spawn offload tests; count computed)
         run: |
           set -euo pipefail
           # All suites EXCEPT offload-latency and offload-worker-lifecycle
@@ -164,6 +168,7 @@ jobs:
             "tests/r2/step5-sentinel-removal.test.cjs"
             "tests/r2/step5-release-sentinel.test.cjs"
             "tests/r2/step5-finalize-backup.test.cjs"
+            "tests/r2/step5-legacy-sentinel-classification.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
@@ -177,7 +182,7 @@ jobs:
             echo "::endgroup::"
           done
           [ "$failed" -eq 0 ] || exit 1
-          echo "PASS: 21/21 deterministic suites"
+          echo "PASS: ${#deterministic_tests[@]}/${#deterministic_tests[@]} deterministic suites"
 
       - name: 3 R2 aggregators independently
         run: |
