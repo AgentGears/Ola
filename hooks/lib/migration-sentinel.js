@@ -128,6 +128,88 @@ function readSentinel() {
   }
 }
 
+// Strict sentinel-entry reader for authority-mutation paths.
+//
+// Unlike isMigrationInProgress()/readSentinel() (which use fs.existsSync and
+// therefore treat a DANGLING SYMLINK as absent — its target doesn't exist,
+// even though the symlink entry itself remains), this helper uses lstatSync:
+//   lstat ENOENT             → { status: "absent" }
+//   regular file             → { status: "present", metadata: <parsed R2 object> }
+//   symlink/directory/device → throws SENTINEL_MALFORMED (entry is physically present)
+//   other lstat/read error   → throws SENTINEL_UNREADABLE
+//
+// For a present regular file, metadata is the parsed R2 sentinel object (same
+// validation as readSentinel's R2 branch: schema must match SENTINEL_SCHEMA).
+// A regular file that fails to parse or lacks the R2 schema throws
+// SENTINEL_MALFORMED — authority mutation requires a positively-identified
+// R2 sentinel, not a foreign or corrupt one.
+//
+// This is deliberately SEPARATE from readSentinel() to avoid changing the
+// latter's behavior for its existing callers without a full audit.
+function readSentinelEntryStrict() {
+  const sp = sentinelPath();
+  let stat;
+  try {
+    stat = fs.lstatSync(sp);
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      return { status: "absent" };
+    }
+    const err = new Error("sentinel entry cannot be inspected: " + sp);
+    err.code = "SENTINEL_UNREADABLE";
+    err.cause = error;
+    throw err;
+  }
+  if (!stat.isFile()) {
+    const err = new Error(
+      "sentinel entry is not a regular file (dangling symlink, directory, or special): " + sp
+    );
+    err.code = "SENTINEL_MALFORMED";
+    throw err;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(sp, "utf8"));
+  } catch (cause) {
+    const err = new Error("sentinel entry is unreadable or unparseable: " + sp);
+    err.code = "SENTINEL_MALFORMED";
+    err.cause = cause;
+    throw err;
+  }
+  if (
+    !parsed ||
+    typeof parsed !== "object" ||
+    parsed.schema !== SENTINEL_SCHEMA
+  ) {
+    const err = new Error(
+      "sentinel entry lacks R2 schema (foreign or unknown format): " + sp
+    );
+    err.code = "SENTINEL_MALFORMED";
+    throw err;
+  }
+  return { status: "present", metadata: parsed };
+}
+
+// Strict absence assertion via lstat. Used for post-unlink verification.
+// Only ENOENT proves absence — a dangling symlink or other non-regular entry
+// must NOT pass this postcondition.
+function assertSentinelEntryAbsentStrict() {
+  const sp = sentinelPath();
+  try {
+    fs.lstatSync(sp);
+  } catch (error) {
+    if (error && error.code === "ENOENT") return;
+    const err = new Error("sentinel entry cannot be inspected after removal: " + sp);
+    err.code = "SENTINEL_UNREADABLE";
+    err.cause = error;
+    throw err;
+  }
+  // lstat succeeded — entry is physically present (regular, symlink, dir, etc.)
+  const err = new Error("sentinel entry still present after unlink: " + sp);
+  err.code = "SENTINEL_STILL_PRESENT";
+  throw err;
+}
+
 // Assert the active sentinel is owned by a specific (run_id, plan_digest).
 // Throws if:
 //   - no sentinel present (caller bug: should check isMigrationInProgress first)
@@ -542,28 +624,29 @@ function releaseSentinelMutationLock(expectedToken) {
 
 // Combined ownership-verified removal primitive.
 // While holding the mutation lock:
-//   1. Re-read the sentinel
-//   2. Validate schema, run_id, plan_digest
-//   3. Unlink
-//   4. Fsync parent directory
-//   5. Verify absence
-//   6. Release lock
+//   1. Strict-inspect the sentinel entry (lstat-based — a dangling symlink is
+//      NOT absence; it is SENTINEL_MALFORMED and must not be treated as removed)
+//   2. If truly absent (ENOENT): fsync the directory (durability for an earlier
+//      unlink by this or another process) and strictly verify absence
+//   3. If present: validate ownership (run_id + plan_digest) on the parsed R2
+//      metadata, then unlink, fsync, and strictly verify absence
+//   4. Release lock
 function removeMigrationSentinelOwnedBy(runId, planDigest) {
   const lockInfo = acquireSentinelMutationLock("remove-owned", runId, planDigest);
   try {
-    // 1. Re-read the sentinel
-    const present = isMigrationInProgress();
-    if (!present) {
-      // Already absent — valid retry case
+    // 1. Strict inspection (lstat-based — does NOT follow symlinks)
+    const inspected = readSentinelEntryStrict();
+
+    // 2. Truly absent (ENOENT) — valid retry case. Establish deletion durability
+    //    and strictly verify the entry is gone (not a dangling symlink).
+    if (inspected.status === "absent") {
+      fsyncMigrationSentinelDirectory();
+      assertSentinelEntryAbsentStrict();
       return;
     }
-    // 2. Validate ownership
-    const meta = readSentinel();
-    if (!meta || meta.raw) {
-      const err = new Error("sentinel is malformed or unreadable — refusing to remove");
-      err.code = "SENTINEL_MALFORMED";
-      throw err;
-    }
+
+    // 3. Present regular R2 file — validate ownership.
+    const meta = inspected.metadata;
     if (meta.run_id !== runId) {
       const err = new Error("sentinel belongs to run_id=" + meta.run_id + ", not " + runId);
       err.code = "SENTINEL_FOREIGN";
@@ -574,20 +657,17 @@ function removeMigrationSentinelOwnedBy(runId, planDigest) {
       err.code = "SENTINEL_FOREIGN";
       throw err;
     }
-    // 3. Unlink
+    // 4. Unlink
     try {
       fs.unlinkSync(sentinelPath());
     } catch (e) {
       if (e.code !== "ENOENT") throw e;
     }
-    // 4. Fsync parent directory
+    // 5. Fsync parent directory
     fsyncMigrationSentinelDirectory();
-    // 5. Verify absence
-    if (fs.existsSync(sentinelPath())) {
-      const err = new Error("sentinel still present after unlink");
-      err.code = "SENTINEL_STILL_PRESENT";
-      throw err;
-    }
+    // 6. Strict absence verification (lstat — a dangling symlink left by a
+    //    concurrent replacement must NOT pass this postcondition)
+    assertSentinelEntryAbsentStrict();
   } finally {
     // 6. Release lock (always, even on error)
     releaseSentinelMutationLock(lockInfo.token);
@@ -1138,6 +1218,8 @@ module.exports = {
   createMigrationSentinelWithLock,
   removeMigrationSentinel,
   removeMigrationSentinelOwnedBy,
+  readSentinelEntryStrict,
+  assertSentinelEntryAbsentStrict,
   refusalMessage,
   // Mutation lock
   LOCK_SCHEMA,

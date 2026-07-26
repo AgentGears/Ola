@@ -117,6 +117,7 @@ jobs:
             "tests/offload-hook-structural.test.cjs"
             "tests/offload-spawn-contract.test.cjs"
             "tests/r2/step5-legacy-sentinel-classification.test.cjs"
+            "tests/r2/step5-owned-removal-strict.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
