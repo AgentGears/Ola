@@ -171,7 +171,17 @@ function readSentinelEntryStrict() {
   try {
     parsed = JSON.parse(fs.readFileSync(sp, "utf8"));
   } catch (cause) {
-    const err = new Error("sentinel entry is unreadable or unparseable: " + sp);
+    // Distinguish read failures (EACCES/EIO — filesystem unreadable) from
+    // parse failures (corrupt/foreign content). The single combined catch
+    // previously mapped read failures to SENTINEL_MALFORMED, misclassifying
+    // unreadable authority state as corrupt metadata.
+    if (cause && (cause.code === "ENOENT" || cause.code === "EACCES" || cause.code === "EIO" || cause.code === "EPERM")) {
+      const err = new Error("sentinel entry contents cannot be read: " + sp);
+      err.code = "SENTINEL_UNREADABLE";
+      err.cause = cause;
+      throw err;
+    }
+    const err = new Error("sentinel entry is not valid JSON: " + sp);
     err.code = "SENTINEL_MALFORMED";
     err.cause = cause;
     throw err;
@@ -188,6 +198,169 @@ function readSentinelEntryStrict() {
     throw err;
   }
   return { status: "present", metadata: parsed };
+}
+
+// Open the sentinel entry bound to a file descriptor with identity verification.
+//
+// This is the FD-BOUND variant of readSentinelEntryStrict, used by authority-
+// mutation paths that must defend against non-cooperative entry replacement
+// between lstat and read. The sequence:
+//   1. lstat(sp) — verify regular file (rejects symlinks/dirs)
+//   2. open(sp, O_RDONLY | O_NOFOLLOW) — O_NOFOLLOW rejects symlinks at open
+//      time where the platform supports it (Linux/POSIX); on platforms without
+//      O_NOFOLLOW (win32), the fstat identity check (step 3) still catches
+//      replacement.
+//   3. fstat(fd) — verify dev/ino match the initial lstat (catches replacement
+//      by a different regular file or symlink between lstat and open)
+//   4. read from fd (NOT from the path — the fd is identity-bound)
+//   5. parse — read failures are SENTINEL_UNREADABLE, parse/schema failures are
+//      SENTINEL_MALFORMED (separated, unlike the original combined catch)
+//
+// Returns { status: "absent" } for ENOENT, or
+//   { status: "present", fd, identity: {dev, ino}, metadata } on success.
+//   The caller OWNS the fd and must close it (close-on-success is the caller's
+//   responsibility so the fd can be used for further identity checks).
+//
+// LIMITATION (explicit): Node does not provide an atomic fd-bound unlinkat.
+// This narrows the lstat→read race but does not claim immunity from arbitrary
+// raw filesystem replacement after the final identity check. The mutation lock
+// still serializes all cooperative Ola operations.
+function openSentinelEntryStrict(deps) {
+  const d = Object.assign(
+    {
+      lstatSync: fs.lstatSync,
+      openSync: fs.openSync,
+      fstatSync: fs.fstatSync,
+      readFileSync: fs.readFileSync,
+      constants: fs.constants,
+    },
+    deps || {}
+  );
+  const sp = sentinelPath();
+  let before;
+  try {
+    before = d.lstatSync(sp);
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      return { status: "absent" };
+    }
+    const err = new Error("sentinel entry cannot be inspected: " + sp);
+    err.code = "SENTINEL_UNREADABLE";
+    err.cause = error;
+    throw err;
+  }
+  if (!before.isFile()) {
+    const err = new Error(
+      "sentinel entry is not a regular file (dangling symlink, directory, or special): " + sp
+    );
+    err.code = "SENTINEL_MALFORMED";
+    throw err;
+  }
+  const noFollow = d.constants.O_NOFOLLOW || 0;
+  let fd;
+  try {
+    fd = d.openSync(sp, d.constants.O_RDONLY | noFollow);
+  } catch (error) {
+    // ELOOP indicates the path became a symlink (O_NOFOLLOW rejected it).
+    if (error && error.code === "ELOOP") {
+      const err = new Error("sentinel became a symlink between lstat and open: " + sp);
+      err.code = "SENTINEL_MALFORMED";
+      err.cause = error;
+      throw err;
+    }
+    const err = new Error("sentinel entry cannot be opened: " + sp);
+    err.code = "SENTINEL_UNREADABLE";
+    err.cause = error;
+    throw err;
+  }
+  try {
+    const opened = d.fstatSync(fd);
+    // Identity check: the opened fd must be the SAME inode as the initial lstat.
+    // Catches replacement by a different regular file between lstat and open.
+    if (
+      !opened.isFile() ||
+      opened.dev !== before.dev ||
+      opened.ino !== before.ino
+    ) {
+      throw Object.assign(
+        new Error("sentinel entry changed during inspection (identity mismatch): " + sp),
+        { code: "SENTINEL_ENTRY_CHANGED" }
+      );
+    }
+    let text;
+    try {
+      text = d.readFileSync(fd, "utf8");
+    } catch (cause) {
+      const err = new Error("sentinel entry contents cannot be read: " + sp);
+      err.code = "SENTINEL_UNREADABLE";
+      err.cause = cause;
+      throw err;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (cause) {
+      const err = new Error("sentinel entry is not valid JSON: " + sp);
+      err.code = "SENTINEL_MALFORMED";
+      err.cause = cause;
+      throw err;
+    }
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      parsed.schema !== SENTINEL_SCHEMA
+    ) {
+      const err = new Error(
+        "sentinel entry lacks R2 schema (foreign or unknown format): " + sp
+      );
+      err.code = "SENTINEL_MALFORMED";
+      throw err;
+    }
+    return {
+      status: "present",
+      fd: fd,
+      identity: { dev: opened.dev, ino: opened.ino },
+      metadata: parsed,
+    };
+  } catch (error) {
+    // On any failure, close the fd we opened (caller only closes on success).
+    try {
+      fs.closeSync(fd);
+    } catch {}
+    throw error;
+  }
+}
+
+// Verify the current path entry's identity matches a previously-opened identity.
+// Used immediately before unlink to catch replacement after the open but before
+// removal. Throws SENTINEL_ENTRY_CHANGED if the inode differs.
+function assertSentinelPathIdentityMatches(identity) {
+  const sp = sentinelPath();
+  let current;
+  try {
+    current = fs.lstatSync(sp);
+  } catch (error) {
+    if (error && error.code === "ENOENT") {
+      // Entry disappeared — let the absence path handle it.
+      return;
+    }
+    const err = new Error("sentinel entry cannot be inspected before unlink: " + sp);
+    err.code = "SENTINEL_UNREADABLE";
+    err.cause = error;
+    throw err;
+  }
+  if (!current.isFile()) {
+    throw Object.assign(
+      new Error("sentinel entry is not a regular file before unlink: " + sp),
+      { code: "SENTINEL_ENTRY_CHANGED" }
+    );
+  }
+  if (current.dev !== identity.dev || current.ino !== identity.ino) {
+    throw Object.assign(
+      new Error("sentinel entry identity changed before unlink: " + sp),
+      { code: "SENTINEL_ENTRY_CHANGED" }
+    );
+  }
 }
 
 // Strict absence assertion via lstat. Used for post-unlink verification.
@@ -624,18 +797,29 @@ function releaseSentinelMutationLock(expectedToken) {
 
 // Combined ownership-verified removal primitive.
 // While holding the mutation lock:
-//   1. Strict-inspect the sentinel entry (lstat-based — a dangling symlink is
-//      NOT absence; it is SENTINEL_MALFORMED and must not be treated as removed)
+//   1. Open the sentinel entry FD-BOUND with identity verification (lstat →
+//      open(O_NOFOLLOW) → fstat dev/ino match → read from fd). A non-cooperative
+//      process that replaces the entry between lstat and read is detected via
+//      the fstat identity check (and by O_NOFOLLOW on platforms that support it).
 //   2. If truly absent (ENOENT): fsync the directory (durability for an earlier
-//      unlink by this or another process) and strictly verify absence
+//      unlink) and strictly verify absence.
 //   3. If present: validate ownership (run_id + plan_digest) on the parsed R2
-//      metadata, then unlink, fsync, and strictly verify absence
-//   4. Release lock
+//      metadata read from the verified fd.
+//   4. Re-verify path identity immediately before unlink (catches replacement
+//      after the open). Close the fd, then unlink the pathname, fsync, and
+//      strictly verify absence.
+//   5. Release lock.
+//
+// LIMITATION (explicit): Node does not provide atomic fd-bound unlinkat. The
+// pre-unlink identity check narrows the race but does not claim immunity from
+// arbitrary raw filesystem replacement after that check. The mutation lock
+// serializes all cooperative Ola operations.
 function removeMigrationSentinelOwnedBy(runId, planDigest) {
   const lockInfo = acquireSentinelMutationLock("remove-owned", runId, planDigest);
+  let openedFd = null;
   try {
-    // 1. Strict inspection (lstat-based — does NOT follow symlinks)
-    const inspected = readSentinelEntryStrict();
+    // 1. FD-bound inspection with identity verification.
+    const inspected = openSentinelEntryStrict();
 
     // 2. Truly absent (ENOENT) — valid retry case. Establish deletion durability
     //    and strictly verify the entry is gone (not a dangling symlink).
@@ -645,7 +829,12 @@ function removeMigrationSentinelOwnedBy(runId, planDigest) {
       return;
     }
 
-    // 3. Present regular R2 file — validate ownership.
+    // Track the opened fd so the finally can close it on any path that doesn't
+    // explicitly close it below.
+    openedFd = inspected.fd;
+
+    // 3. Present regular R2 file — validate ownership against metadata read
+    //    from the identity-verified fd.
     const meta = inspected.metadata;
     if (meta.run_id !== runId) {
       const err = new Error("sentinel belongs to run_id=" + meta.run_id + ", not " + runId);
@@ -657,19 +846,39 @@ function removeMigrationSentinelOwnedBy(runId, planDigest) {
       err.code = "SENTINEL_FOREIGN";
       throw err;
     }
-    // 4. Unlink
+
+    // 4. Re-verify path identity immediately before unlink. Catches replacement
+    //    after the open. Throws SENTINEL_ENTRY_CHANGED if the inode differs.
+    assertSentinelPathIdentityMatches(inspected.identity);
+
+    // Close the fd BEFORE unlinking (unlink targets the pathname; holding an
+    // open fd on Linux would keep the inode alive but the postcondition checks
+    // the path entry, which is the correct authority surface).
+    try {
+      fs.closeSync(openedFd);
+    } catch {}
+    openedFd = null;
+
+    // 5. Unlink the pathname.
     try {
       fs.unlinkSync(sentinelPath());
     } catch (e) {
       if (e.code !== "ENOENT") throw e;
     }
-    // 5. Fsync parent directory
+    // 6. Fsync parent directory.
     fsyncMigrationSentinelDirectory();
-    // 6. Strict absence verification (lstat — a dangling symlink left by a
-    //    concurrent replacement must NOT pass this postcondition)
+    // 7. Strict absence verification (lstat — a dangling symlink or replacement
+    //    left after unlink must NOT pass this postcondition).
     assertSentinelEntryAbsentStrict();
   } finally {
-    // 6. Release lock (always, even on error)
+    // Ensure the fd is closed on every path (success already closed it; this
+    // covers error paths that threw after opening).
+    if (openedFd !== null) {
+      try {
+        fs.closeSync(openedFd);
+      } catch {}
+    }
+    // Release lock (always, even on error).
     releaseSentinelMutationLock(lockInfo.token);
   }
 }
@@ -1219,7 +1428,9 @@ module.exports = {
   removeMigrationSentinel,
   removeMigrationSentinelOwnedBy,
   readSentinelEntryStrict,
+  openSentinelEntryStrict,
   assertSentinelEntryAbsentStrict,
+  assertSentinelPathIdentityMatches,
   refusalMessage,
   // Mutation lock
   LOCK_SCHEMA,

@@ -427,6 +427,267 @@ function main() {
     }
   });
 
+  // ── FD-bound reader + identity verification (Tests 16-25) ───────────────
+  // These exercise openSentinelEntryStrict (lstat → open(O_NOFOLLOW) → fstat
+  // identity check → read from fd) and assertSentinelPathIdentityMatches.
+  // Several use deps injection to simulate non-cooperative entry replacement
+  // and read failures deterministically.
+
+  console.log("\n=== Test 16: entry replaced with symlink after initial lstat → MALFORMED ===");
+  withTempHome(function (home) {
+    // Start with a regular R2 file. Inject openSync to fail with ELOOP,
+    // simulating the entry becoming a symlink between lstat and open.
+    writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    let threw = false;
+    let code = null;
+    try {
+      sentinel.openSentinelEntryStrict({
+        openSync: function () {
+          const err = new Error("symlink rejected by O_NOFOLLOW");
+          err.code = "ELOOP";
+          throw err;
+        },
+      });
+    } catch (e) {
+      threw = true;
+      code = e.code;
+    }
+    assert(threw === true, "entry-became-symlink at open throws");
+    assert(code === "SENTINEL_MALFORMED", "code SENTINEL_MALFORMED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 17: fstat identity differs from initial lstat → ENTRY_CHANGED ===");
+  withTempHome(function (home) {
+    // Regular R2 file. Inject fstat to return a DIFFERENT inode (simulating
+    // replacement by a different regular file between lstat and open).
+    writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    let threw = false;
+    let code = null;
+    try {
+      sentinel.openSentinelEntryStrict({
+        openSync: fs.openSync,
+        fstatSync: function (fd) {
+          // Return a real Stats object with tampered identity fields. Must
+          // preserve the prototype (isFile() etc.) — Object.assign({}, ...)
+          // would produce a plain object missing Stats methods.
+          const real = fs.fstatSync(fd);
+          const tampered = Object.create(Object.getPrototypeOf(real));
+          Object.assign(tampered, real);
+          tampered.ino = real.ino + 9999;
+          tampered.dev = real.dev + 1;
+          return tampered;
+        },
+      });
+    } catch (e) {
+      threw = true;
+      code = e.code;
+    }
+    assert(threw === true, "fstat identity mismatch throws");
+    assert(code === "SENTINEL_ENTRY_CHANGED", "code SENTINEL_ENTRY_CHANGED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 18: descriptor read throws EACCES → SENTINEL_UNREADABLE ===");
+  withTempHome(function (home) {
+    writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    let threw = false;
+    let code = null;
+    try {
+      sentinel.openSentinelEntryStrict({
+        openSync: fs.openSync,
+        fstatSync: fs.fstatSync,
+        readFileSync: function () {
+          const err = new Error("permission denied");
+          err.code = "EACCES";
+          throw err;
+        },
+      });
+    } catch (e) {
+      threw = true;
+      code = e.code;
+    }
+    assert(threw === true, "EACCES read failure throws");
+    assert(code === "SENTINEL_UNREADABLE", "code SENTINEL_UNREADABLE not MALFORMED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 19: descriptor read throws EIO → SENTINEL_UNREADABLE ===");
+  withTempHome(function (home) {
+    writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    let threw = false;
+    let code = null;
+    try {
+      sentinel.openSentinelEntryStrict({
+        openSync: fs.openSync,
+        fstatSync: fs.fstatSync,
+        readFileSync: function () {
+          const err = new Error("I/O error");
+          err.code = "EIO";
+          throw err;
+        },
+      });
+    } catch (e) {
+      threw = true;
+      code = e.code;
+    }
+    assert(threw === true, "EIO read failure throws");
+    assert(code === "SENTINEL_UNREADABLE", "code SENTINEL_UNREADABLE not MALFORMED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 20: valid read but invalid JSON → SENTINEL_MALFORMED ===");
+  withTempHome(function (home) {
+    // Write a regular file with non-JSON content.
+    const sp = sentinelFile(home);
+    fs.writeFileSync(sp, "not valid json {{{");
+    let threw = false;
+    let code = null;
+    try {
+      sentinel.openSentinelEntryStrict({
+        openSync: fs.openSync,
+        fstatSync: fs.fstatSync,
+        readFileSync: fs.readFileSync,
+      });
+    } catch (e) {
+      threw = true;
+      code = e.code;
+    }
+    assert(threw === true, "invalid JSON throws");
+    assert(code === "SENTINEL_MALFORMED", "code SENTINEL_MALFORMED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 21: valid JSON but wrong schema → SENTINEL_MALFORMED ===");
+  withTempHome(function (home) {
+    const sp = sentinelFile(home);
+    fs.writeFileSync(sp, '{"foo":"bar"}');
+    let threw = false;
+    let code = null;
+    try {
+      sentinel.openSentinelEntryStrict({
+        openSync: fs.openSync,
+        fstatSync: fs.fstatSync,
+        readFileSync: fs.readFileSync,
+      });
+    } catch (e) {
+      threw = true;
+      code = e.code;
+    }
+    assert(threw === true, "wrong schema throws");
+    assert(code === "SENTINEL_MALFORMED", "code SENTINEL_MALFORMED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 22: normal owned regular sentinel still removes successfully ===");
+  withTempHome(function (home) {
+    const sp = writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    let threw = false;
+    try {
+      sentinel.removeMigrationSentinelOwnedBy("20260101T000000Z", "a".repeat(64));
+    } catch (e) {
+      threw = true;
+    }
+    assert(threw === false, "owned sentinel removed successfully (fd-bound path)");
+    assert(fs.existsSync(sp) === false, "sentinel file gone");
+    assert(fs.existsSync(sentinel.lockPath()) === false, "mutation lock released");
+  });
+
+  console.log("\n=== Test 23: path identity differs immediately before unlink → ENTRY_CHANGED ===");
+  withTempHome(function (home) {
+    // Owned R2 sentinel. Inject openSync to return a real fd, but tamper the
+    // path-entry identity so the pre-unlink check detects the change.
+    writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    let threw = false;
+    let code = null;
+    // Monkeypatch lstatSync so the SECOND lstat (in assertSentinelPathIdentityMatches)
+    // returns a different inode than the first.
+    const origLstat = fs.lstatSync;
+    let lstatCallCount = 0;
+    let firstIno = null;
+    try {
+      fs.lstatSync = function (p) {
+        const stat = origLstat(p);
+        lstatCallCount++;
+        if (lstatCallCount === 1) firstIno = stat.ino;
+        if (lstatCallCount === 2) {
+          // The pre-unlink recheck (assertSentinelPathIdentityMatches calls
+          // lstat once after openSentinelEntryStrict's lstat). Return a tampered
+          // inode. Must preserve the Stats prototype (isFile() etc.) —
+          // Object.assign({}, ...) would produce a plain object.
+          const tampered = Object.create(Object.getPrototypeOf(stat));
+          Object.assign(tampered, stat);
+          tampered.ino = firstIno + 99999;
+          return tampered;
+        }
+        return stat;
+      };
+      try {
+        sentinel.removeMigrationSentinelOwnedBy("20260101T000000Z", "a".repeat(64));
+      } catch (e) {
+        threw = true;
+        code = e.code;
+      }
+    } finally {
+      fs.lstatSync = origLstat;
+    }
+    assert(threw === true, "path identity change before unlink throws");
+    assert(code === "SENTINEL_ENTRY_CHANGED", "code SENTINEL_ENTRY_CHANGED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 24: all opened descriptors closed on every failure path ===");
+  withTempHome(function (home) {
+    writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    // Track fds opened vs closed via injected openSync/closeSync.
+    const openedFds = [];
+    const closedFds = [];
+    let threw = false;
+    try {
+      sentinel.openSentinelEntryStrict({
+        openSync: function () {
+          const fd = fs.openSync(sentinelFile(home), "r");
+          openedFds.push(fd);
+          return fd;
+        },
+        fstatSync: fs.fstatSync,
+        readFileSync: function () {
+          // Cause a failure AFTER the fd was opened — the error path must close it.
+          throw Object.assign(new Error("injected read failure"), { code: "EIO" });
+        },
+      });
+    } catch (e) {
+      threw = true;
+    }
+    assert(threw === true, "failure path triggered");
+    // The openSentinelEntryStrict error handler must close the fd it opened.
+    // (It uses the real fs.closeSync internally, so we verify via the tracked arrays.)
+    assert(openedFds.length === 1, "exactly one fd opened (got: " + openedFds.length + ")");
+    // Verify the fd is actually closed by trying to fstat it (should throw EBADF).
+    let fdClosed = false;
+    try {
+      fs.fstatSync(openedFds[0]);
+    } catch (e) {
+      fdClosed = e.code === "EBADF";
+    }
+    assert(fdClosed === true, "opened fd closed on failure path (EBADF on reuse)");
+  });
+
+  console.log("\n=== Test 25: openSentinelEntryStrict returns fd + identity + metadata on success ===");
+  withTempHome(function (home) {
+    writeR2Sentinel(home, "20260101T000000Z", "a".repeat(64));
+    let result = null;
+    let fdToClose = null;
+    try {
+      result = sentinel.openSentinelEntryStrict({
+        openSync: fs.openSync,
+        fstatSync: fs.fstatSync,
+        readFileSync: fs.readFileSync,
+      });
+      if (result.fd) fdToClose = result.fd;
+    } finally {
+      if (fdToClose !== null) { try { fs.closeSync(fdToClose); } catch {} }
+    }
+    assert(result && result.status === "present", "status present (got: " + (result && result.status) + ")");
+    assert(result && typeof result.fd === "number", "returns numeric fd");
+    assert(result && result.identity && typeof result.identity.dev !== "undefined", "returns identity.dev");
+    assert(result && result.identity && typeof result.identity.ino !== "undefined", "returns identity.ino");
+    assert(result && result.metadata && result.metadata.schema === "ola.migration.sentinel.v1", "metadata has R2 schema");
+  });
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("Owned-removal strict: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");
