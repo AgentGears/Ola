@@ -411,6 +411,10 @@ function main() {
             if (callCount === 1) return "legacy_empty_candidate";
             return "r2";
           },
+          // This test is about the replacement race, not fsync. Inject a no-op
+          // fsyncDirectory so the legacy-dir fsync step (which would fail on a
+          // non-existent legacy-parent on Linux) doesn't mask the recheck result.
+          fsyncDirectory: function () { return "synced"; },
         },
       });
     } catch (e) {
