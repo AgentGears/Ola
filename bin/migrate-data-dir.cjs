@@ -565,19 +565,39 @@ function cmdNeutralize() {
   const canon = shared.resolveDataDir();
   const legacy = legacyStores.detectLegacyStores(canon);
 
-  // Safety: refuse to operate if an R2 migration sentinel is active.
-  // The legacy neutralize workflow predates R2 and uses raw removeMigrationSentinel(),
-  // which bypasses ownership verification and mutation-lock serialization.
-  // An R2 sentinel must only be removed through R2 commands.
+  // Safety: classify any active sentinel before proceeding.
+  // The legacy neutralize workflow uses raw removeMigrationSentinel(), which
+  // bypasses ownership verification and mutation-lock serialization.
+  // Fail closed unless the sentinel is positively identified as a supported
+  // legacy encoding. R2 sentinels, raw/malformed sentinels, and unknown
+  // schemas all refuse.
   if (sentinel.isMigrationInProgress()) {
     const sentinelMeta = sentinel.readSentinel();
-    if (sentinelMeta && sentinelMeta.schema === "ola.migration.sentinel.v1") {
+    if (sentinelMeta === null) {
+      // Race: sentinel disappeared between isMigrationInProgress and readSentinel
+      // Proceed without sentinel
+    } else if (sentinelMeta.raw === true) {
+      // Malformed JSON, unreadable, partially written, or unparseable sentinel.
+      console.error("ERROR: The active migration sentinel is malformed or unreadable.");
+      console.error("Legacy neutralize refuses to remove a sentinel it cannot classify.");
+      console.error("Inspect the sentinel manually, or use R2 commands if applicable.");
+      process.exit(1);
+    } else if (sentinelMeta.schema === sentinel.SENTINEL_SCHEMA) {
+      // R2 sentinel — refuse
       console.error("ERROR: An R2 migration sentinel is active.");
       console.error("Legacy neutralize cannot remove an R2 sentinel without ownership verification.");
       console.error("Use R2 commands instead: release-sentinel or finalize-backup.");
       process.exit(1);
+    } else if (sentinelMeta.schema === undefined && sentinelMeta.run_id === undefined) {
+      // Legacy sentinel format (pre-R2): no schema field, no run_id.
+      // This is the only format legacy neutralize is authorized to remove.
+      // Proceed.
+    } else {
+      // Unknown schema with structured metadata — refuse
+      console.error("ERROR: The active sentinel has an unrecognized schema: " + sentinelMeta.schema);
+      console.error("Legacy neutralize refuses to remove an unknown sentinel format.");
+      process.exit(1);
     }
-    // Non-R2 sentinel (legacy format) — legacy neutralize may proceed
   }
 
   if (legacy.length === 0) {
