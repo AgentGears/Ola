@@ -11848,6 +11848,30 @@ function renderReleaseSentinelSummary(result) {
 //
 // A present physical sentinel must cause refusal; this command never removes it.
 
+// Strict physical-sentinel-absence assertion for finalization.
+// Uses lstat (NOT existsSync) so a dangling symlink — which existsSync reports
+// as absent because its target doesn't exist — is correctly detected as present.
+// Maps SENTINEL_STILL_PRESENT → PHYSICAL_SENTINEL_PRESENT and any other
+// inspection failure → GLOBAL_SENTINEL_UNREADABLE.
+function assertFinalizationSentinelAbsent(sentinelFilePath) {
+  try {
+    sentinel.assertSentinelEntryAbsentStrict(sentinelFilePath);
+  } catch (error) {
+    if (error.code === "SENTINEL_STILL_PRESENT") {
+      throw new R2Error(
+        "PHYSICAL_SENTINEL_PRESENT",
+        "finalize-backup requires the physical sentinel entry to be absent",
+        error.code
+      );
+    }
+    throw new R2Error(
+      "GLOBAL_SENTINEL_UNREADABLE",
+      "cannot establish physical sentinel absence: " + error.message,
+      error.code
+    );
+  }
+}
+
 function cmdFinalizeBackup(args, paths, injectedDeps) {
   var runId = args.flags.run;
   if (!runId) throw new R2Error("RUN_ID_REQUIRED", "finalize-backup requires --run <run_id>");
@@ -11861,7 +11885,6 @@ function cmdFinalizeBackup(args, paths, injectedDeps) {
 
   var state = readState(root, runId);
   var sentinelPath = path.join(paths.home, ".ola-migration", ".migration-in-progress");
-  var physicalPresent = fs.existsSync(sentinelPath);
 
   // Idempotency: already backup_completed
   if (state.status === RUN_STATUSES.backup_completed) {
@@ -11920,12 +11943,9 @@ function cmdFinalizeBackup(args, paths, injectedDeps) {
   }
 
   // Physical sentinel must be absent — this command never removes it.
-  if (physicalPresent) {
-    throw new R2Error("PHYSICAL_SENTINEL_PRESENT",
-      "finalize-backup requires the physical sentinel to be absent (it was removed during the backup command). " +
-      "A present sentinel suggests the release did not complete. Use release-sentinel for backup_failed states, " +
-      "or investigate why the sentinel still exists.");
-  }
+  // Uses lstat-based strict assertion (NOT existsSync) so a dangling symlink
+  // is correctly detected as present.
+  assertFinalizationSentinelAbsent(sentinelPath);
 
   // Durably sync the absent sentinel: fsync the parent directory so any prior
   // unlink by another process is durable before we write backup_completed.
@@ -11939,10 +11959,9 @@ function cmdFinalizeBackup(args, paths, injectedDeps) {
   }
 
   // Post-sync recheck: the sentinel must STILL be absent after fsync.
-  if (fs.existsSync(sentinelPath)) {
-    throw new R2Error("PHYSICAL_SENTINEL_PRESENT",
-      "physical sentinel appeared after directory sync — refusing to finalize with a present sentinel");
-  }
+  // Uses lstat-based strict assertion (NOT existsSync) so a dangling symlink
+  // installed during the fsync seam is correctly detected.
+  assertFinalizationSentinelAbsent(sentinelPath);
 
   // Mutation lock absence assertion: a stranded mutation lock means the
   // sentinel removal was interrupted before its finally block released the

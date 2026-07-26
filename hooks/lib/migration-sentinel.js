@@ -331,11 +331,17 @@ function assertSentinelPathIdentityMatches(identity) {
   return "matched";
 }
 
-// Strict absence assertion via lstat. Used for post-unlink verification.
-// Only ENOENT proves absence — a dangling symlink or other non-regular entry
-// must NOT pass this postcondition.
-function assertSentinelEntryAbsentStrict() {
-  const sp = sentinelPath();
+// Strict absence assertion via lstat. Used for post-unlink verification and
+// for commands that must establish physical sentinel absence (e.g. finalize-
+// backup). Only ENOENT proves absence — a dangling symlink or other non-regular
+// entry must NOT pass this postcondition.
+//
+// filePath (optional): the path to inspect. Defaults to the module-global
+// sentinelPath(). Callers with a fixture-aware path (derived from paths.home)
+// must pass it explicitly rather than relying on the default, because the
+// default resolves via os.homedir() which may differ from the test fixture.
+function assertSentinelEntryAbsentStrict(filePath) {
+  const sp = filePath || sentinelPath();
   try {
     fs.lstatSync(sp);
   } catch (error) {
