@@ -734,8 +734,7 @@ function cmdNeutralize(args, deps) {
     // unlink/fsync/verify/journal-remove.
     const legacyPath = legacy[0].path;
     const legacyParent = path.dirname(legacyPath);
-    const iso = new Date().toISOString().replace(/[:.]/g, "").slice(0, -1) + "Z";
-    const newName = "memory.migrated-" + iso;
+    const newName = "memory.migrated-" + sentinel.formatLegacyArchiveTimestamp(new Date());
     const newPath = path.join(legacyParent, newName);
 
     const recoveryRecord = {

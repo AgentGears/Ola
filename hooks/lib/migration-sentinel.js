@@ -1507,8 +1507,21 @@ function withLegacyEmptySentinelLock(options) {
 
 const RECOVERY_JOURNAL_NAME = ".legacy-neutralize-recovery";
 const RECOVERY_JOURNAL_SCHEMA = "ola.legacy-neutralize-recovery.v1";
-// The archive basename grammar produced by cmdNeutralize's single-legacy branch.
+// The canonical archive basename grammar: memory.migrated-YYYYMMDDTHHMMSSZ
 const RECOVERY_JOURNAL_TARGET_RE = /^memory\.migrated-\d{8}T\d{6}Z$/;
+
+// Canonical timestamp formatter for legacy archive names.
+// Produces exactly YYYYMMDDTHHMMSSZ (no date hyphens, no milliseconds).
+// Both the archive name producer (cmdNeutralize) and the journal validator
+// must agree on this format. The old producer used .replace(/[:.]/g, "")
+// which retained date hyphens and milliseconds, producing names the validator
+// rejected.
+function formatLegacyArchiveTimestamp(date) {
+  return date
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
+}
 
 function recoveryJournalPath() {
   return path.join(sentinelDir(), RECOVERY_JOURNAL_NAME);
@@ -1661,6 +1674,14 @@ function writeLegacyNeutralizeRecoveryJournal(record, deps) {
     deps || {}
   );
   var jp = d.filePath || recoveryJournalPath();
+  // Validate the record BEFORE any filesystem operation. This prevents a
+  // caller-produced invalid record from being written and stranded as a
+  // malformed canonical journal that blocks subsequent invocations.
+  if (!_validateRecoveryJournalRecord(record)) {
+    var valErr = new Error("recovery journal record is invalid before publication: " + jp);
+    valErr.code = "SENTINEL_MALFORMED";
+    throw valErr;
+  }
   // Refuse if journal already exists (no-clobber).
   try {
     d.lstatSync(jp);
@@ -1803,6 +1824,8 @@ module.exports = {
   // Legacy neutralize recovery journal
   RECOVERY_JOURNAL_NAME,
   RECOVERY_JOURNAL_SCHEMA,
+  RECOVERY_JOURNAL_TARGET_RE,
+  formatLegacyArchiveTimestamp,
   recoveryJournalPath,
   readLegacyNeutralizeRecoveryJournal,
   writeLegacyNeutralizeRecoveryJournal,

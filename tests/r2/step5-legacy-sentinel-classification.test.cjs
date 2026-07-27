@@ -1100,6 +1100,98 @@ function main() {
     assert(callbackRecord && callbackRecord.renamed_path === record.renamed_path, "authoritative record paths match");
   });
 
+  // ── Archive-name format + pre-publication validation (Tests 45-47) ──────
+
+  console.log("\n=== Test 45: cmdNeutralize single-legacy produces validator-compatible archive name ===");
+  withTempHome(function (home) {
+    // This is the critical end-to-end test: the archive name produced by
+    // cmdNeutralize's normal path must match RECOVERY_JOURNAL_TARGET_RE.
+    // The old producer used .replace(/[:.]/g, "") which retained date hyphens
+    // and milliseconds — every real invocation would strand a malformed journal.
+    const sp = writeEmptySentinel(home);
+    const legacyParent = path.join(home, "legacy-parent");
+    fs.mkdirSync(legacyParent);
+    const legacyPath = path.join(legacyParent, "old-store");
+    fs.mkdirSync(legacyPath);
+    var mutateCalled = false;
+    var generatedNewPath = null;
+    const result = sentinel.withLegacyEmptySentinelLock({
+      mode: "begin",
+      mutateLegacyStore: function (d) {
+        // Use the SAME formatter cmdNeutralize uses to generate the archive name.
+        const newName = "memory.migrated-" + sentinel.formatLegacyArchiveTimestamp(new Date());
+        generatedNewPath = path.join(legacyParent, newName);
+        d.renameSync(legacyPath, generatedNewPath);
+        mutateCalled = true;
+      },
+      verifyLegacyStore: function () {},
+      legacyDirectoryPath: legacyParent,
+      context: { legacy_path: legacyPath, renamed_path: generatedNewPath || "" },
+      recoveryRecord: (function () {
+        const newName = "memory.migrated-" + sentinel.formatLegacyArchiveTimestamp(new Date());
+        const renamedPath = path.join(legacyParent, newName);
+        return validRecoveryRecord(legacyPath, renamedPath, legacyParent);
+      })(),
+      deps: {},
+    });
+    assert(mutateCalled === true, "rename callback invoked");
+    assert(generatedNewPath !== null, "archive path generated");
+    var basename = path.basename(generatedNewPath);
+    assert(
+      sentinel.RECOVERY_JOURNAL_TARGET_RE.test(basename),
+      "generated basename matches validator grammar (got: " + basename + ")"
+    );
+    assert(fs.existsSync(sp) === false, "sentinel removed");
+    assert(sentinel.readLegacyNeutralizeRecoveryJournal() === null, "journal removed after success");
+  });
+
+  console.log("\n=== Test 46: invalid recovery record rejected BEFORE publication ===");
+  withTempHome(function (home) {
+    // A record with a noncanonical basename must be rejected before any file
+    // is written or linked. No authority artifact must be left behind.
+    writeEmptySentinel(home); // candidate must pass initial assertion to reach publication
+    const parent = path.join(home, "p");
+    fs.mkdirSync(parent);
+    var mutateCalled = false;
+    var threw = false, code = null;
+    try {
+      sentinel.withLegacyEmptySentinelLock({
+        mode: "begin",
+        mutateLegacyStore: function () { mutateCalled = true; },
+        verifyLegacyStore: function () {},
+        legacyDirectoryPath: parent,
+        context: {},
+        recoveryRecord: {
+          schema: sentinel.RECOVERY_JOURNAL_SCHEMA,
+          legacy_path: path.join(parent, "src"),
+          renamed_path: path.join(parent, "arbitrary-name"), // invalid basename
+          legacy_parent: parent,
+          created_at: new Date().toISOString(),
+        },
+        deps: {},
+      });
+    } catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "invalid record rejected");
+    assert(code === "SENTINEL_MALFORMED", "code SENTINEL_MALFORMED (got: " + code + ")");
+    assert(mutateCalled === false, "mutateLegacyStore NOT invoked (rejected before rename)");
+    assert(sentinel.readLegacyNeutralizeRecoveryJournal() === null, "no journal artifact left behind");
+  });
+
+  console.log("\n=== Test 47: formatLegacyArchiveTimestamp produces canonical format ===");
+  {
+    // Direct unit test of the shared formatter.
+    var d = new Date("2026-07-27T20:54:04.123Z");
+    var formatted = sentinel.formatLegacyArchiveTimestamp(d);
+    assert(formatted === "20260727T205404Z", "canonical format (got: " + formatted + ")");
+    assert(
+      sentinel.RECOVERY_JOURNAL_TARGET_RE.test("memory.migrated-" + formatted),
+      "formatted basename matches validator"
+    );
+    // Verify it does NOT retain date hyphens or milliseconds
+    assert(formatted.indexOf("-") === -1, "no date hyphens");
+    assert(formatted.indexOf(".") === -1, "no milliseconds");
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("Legacy sentinel classification: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");
