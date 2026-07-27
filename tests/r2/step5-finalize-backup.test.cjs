@@ -53,6 +53,31 @@ function readStateSafe(root, runId) {
   try { return m.readState(root, runId); } catch { return null; }
 }
 
+// Transition a backup_release_pending run to backup_completed (the final state).
+// Uses the same transition _finalizeBackupCompleted uses internally.
+function finalizeReleasePendingRun(paths, runId, plan) {
+  var state = m.readState(paths.olaMigrationRoot, runId);
+  var releaseTs = new Date().toISOString();
+  var _rollbackNA = {
+    schema: "ola.migration.r2.rollback-state.v1", status: "not_applicable",
+    trigger_failure_digest: null, intent_path: null, intent_digest: null,
+    completed_steps: [], target_quarantine: null, source_quarantine: null,
+    quarantine_manifest_path: null, quarantine_manifest_digest: null,
+    quarantine_manifest_input_state_digest: null, attestation_path: null,
+    attestation_digest: null, release_intent_path: null, release_intent_digest: null,
+    receipt_path: null, receipt_digest: null, started_at: null, verified_at: null,
+    released_at: null, failure: null, verified: false,
+  };
+  state = m.transitionState(state, {
+    status: "backup_completed",
+    sentinel: { owned: false, released_at: releaseTs },
+    rollback: _rollbackNA,
+    structural_verification: "not_applicable",
+    live_verification: "not_applicable",
+  });
+  m.writeStateAtomic(paths.olaMigrationRoot, runId, state);
+}
+
 // Create a run in backup_release_pending state with NO physical sentinel
 function createReleasePendingRun(paths, plan) {
   const runId = fx.validRunId("fin");
@@ -597,20 +622,8 @@ async function main() {
   console.log("\n=== Test 19: same-run sentinel under paths.home → SENTINEL_STATE_INCONSISTENT ===");
   {
     const { plan, paths } = setupFixture("fin-19");
-    // Build a backup_completed run state (already finalized).
-    const runId = fx.validRunId("fin19");
-    const rd = m.runDir(paths.olaMigrationRoot, runId);
-    fs.mkdirSync(rd, { recursive: true });
-    fs.writeFileSync(path.join(rd, "plan.json"), m.canonicalJson(plan) + "\n");
-    var st = m.buildInitialState({ runId: runId, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString() });
-    st = m.transitionState(st, { status: "in_progress", sentinel: { owned: true, released_at: null } });
-    st = m.transitionState(st, { backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) }, completed_steps: ["backup"], step_outputs: { backup: {} } });
-    st = m.transitionState(st, {
-      status: "backup_completed", sentinel: { owned: false, released_at: new Date().toISOString() },
-      rollback: { schema: "ola.migration.r2.rollback-state.v1", status: "not_applicable", trigger_failure_digest: null, intent_path: null, intent_digest: null, completed_steps: [], target_quarantine: null, source_quarantine: null, quarantine_manifest_path: null, quarantine_manifest_digest: null, quarantine_manifest_input_state_digest: null, attestation_path: null, attestation_digest: null, release_intent_path: null, release_intent_digest: null, receipt_path: null, receipt_digest: null },
-      structural_verification: "not_applicable", live_verification: "not_applicable",
-    });
-    m.writeStateAtomic(paths.olaMigrationRoot, runId, st);
+    const { runId } = createReleasePendingRun(paths, plan);
+    finalizeReleasePendingRun(paths, runId, plan);
     process.env.HOME = paths.home; process.env.USERPROFILE = paths.home;
     // Place a same-run sentinel at the paths.home sentinel path.
     const sp = path.join(paths.home, ".ola-migration", ".migration-in-progress");
@@ -627,19 +640,8 @@ async function main() {
   console.log("\n=== Test 20: foreign sentinel under paths.home → already_finalized ===");
   {
     const { plan, paths } = setupFixture("fin-20");
-    const runId = fx.validRunId("fin20");
-    const rd = m.runDir(paths.olaMigrationRoot, runId);
-    fs.mkdirSync(rd, { recursive: true });
-    fs.writeFileSync(path.join(rd, "plan.json"), m.canonicalJson(plan) + "\n");
-    var st = m.buildInitialState({ runId: runId, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString() });
-    st = m.transitionState(st, { status: "in_progress", sentinel: { owned: true, released_at: null } });
-    st = m.transitionState(st, { backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) }, completed_steps: ["backup"], step_outputs: { backup: {} } });
-    st = m.transitionState(st, {
-      status: "backup_completed", sentinel: { owned: false, released_at: new Date().toISOString() },
-      rollback: { schema: "ola.migration.r2.rollback-state.v1", status: "not_applicable", trigger_failure_digest: null, intent_path: null, intent_digest: null, completed_steps: [], target_quarantine: null, source_quarantine: null, quarantine_manifest_path: null, quarantine_manifest_digest: null, quarantine_manifest_input_state_digest: null, attestation_path: null, attestation_digest: null, release_intent_path: null, release_intent_digest: null, receipt_path: null, receipt_digest: null },
-      structural_verification: "not_applicable", live_verification: "not_applicable",
-    });
-    m.writeStateAtomic(paths.olaMigrationRoot, runId, st);
+    const { runId } = createReleasePendingRun(paths, plan);
+    finalizeReleasePendingRun(paths, runId, plan);
     process.env.HOME = paths.home; process.env.USERPROFILE = paths.home;
     // Place a FOREIGN sentinel at the paths.home sentinel path.
     const sp = path.join(paths.home, ".ola-migration", ".migration-in-progress");
@@ -656,19 +658,8 @@ async function main() {
   console.log("\n=== Test 21: malformed entry under paths.home → fail closed ===");
   {
     const { plan, paths } = setupFixture("fin-21");
-    const runId = fx.validRunId("fin21");
-    const rd = m.runDir(paths.olaMigrationRoot, runId);
-    fs.mkdirSync(rd, { recursive: true });
-    fs.writeFileSync(path.join(rd, "plan.json"), m.canonicalJson(plan) + "\n");
-    var st = m.buildInitialState({ runId: runId, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString() });
-    st = m.transitionState(st, { status: "in_progress", sentinel: { owned: true, released_at: null } });
-    st = m.transitionState(st, { backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) }, completed_steps: ["backup"], step_outputs: { backup: {} } });
-    st = m.transitionState(st, {
-      status: "backup_completed", sentinel: { owned: false, released_at: new Date().toISOString() },
-      rollback: { schema: "ola.migration.r2.rollback-state.v1", status: "not_applicable", trigger_failure_digest: null, intent_path: null, intent_digest: null, completed_steps: [], target_quarantine: null, source_quarantine: null, quarantine_manifest_path: null, quarantine_manifest_digest: null, quarantine_manifest_input_state_digest: null, attestation_path: null, attestation_digest: null, release_intent_path: null, release_intent_digest: null, receipt_path: null, receipt_digest: null },
-      structural_verification: "not_applicable", live_verification: "not_applicable",
-    });
-    m.writeStateAtomic(paths.olaMigrationRoot, runId, st);
+    const { runId } = createReleasePendingRun(paths, plan);
+    finalizeReleasePendingRun(paths, runId, plan);
     process.env.HOME = paths.home; process.env.USERPROFILE = paths.home;
     // Place a directory at the sentinel path (malformed entry).
     const sp = path.join(paths.home, ".ola-migration", ".migration-in-progress");
@@ -700,19 +691,8 @@ async function main() {
     process.env.HOME = origHome; process.env.USERPROFILE = origProfile;
     // Now set up the fixture with a DIFFERENT paths.home.
     const { plan, paths } = setupFixture("fin-22");
-    const runId = fx.validRunId("fin22");
-    const rd = m.runDir(paths.olaMigrationRoot, runId);
-    fs.mkdirSync(rd, { recursive: true });
-    fs.writeFileSync(path.join(rd, "plan.json"), m.canonicalJson(plan) + "\n");
-    var st = m.buildInitialState({ runId: runId, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString() });
-    st = m.transitionState(st, { status: "in_progress", sentinel: { owned: true, released_at: null } });
-    st = m.transitionState(st, { backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) }, completed_steps: ["backup"], step_outputs: { backup: {} } });
-    st = m.transitionState(st, {
-      status: "backup_completed", sentinel: { owned: false, released_at: new Date().toISOString() },
-      rollback: { schema: "ola.migration.r2.rollback-state.v1", status: "not_applicable", trigger_failure_digest: null, intent_path: null, intent_digest: null, completed_steps: [], target_quarantine: null, source_quarantine: null, quarantine_manifest_path: null, quarantine_manifest_digest: null, quarantine_manifest_input_state_digest: null, attestation_path: null, attestation_digest: null, release_intent_path: null, release_intent_digest: null, receipt_path: null, receipt_digest: null },
-      structural_verification: "not_applicable", live_verification: "not_applicable",
-    });
-    m.writeStateAtomic(paths.olaMigrationRoot, runId, st);
+    const { runId } = createReleasePendingRun(paths, plan);
+    finalizeReleasePendingRun(paths, runId, plan);
     process.env.HOME = paths.home; process.env.USERPROFILE = paths.home;
     // NO sentinel at paths.home — the idempotent branch should see absent there.
     var result22 = null, threw22 = false;
