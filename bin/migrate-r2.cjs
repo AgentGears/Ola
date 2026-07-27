@@ -11892,10 +11892,15 @@ function cmdFinalizeBackup(args, paths, injectedDeps) {
       throw new R2Error("FINALIZE_PRECONDITION_FAILED",
         "backup_completed state has inconsistent sentinel ownership");
     }
-    // Ownership-aware sentinel classification.
+    // Ownership-aware sentinel classification via the EXACT fixture-aware path
+    // (paths.home-derived sentinelPath), NOT the module-global readSentinel()
+    // which reads os.homedir(). The strict reader returns an envelope; adapt
+    // it to the metadata-or-null shape _classifySentinelForRun expects.
     var fbClassification;
     try {
-      fbClassification = _classifySentinelForRun(sentinel.readSentinel(), runId, state.plan_digest);
+      var idempotentEntry = sentinel.readSentinelEntryStrict({ filePath: sentinelPath });
+      var idempotentActive = idempotentEntry.status === "absent" ? null : idempotentEntry.metadata;
+      fbClassification = _classifySentinelForRun(idempotentActive, runId, state.plan_digest);
     } catch (classErr) {
       throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
         "run is already finalized, but the active global sentinel cannot be classified: " + classErr.message, classErr.code);

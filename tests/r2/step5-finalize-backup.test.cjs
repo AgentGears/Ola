@@ -587,6 +587,145 @@ async function main() {
     cleanup(paths);
   }
 
+  // ── Tests 19-22: idempotent finalization reads the EXACT paths.home path ─
+  // These cover the P2 where the backup_completed idempotent branch called
+  // sentinel.readSentinel() (module-global os.homedir()) instead of the
+  // fixture-aware paths.home-derived path. The fix uses readSentinelEntryStrict
+  // with { filePath: sentinelPath } where sentinelPath = path.join(paths.home, ...).
+  // Both the fixture home and the unrelated process home are temp dirs.
+
+  console.log("\n=== Test 19: same-run sentinel under paths.home → SENTINEL_STATE_INCONSISTENT ===");
+  {
+    const { plan, paths } = setupFixture("fin-19");
+    // Build a backup_completed run state (already finalized).
+    const runId = fx.validRunId("fin19");
+    const rd = m.runDir(paths.olaMigrationRoot, runId);
+    fs.mkdirSync(rd, { recursive: true });
+    fs.writeFileSync(path.join(rd, "plan.json"), m.canonicalJson(plan) + "\n");
+    var st = m.buildInitialState({ runId: runId, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString() });
+    st = m.transitionState(st, { status: "in_progress", sentinel: { owned: true, released_at: null } });
+    st = m.transitionState(st, { backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) }, completed_steps: ["backup"], step_outputs: { backup: {} } });
+    st = m.transitionState(st, {
+      status: "backup_completed", sentinel: { owned: false, released_at: new Date().toISOString() },
+      rollback: { schema: "ola.migration.r2.rollback-state.v1", status: "not_applicable", trigger_failure_digest: null, intent_path: null, intent_digest: null, completed_steps: [], target_quarantine: null, source_quarantine: null, quarantine_manifest_path: null, quarantine_manifest_digest: null, quarantine_manifest_input_state_digest: null, attestation_path: null, attestation_digest: null, release_intent_path: null, release_intent_digest: null, receipt_path: null, receipt_digest: null },
+      structural_verification: "not_applicable", live_verification: "not_applicable",
+    });
+    m.writeStateAtomic(paths.olaMigrationRoot, runId, st);
+    process.env.HOME = paths.home; process.env.USERPROFILE = paths.home;
+    // Place a same-run sentinel at the paths.home sentinel path.
+    const sp = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    fs.mkdirSync(path.dirname(sp), { recursive: true });
+    fs.writeFileSync(sp, JSON.stringify({ schema: "ola.migration.sentinel.v1", run_id: runId, plan_digest: plan.plan_digest }));
+    var threw19 = false, code19 = null;
+    try { m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
+    catch (e) { threw19 = true; code19 = e.code; }
+    assert(threw19 === true, "same-run sentinel under paths.home throws");
+    assert(code19 === "SENTINEL_STATE_INCONSISTENT", "code SENTINEL_STATE_INCONSISTENT (got: " + code19 + ")");
+    cleanup(paths);
+  }
+
+  console.log("\n=== Test 20: foreign sentinel under paths.home → already_finalized ===");
+  {
+    const { plan, paths } = setupFixture("fin-20");
+    const runId = fx.validRunId("fin20");
+    const rd = m.runDir(paths.olaMigrationRoot, runId);
+    fs.mkdirSync(rd, { recursive: true });
+    fs.writeFileSync(path.join(rd, "plan.json"), m.canonicalJson(plan) + "\n");
+    var st = m.buildInitialState({ runId: runId, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString() });
+    st = m.transitionState(st, { status: "in_progress", sentinel: { owned: true, released_at: null } });
+    st = m.transitionState(st, { backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) }, completed_steps: ["backup"], step_outputs: { backup: {} } });
+    st = m.transitionState(st, {
+      status: "backup_completed", sentinel: { owned: false, released_at: new Date().toISOString() },
+      rollback: { schema: "ola.migration.r2.rollback-state.v1", status: "not_applicable", trigger_failure_digest: null, intent_path: null, intent_digest: null, completed_steps: [], target_quarantine: null, source_quarantine: null, quarantine_manifest_path: null, quarantine_manifest_digest: null, quarantine_manifest_input_state_digest: null, attestation_path: null, attestation_digest: null, release_intent_path: null, release_intent_digest: null, receipt_path: null, receipt_digest: null },
+      structural_verification: "not_applicable", live_verification: "not_applicable",
+    });
+    m.writeStateAtomic(paths.olaMigrationRoot, runId, st);
+    process.env.HOME = paths.home; process.env.USERPROFILE = paths.home;
+    // Place a FOREIGN sentinel at the paths.home sentinel path.
+    const sp = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    fs.mkdirSync(path.dirname(sp), { recursive: true });
+    fs.writeFileSync(sp, JSON.stringify({ schema: "ola.migration.sentinel.v1", run_id: "DIFFERENT-RUN", plan_digest: "d".repeat(64) }));
+    var result20 = null, threw20 = false;
+    try { result20 = m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
+    catch (e) { threw20 = true; }
+    assert(threw20 === false, "foreign sentinel under paths.home → already_finalized (no throw)");
+    assert(result20 && result20.status === "already_finalized", "status already_finalized (got: " + (result20 && result20.status) + ")");
+    cleanup(paths);
+  }
+
+  console.log("\n=== Test 21: malformed entry under paths.home → fail closed ===");
+  {
+    const { plan, paths } = setupFixture("fin-21");
+    const runId = fx.validRunId("fin21");
+    const rd = m.runDir(paths.olaMigrationRoot, runId);
+    fs.mkdirSync(rd, { recursive: true });
+    fs.writeFileSync(path.join(rd, "plan.json"), m.canonicalJson(plan) + "\n");
+    var st = m.buildInitialState({ runId: runId, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString() });
+    st = m.transitionState(st, { status: "in_progress", sentinel: { owned: true, released_at: null } });
+    st = m.transitionState(st, { backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) }, completed_steps: ["backup"], step_outputs: { backup: {} } });
+    st = m.transitionState(st, {
+      status: "backup_completed", sentinel: { owned: false, released_at: new Date().toISOString() },
+      rollback: { schema: "ola.migration.r2.rollback-state.v1", status: "not_applicable", trigger_failure_digest: null, intent_path: null, intent_digest: null, completed_steps: [], target_quarantine: null, source_quarantine: null, quarantine_manifest_path: null, quarantine_manifest_digest: null, quarantine_manifest_input_state_digest: null, attestation_path: null, attestation_digest: null, release_intent_path: null, release_intent_digest: null, receipt_path: null, receipt_digest: null },
+      structural_verification: "not_applicable", live_verification: "not_applicable",
+    });
+    m.writeStateAtomic(paths.olaMigrationRoot, runId, st);
+    process.env.HOME = paths.home; process.env.USERPROFILE = paths.home;
+    // Place a directory at the sentinel path (malformed entry).
+    const sp = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+    fs.mkdirSync(sp);
+    var threw21 = false, code21 = null;
+    try { m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
+    catch (e) { threw21 = true; code21 = e.code; }
+    assert(threw21 === true, "malformed entry under paths.home throws");
+    assert(code21 === "GLOBAL_SENTINEL_UNREADABLE", "code GLOBAL_SENTINEL_UNREADABLE (got: " + code21 + ")");
+    try { fs.rmdirSync(sp); } catch {}
+    cleanup(paths);
+  }
+
+  console.log("\n=== Test 22: unrelated sentinel under os.homedir() → ignored when paths.home differs ===");
+  {
+    // This test proves the idempotent branch reads paths.home, NOT os.homedir().
+    // Place a sentinel at the MODULE-GLOBAL path (os.homedir()) but NOT at
+    // paths.home. The idempotent branch should see absent at paths.home and
+    // return already_finalized, ignoring the unrelated module-global sentinel.
+    // Both homes are temp dirs.
+    const unrelatedHome = path.join(os.tmpdir(), "ola-unrelated-" + crypto.randomBytes(4).toString("hex"));
+    fs.mkdirSync(path.join(unrelatedHome, ".ola-migration"), { recursive: true });
+    const origHome = process.env.HOME, origProfile = process.env.USERPROFILE;
+    process.env.HOME = unrelatedHome;
+    process.env.USERPROFILE = unrelatedHome;
+    // Place an unrelated sentinel at the module-global path (now = unrelatedHome).
+    const globalSp = path.join(unrelatedHome, ".ola-migration", ".migration-in-progress");
+    fs.writeFileSync(globalSp, JSON.stringify({ schema: "ola.migration.sentinel.v1", run_id: "UNRELATED", plan_digest: "u".repeat(64) }));
+    process.env.HOME = origHome; process.env.USERPROFILE = origProfile;
+    // Now set up the fixture with a DIFFERENT paths.home.
+    const { plan, paths } = setupFixture("fin-22");
+    const runId = fx.validRunId("fin22");
+    const rd = m.runDir(paths.olaMigrationRoot, runId);
+    fs.mkdirSync(rd, { recursive: true });
+    fs.writeFileSync(path.join(rd, "plan.json"), m.canonicalJson(plan) + "\n");
+    var st = m.buildInitialState({ runId: runId, planDigest: plan.plan_digest, planPath: "plan.json", startedAt: new Date().toISOString() });
+    st = m.transitionState(st, { status: "in_progress", sentinel: { owned: true, released_at: null } });
+    st = m.transitionState(st, { backup: { path: "/fake", verified: true, manifest_digest: "0".repeat(64) }, completed_steps: ["backup"], step_outputs: { backup: {} } });
+    st = m.transitionState(st, {
+      status: "backup_completed", sentinel: { owned: false, released_at: new Date().toISOString() },
+      rollback: { schema: "ola.migration.r2.rollback-state.v1", status: "not_applicable", trigger_failure_digest: null, intent_path: null, intent_digest: null, completed_steps: [], target_quarantine: null, source_quarantine: null, quarantine_manifest_path: null, quarantine_manifest_digest: null, quarantine_manifest_input_state_digest: null, attestation_path: null, attestation_digest: null, release_intent_path: null, release_intent_digest: null, receipt_path: null, receipt_digest: null },
+      structural_verification: "not_applicable", live_verification: "not_applicable",
+    });
+    m.writeStateAtomic(paths.olaMigrationRoot, runId, st);
+    process.env.HOME = paths.home; process.env.USERPROFILE = paths.home;
+    // NO sentinel at paths.home — the idempotent branch should see absent there.
+    var result22 = null, threw22 = false;
+    try { result22 = m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
+    catch (e) { threw22 = true; }
+    assert(threw22 === false, "unrelated module-global sentinel ignored when paths.home differs");
+    assert(result22 && result22.status === "already_finalized", "status already_finalized (got: " + (result22 && result22.status) + ")");
+    // Cleanup the unrelated home
+    process.env.HOME = origHome; process.env.USERPROFILE = origProfile;
+    try { fs.rmSync(unrelatedHome, { recursive: true, force: true }); } catch {}
+    cleanup(paths);
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("finalize-backup: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");

@@ -207,7 +207,7 @@ function openSentinelEntryStrict(deps) {
     },
     deps || {}
   );
-  const sp = sentinelPath();
+  const sp = d.filePath || sentinelPath();
   let before;
   try {
     before = d.lstatSync(sp);
