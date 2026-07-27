@@ -646,7 +646,7 @@ async function main() {
     // Place a FOREIGN sentinel at the paths.home sentinel path.
     const sp = path.join(paths.home, ".ola-migration", ".migration-in-progress");
     fs.mkdirSync(path.dirname(sp), { recursive: true });
-    fs.writeFileSync(sp, JSON.stringify({ schema: "ola.migration.sentinel.v1", run_id: "DIFFERENT-RUN", plan_digest: "d".repeat(64) }));
+    fs.writeFileSync(sp, JSON.stringify({ schema: "ola.migration.sentinel.v1", run_id: "20260102T000000Z-foreignrun01", plan_digest: "d".repeat(64) }));
     var result20 = null, threw20 = false;
     try { result20 = m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
     catch (e) { threw20 = true; }
@@ -687,7 +687,7 @@ async function main() {
     process.env.USERPROFILE = unrelatedHome;
     // Place an unrelated sentinel at the module-global path (now = unrelatedHome).
     const globalSp = path.join(unrelatedHome, ".ola-migration", ".migration-in-progress");
-    fs.writeFileSync(globalSp, JSON.stringify({ schema: "ola.migration.sentinel.v1", run_id: "UNRELATED", plan_digest: "u".repeat(64) }));
+    fs.writeFileSync(globalSp, JSON.stringify({ schema: "ola.migration.sentinel.v1", run_id: "20260103T000000Z-unrelated001", plan_digest: "u".repeat(64) }));
     process.env.HOME = origHome; process.env.USERPROFILE = origProfile;
     // Now set up the fixture with a DIFFERENT paths.home.
     const { plan, paths } = setupFixture("fin-22");
