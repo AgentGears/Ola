@@ -1250,26 +1250,38 @@ function _decorateError(
 // and lock release both succeed.
 //
 // options shape:
+//   mode                     — "begin" (default) | "recover"
 //   mutateLegacyStore(d)     — function performing the legacy rename (or no-op)
 //   verifyLegacyStore(d)     — function confirming detectLegacyStores is empty
 //   legacyDirectoryPath      — dir to fsync after rename (null if no rename)
 //   context                  — { legacy_path, renamed_path } for recovery
+//   recoveryRecord           — for "begin" mode with a rename: the journal record
+//                              to publish before the rename. Omitted for sentinel-only.
 //   deps                     — injected dependencies (buildLegacySentinelDeps)
+//
+// In "begin" mode with recoveryRecord: the primitive publishes+fsyncs the journal
+// BEFORE the rename, and removes it only after the full sequence completes.
+// In "recover" mode: the primitive strictly re-reads the journal under the lock
+// as the sole source of truth, applies the recovery state matrix, and completes
+// the interrupted operation.
 //
 // Returns { legacy_directory_fsync, sentinel_directory_fsync, store_result }.
 // Throws a coded error decorated with progress + observed state on any failure.
 function withLegacyEmptySentinelLock(options) {
   const d = buildLegacySentinelDeps(options.deps);
   const ctx = options.context || {};
+  const mode = options.mode || "begin";
   const legacyDirectoryPath =
     options.legacyDirectoryPath !== undefined
       ? options.legacyDirectoryPath
       : null;
   const mutateLegacyStore = options.mutateLegacyStore || function () {};
   const verifyLegacyStore = options.verifyLegacyStore || function () {};
+  const recoveryRecord = options.recoveryRecord || null;
 
   const progress = {
     callback_started: false,
+    journal_published: false,
     legacy_mutation_completed: false,
     legacy_directory_synced: false,
     legacy_verification_completed: false,
@@ -1277,6 +1289,7 @@ function withLegacyEmptySentinelLock(options) {
     sentinel_unlinked: false,
     sentinel_directory_synced: false,
     sentinel_absence_verified: false,
+    journal_removed: false,
   };
   let legacyFsyncOutcome = null;
   let sentinelFsyncOutcome = null;
@@ -1309,6 +1322,12 @@ function withLegacyEmptySentinelLock(options) {
   try {
     _assertLegacyEmptyCandidate(d);
     progress.callback_started = true;
+    // In "begin" mode with a recovery record, publish the journal BEFORE the
+    // rename so a crash after rename but before fsync can be recovered.
+    if (mode === "begin" && recoveryRecord !== null) {
+      writeLegacyNeutralizeRecoveryJournal(recoveryRecord);
+      progress.journal_published = true;
+    }
     operationResult = mutateLegacyStore(d);
     progress.legacy_mutation_completed = true;
     if (legacyDirectoryPath !== null) {
@@ -1341,6 +1360,15 @@ function withLegacyEmptySentinelLock(options) {
     progress.sentinel_directory_synced = true;
     _assertSentinelAbsentViaLstat(d);
     progress.sentinel_absence_verified = true;
+    // Remove the recovery journal only after everything above succeeds.
+    // In "begin" mode: remove the journal THIS invocation published.
+    // In "recover" mode: remove the journal a PRIOR invocation published.
+    // If this fails, report failure (not success); the next invocation enters
+    // the journal-present/sentinel-absent cleanup path.
+    if (progress.journal_published || mode === "recover") {
+      removeLegacyNeutralizeRecoveryJournal();
+      progress.journal_removed = true;
+    }
   } catch (error) {
     _decorateError(
       error,
@@ -1410,6 +1438,278 @@ function withLegacyEmptySentinelLock(options) {
   };
 }
 
+// ── Legacy neutralize recovery journal ─────────────────────────────────────
+//
+// If a legacy neutralization renames the store but crashes before the
+// legacy-parent directory fsync completes, the sentinel (write barrier)
+// survives but the store is renamed. On retry, detectLegacyStores returns
+// empty, and the sentinel-only branch would remove the sentinel with
+// legacyDirectoryPath=null — losing rename durability. A later crash could
+// restore the old directory entry after the write barrier is gone.
+//
+// The recovery journal records the exact rename intent BEFORE the rename,
+// so a retry can re-fsync the recorded parent. Location: ~/.ola-migration/
+// (inherits the cross-store survival property — outside both ~/.moneta/ and
+// ~/.ola/).
+
+const RECOVERY_JOURNAL_NAME = ".legacy-neutralize-recovery";
+const RECOVERY_JOURNAL_SCHEMA = "ola.legacy-neutralize-recovery.v1";
+// The archive basename grammar produced by cmdNeutralize's single-legacy branch.
+const RECOVERY_JOURNAL_TARGET_RE = /^memory\.migrated-\d{8}T\d{6}Z$/;
+
+function recoveryJournalPath() {
+  return path.join(sentinelDir(), RECOVERY_JOURNAL_NAME);
+}
+
+// Validate a parsed recovery journal record. Rejects:
+// - wrong/missing schema
+// - non-absolute or non-normalized paths
+// - legacy_parent !== dirname(legacy_path) or dirname(renamed_path)
+// - legacy_path === renamed_path (distinct required)
+// - renamed_path basename not matching the archive grammar
+// - invalid/missing created_at timestamp
+// - unknown extra fields
+function _validateRecoveryJournalRecord(parsed) {
+  if (!parsed || typeof parsed !== "object") return false;
+  var allowed = ["schema", "legacy_path", "renamed_path", "legacy_parent", "created_at"];
+  for (var k in parsed) {
+    if (Object.prototype.hasOwnProperty.call(parsed, k) && allowed.indexOf(k) < 0) return false;
+  }
+  if (parsed.schema !== RECOVERY_JOURNAL_SCHEMA) return false;
+  if (typeof parsed.legacy_path !== "string" || typeof parsed.renamed_path !== "string" ||
+      typeof parsed.legacy_parent !== "string" || typeof parsed.created_at !== "string") return false;
+  // Absolute + normalized (no .. or . components after resolve)
+  if (path.resolve(parsed.legacy_path) !== parsed.legacy_path) return false;
+  if (path.resolve(parsed.renamed_path) !== parsed.renamed_path) return false;
+  if (path.resolve(parsed.legacy_parent) !== parsed.legacy_parent) return false;
+  if (parsed.legacy_path === parsed.renamed_path) return false;
+  if (path.dirname(parsed.legacy_path) !== parsed.legacy_parent) return false;
+  if (path.dirname(parsed.renamed_path) !== parsed.legacy_parent) return false;
+  if (!RECOVERY_JOURNAL_TARGET_RE.test(path.basename(parsed.renamed_path))) return false;
+  // Validate ISO timestamp
+  var ts = new Date(parsed.created_at);
+  if (isNaN(ts.getTime())) return false;
+  return true;
+}
+
+// FD-bound strict journal reader. Uses the same authority-read discipline as
+// the sentinel reader: lstat → regular-file → open(O_NOFOLLOW) → fstat identity
+// → read-from-fd → parse → schema/field validation.
+// Returns null if absent, or the validated parsed record if present.
+// Throws SENTINEL_MALFORMED (non-regular/invalid record) or SENTINEL_UNREADABLE.
+function readLegacyNeutralizeRecoveryJournal(deps) {
+  var d = Object.assign(
+    {
+      lstatSync: fs.lstatSync,
+      openSync: fs.openSync,
+      fstatSync: fs.fstatSync,
+      readFileSync: fs.readFileSync,
+      closeSync: fs.closeSync,
+      constants: fs.constants,
+      filePath: null,
+    },
+    deps || {}
+  );
+  var jp = d.filePath || recoveryJournalPath();
+  var before;
+  try {
+    before = d.lstatSync(jp);
+  } catch (error) {
+    if (error && error.code === "ENOENT") return null;
+    var err1 = new Error("recovery journal cannot be inspected: " + jp);
+    err1.code = "SENTINEL_UNREADABLE";
+    err1.cause = error;
+    throw err1;
+  }
+  if (!before.isFile()) {
+    var err2 = new Error("recovery journal is not a regular file: " + jp);
+    err2.code = "SENTINEL_MALFORMED";
+    throw err2;
+  }
+  var noFollow = d.constants.O_NOFOLLOW || 0;
+  var fd;
+  try {
+    fd = d.openSync(jp, d.constants.O_RDONLY | noFollow);
+  } catch (error) {
+    if (error && error.code === "ELOOP") {
+      var err3 = new Error("recovery journal became a symlink: " + jp);
+      err3.code = "SENTINEL_MALFORMED";
+      err3.cause = error;
+      throw err3;
+    }
+    var err4 = new Error("recovery journal cannot be opened: " + jp);
+    err4.code = "SENTINEL_UNREADABLE";
+    err4.cause = error;
+    throw err4;
+  }
+  try {
+    var opened = d.fstatSync(fd);
+    if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino) {
+      throw Object.assign(
+        new Error("recovery journal changed during inspection: " + jp),
+        { code: "SENTINEL_ENTRY_CHANGED" }
+      );
+    }
+    var text;
+    try {
+      text = d.readFileSync(fd, "utf8");
+    } catch (cause) {
+      var err5 = new Error("recovery journal contents cannot be read: " + jp);
+      err5.code = "SENTINEL_UNREADABLE";
+      err5.cause = cause;
+      throw err5;
+    }
+    var parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (cause) {
+      var err6 = new Error("recovery journal is not valid JSON: " + jp);
+      err6.code = "SENTINEL_MALFORMED";
+      err6.cause = cause;
+      throw err6;
+    }
+    if (!_validateRecoveryJournalRecord(parsed)) {
+      var err7 = new Error("recovery journal record is invalid: " + jp);
+      err7.code = "SENTINEL_MALFORMED";
+      throw err7;
+    }
+    return parsed;
+  } catch (error) {
+    try { d.closeSync(fd); } catch {}
+    throw error;
+  }
+  // Unreachable (return above or throw), but satisfy linters.
+}
+
+// No-clobber publication via linkSync. Sequence:
+//   refuse if journal exists → write unique temp (wx) → fsync temp → close
+//   → linkSync(temp, journalPath) [EEXIST = LEGACY_RECOVERY_JOURNAL_EXISTS]
+//   → fsync journal parent → unlink temp (best-effort) → fsync journal parent
+//   → reopen + strictly verify canonical record
+// Once linkSync publishes the canonical journal, no error path deletes/overwrites
+// it except the verified journal-removal stage.
+function writeLegacyNeutralizeRecoveryJournal(record, deps) {
+  var d = Object.assign(
+    {
+      lstatSync: fs.lstatSync,
+      existsSync: fs.existsSync,
+      openSync: fs.openSync,
+      writeFileSync: fs.writeFileSync,
+      fsyncSync: fs.fsyncSync,
+      closeSync: fs.closeSync,
+      linkSync: fs.linkSync,
+      unlinkSync: fs.unlinkSync,
+      readFileSync: fs.readFileSync,
+      constants: fs.constants,
+      filePath: null,
+    },
+    deps || {}
+  );
+  var jp = d.filePath || recoveryJournalPath();
+  // Refuse if journal already exists (no-clobber).
+  try {
+    d.lstatSync(jp);
+    // Exists — refuse.
+    var existErr = new Error("recovery journal already exists: " + jp);
+    existErr.code = "LEGACY_RECOVERY_JOURNAL_EXISTS";
+    throw existErr;
+  } catch (e) {
+    if (e.code === "LEGACY_RECOVERY_JOURNAL_EXISTS") throw e;
+    if (e.code !== "ENOENT") throw e;
+    // ENOENT — proceed.
+  }
+  // Write canonical bytes to a unique temp sibling.
+  var tempPath = jp + ".tmp-" + process.pid + "-" + Date.now();
+  var body = JSON.stringify(record, null, 2) + "\n";
+  var fd;
+  try {
+    fd = d.openSync(tempPath, d.constants.O_WRONLY | d.constants.O_CREAT | d.constants.O_EXCL);
+  } catch (openErr) {
+    var err8 = new Error("recovery journal temp creation failed: " + tempPath);
+    err8.code = "LEGACY_RECOVERY_JOURNAL_WRITE_FAILED";
+    err8.cause = openErr;
+    throw err8;
+  }
+  try {
+    d.writeFileSync(fd, body, "utf8");
+    d.fsyncSync(fd);
+  } finally {
+    d.closeSync(fd);
+  }
+  // Publish via hard link (fails EEXIST if a concurrent publisher raced).
+  try {
+    d.linkSync(tempPath, jp);
+  } catch (linkErr) {
+    if (linkErr.code === "EEXIST") {
+      // Best-effort temp cleanup; canonical journal is authority.
+      try { d.unlinkSync(tempPath); } catch {}
+      var existErr2 = new Error("recovery journal already exists: " + jp);
+      existErr2.code = "LEGACY_RECOVERY_JOURNAL_EXISTS";
+      throw existErr2;
+    }
+    // Best-effort temp cleanup on other failure.
+    try { d.unlinkSync(tempPath); } catch {}
+    var err9 = new Error("recovery journal publication failed: " + jp);
+    err9.code = "LEGACY_RECOVERY_JOURNAL_WRITE_FAILED";
+    err9.cause = linkErr;
+    throw err9;
+  }
+  // Fsync the journal parent directory so the link is durable.
+  fsyncMigrationSentinelDirectory(path.dirname(jp));
+  // Best-effort temp cleanup (the hard link means temp and journal share the inode).
+  try { d.unlinkSync(tempPath); } catch {}
+  // Fsync parent again so temp-unlink is durable.
+  fsyncMigrationSentinelDirectory(path.dirname(jp));
+  // Reopen + strictly verify the canonical record.
+  var verified = readLegacyNeutralizeRecoveryJournal({ filePath: jp });
+  if (!verified) {
+    var err10 = new Error("recovery journal not present after publication: " + jp);
+    err10.code = "LEGACY_RECOVERY_JOURNAL_WRITE_FAILED";
+    throw err10;
+  }
+  return verified;
+}
+
+// Remove the recovery journal with complete durability.
+// unlink → fsync parent dir → lstat confirms ENOENT.
+// If removal fails after the sentinel is gone, report failure (not success);
+// the next invocation enters the journal-present/sentinel-absent cleanup path.
+function removeLegacyNeutralizeRecoveryJournal(deps) {
+  var d = Object.assign(
+    {
+      unlinkSync: fs.unlinkSync,
+      lstatSync: fs.lstatSync,
+      filePath: null,
+    },
+    deps || {}
+  );
+  var jp = d.filePath || recoveryJournalPath();
+  try {
+    d.unlinkSync(jp);
+  } catch (e) {
+    if (e.code !== "ENOENT") throw e;
+    // ENOENT — already absent (idempotent). Still fsync for durability.
+  }
+  fsyncMigrationSentinelDirectory(path.dirname(jp));
+  // Verify absence via lstat (ENOENT only).
+  try {
+    d.lstatSync(jp);
+    // Still present — failure.
+    var err = new Error("recovery journal still present after removal: " + jp);
+    err.code = "LEGACY_RECOVERY_JOURNAL_REMOVAL_FAILED";
+    throw err;
+  } catch (e) {
+    if (e.code === "LEGACY_RECOVERY_JOURNAL_REMOVAL_FAILED") throw e;
+    if (e.code !== "ENOENT") {
+      var err2 = new Error("recovery journal removal verification unreadable: " + jp);
+      err2.code = "SENTINEL_UNREADABLE";
+      err2.cause = e;
+      throw err2;
+    }
+    // ENOENT — removed.
+  }
+}
+
 module.exports = {
   SENTINEL_SCHEMA,
   SENTINEL_NAME,
@@ -1445,4 +1745,11 @@ module.exports = {
   releaseSentinelMutationLockDurably,
   buildLegacySentinelDeps,
   withLegacyEmptySentinelLock,
+  // Legacy neutralize recovery journal
+  RECOVERY_JOURNAL_NAME,
+  RECOVERY_JOURNAL_SCHEMA,
+  recoveryJournalPath,
+  readLegacyNeutralizeRecoveryJournal,
+  writeLegacyNeutralizeRecoveryJournal,
+  removeLegacyNeutralizeRecoveryJournal,
 };

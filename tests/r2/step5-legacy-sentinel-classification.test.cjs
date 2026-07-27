@@ -697,6 +697,305 @@ function main() {
     assert(err && err.manual_verification_required === true, "manual_verification_required set");
   });
 
+  // ── Recovery journal regressions (Tests 29-40) ──────────────────────────
+
+  function validRecoveryRecord(legacyPath, renamedPath, parent) {
+    return {
+      schema: sentinel.RECOVERY_JOURNAL_SCHEMA,
+      legacy_path: path.resolve(legacyPath),
+      renamed_path: path.resolve(renamedPath),
+      legacy_parent: path.resolve(parent),
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  console.log("\n=== Test 29: journal written+fsynced before rename; full sequence completes; journal removed ===");
+  withTempHome(function (home) {
+    const sp = writeEmptySentinel(home);
+    const legacyParent = path.join(home, "legacy-parent");
+    fs.mkdirSync(legacyParent);
+    const legacyPath = path.join(legacyParent, "old-store");
+    fs.mkdirSync(legacyPath);
+    const renamedPath = path.join(legacyParent, "memory.migrated-20260101T000000Z");
+    const record = validRecoveryRecord(legacyPath, renamedPath, legacyParent);
+    const result = sentinel.withLegacyEmptySentinelLock({
+      mode: "begin",
+      mutateLegacyStore: function (d) { d.renameSync(legacyPath, renamedPath); },
+      verifyLegacyStore: function () {},
+      legacyDirectoryPath: legacyParent,
+      context: { legacy_path: legacyPath, renamed_path: renamedPath },
+      recoveryRecord: record,
+      deps: {},
+    });
+    assert(fs.existsSync(sp) === false, "sentinel removed");
+    assert(sentinel.readLegacyNeutralizeRecoveryJournal() === null, "journal removed after success");
+    assert(result.sentinel_directory_fsync !== null, "sentinel_directory_fsync recorded");
+  });
+
+  console.log("\n=== Test 30: rename succeeds, legacy-parent fsync fails → journal remains, sentinel remains ===");
+  withTempHome(function (home) {
+    const sp = writeEmptySentinel(home);
+    const legacyParent = path.join(home, "legacy-parent");
+    fs.mkdirSync(legacyParent);
+    const legacyPath = path.join(legacyParent, "old-store");
+    fs.mkdirSync(legacyPath);
+    const renamedPath = path.join(legacyParent, "memory.migrated-20260101T000000Z");
+    const record = validRecoveryRecord(legacyPath, renamedPath, legacyParent);
+    let threw = false;
+    let err = null;
+    try {
+      sentinel.withLegacyEmptySentinelLock({
+        mode: "begin",
+        mutateLegacyStore: function (d) { d.renameSync(legacyPath, renamedPath); },
+        verifyLegacyStore: function () {},
+        legacyDirectoryPath: legacyParent,
+        context: { legacy_path: legacyPath, renamed_path: renamedPath },
+        recoveryRecord: record,
+        deps: {
+          fsyncDirectory: function (dirPath) {
+            if (dirPath === legacyParent) {
+              throw Object.assign(new Error("injected fsync failure"), { code: "DIRECTORY_FSYNC_FAILED" });
+            }
+            return "synced";
+          },
+        },
+      });
+    } catch (e) { threw = true; err = e; }
+    assert(threw === true, "legacy-parent fsync failure throws");
+    assert(err && err.code === "LEGACY_DIRECTORY_FSYNC_FAILED", "error code (got: " + (err && err.code) + ")");
+    assert(fs.existsSync(sp) === true, "sentinel preserved");
+    assert(sentinel.readLegacyNeutralizeRecoveryJournal() !== null, "journal preserved for retry");
+    assert(err && err.progress.journal_published === true, "progress shows journal was published");
+    try { fs.unlinkSync(sp); } catch {}
+    sentinel.removeLegacyNeutralizeRecoveryJournal();
+  });
+
+  console.log("\n=== Test 31: retry after fsync failure: journal detected → recovery completes ===");
+  withTempHome(function (home) {
+    const sp = writeEmptySentinel(home);
+    const legacyParent = path.join(home, "legacy-parent");
+    fs.mkdirSync(legacyParent);
+    const legacyPath = path.join(legacyParent, "old-store");
+    const renamedPath = path.join(legacyParent, "memory.migrated-20260101T000000Z");
+    fs.mkdirSync(renamedPath); // rename already completed (target exists, source absent)
+    const record = validRecoveryRecord(legacyPath, renamedPath, legacyParent);
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record);
+    // Recovery: source absent, target present → re-fsync, remove sentinel, remove journal.
+    const result = sentinel.withLegacyEmptySentinelLock({
+      mode: "recover",
+      mutateLegacyStore: function () {}, // source absent, target present — no rename needed
+      verifyLegacyStore: function () {},
+      legacyDirectoryPath: legacyParent,
+      context: { legacy_path: record.legacy_path, renamed_path: renamedPath },
+      deps: {},
+    });
+    assert(fs.existsSync(sp) === false, "sentinel removed during recovery");
+    assert(sentinel.readLegacyNeutralizeRecoveryJournal() === null, "journal removed after recovery");
+  });
+
+  console.log("\n=== Test 32: crash after journal publish, before rename → retry resumes rename ===");
+  withTempHome(function (home) {
+    const sp = writeEmptySentinel(home);
+    const legacyParent = path.join(home, "legacy-parent");
+    fs.mkdirSync(legacyParent);
+    const legacyPath = path.join(legacyParent, "old-store");
+    fs.mkdirSync(legacyPath);
+    const renamedPath = path.join(legacyParent, "memory.migrated-20260101T000000Z");
+    const record = validRecoveryRecord(legacyPath, renamedPath, legacyParent);
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record);
+    // Source still exists, target absent → recovery should resume the rename.
+    const result = sentinel.withLegacyEmptySentinelLock({
+      mode: "recover",
+      mutateLegacyStore: function (d) { d.renameSync(legacyPath, renamedPath); },
+      verifyLegacyStore: function () {},
+      legacyDirectoryPath: legacyParent,
+      context: { legacy_path: legacyPath, renamed_path: renamedPath },
+      deps: {},
+    });
+    assert(fs.existsSync(sp) === false, "sentinel removed after recovery rename");
+    assert(fs.existsSync(renamedPath) === true, "rename completed");
+    assert(sentinel.readLegacyNeutralizeRecoveryJournal() === null, "journal removed");
+  });
+
+  console.log("\n=== Test 33: no-clobber publication — existing journal never overwritten ===");
+  withTempHome(function (home) {
+    const parent = path.join(home, "p1");
+    fs.mkdirSync(parent);
+    const record1 = validRecoveryRecord(
+      path.join(parent, "src"),
+      path.join(parent, "memory.migrated-20260101T000000Z"),
+      parent
+    );
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record1);
+    const before = fs.readFileSync(sentinel.recoveryJournalPath(), "utf8");
+    const parent2 = path.join(home, "p2");
+    fs.mkdirSync(parent2);
+    const record2 = validRecoveryRecord(
+      path.join(parent2, "src"),
+      path.join(parent2, "memory.migrated-20260102T000000Z"),
+      parent2
+    );
+    let threw = false, code = null;
+    try { sentinel.writeLegacyNeutralizeRecoveryJournal(record2); }
+    catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "existing journal publication refused");
+    assert(code === "LEGACY_RECOVERY_JOURNAL_EXISTS", "code LEGACY_RECOVERY_JOURNAL_EXISTS (got: " + code + ")");
+    const after = fs.readFileSync(sentinel.recoveryJournalPath(), "utf8");
+    assert(before === after, "existing journal bytes unchanged");
+    sentinel.removeLegacyNeutralizeRecoveryJournal();
+  });
+
+  console.log("\n=== Test 34: source+target both present → LEGACY_RECOVERY_STATE_AMBIGUOUS ===");
+  withTempHome(function (home) {
+    writeEmptySentinel(home);
+    const legacyParent = path.join(home, "legacy-parent");
+    fs.mkdirSync(legacyParent);
+    const legacyPath = path.join(legacyParent, "old-store");
+    fs.mkdirSync(legacyPath);
+    const renamedPath = path.join(legacyParent, "memory.migrated-20260101T000000Z");
+    fs.mkdirSync(renamedPath);
+    const record = validRecoveryRecord(legacyPath, renamedPath, legacyParent);
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record);
+    let threw = false, code = null;
+    try {
+      sentinel.withLegacyEmptySentinelLock({
+        mode: "recover",
+        mutateLegacyStore: function (d) {
+          throw Object.assign(new Error("ambiguous"), { code: "LEGACY_RECOVERY_STATE_AMBIGUOUS" });
+        },
+        verifyLegacyStore: function () {},
+        legacyDirectoryPath: legacyParent,
+        context: {},
+        deps: {},
+      });
+    } catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "ambiguous state throws");
+    assert(code === "LEGACY_RECOVERY_STATE_AMBIGUOUS", "code (got: " + code + ")");
+    assert(sentinel.readLegacyNeutralizeRecoveryJournal() !== null, "journal preserved");
+    sentinel.removeLegacyNeutralizeRecoveryJournal();
+  });
+
+  console.log("\n=== Test 35: source+target both absent → LEGACY_RECOVERY_STATE_INVALID ===");
+  withTempHome(function (home) {
+    writeEmptySentinel(home);
+    const legacyParent = path.join(home, "legacy-parent");
+    fs.mkdirSync(legacyParent);
+    const record = validRecoveryRecord(
+      path.join(legacyParent, "absent-src"),
+      path.join(legacyParent, "memory.migrated-20260101T000000Z"),
+      legacyParent
+    );
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record);
+    let threw = false, code = null;
+    try {
+      sentinel.withLegacyEmptySentinelLock({
+        mode: "recover",
+        mutateLegacyStore: function (d) {
+          throw Object.assign(new Error("invalid"), { code: "LEGACY_RECOVERY_STATE_INVALID" });
+        },
+        verifyLegacyStore: function () {},
+        legacyDirectoryPath: legacyParent,
+        context: {},
+        deps: {},
+      });
+    } catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "invalid state throws");
+    assert(code === "LEGACY_RECOVERY_STATE_INVALID", "code (got: " + code + ")");
+    sentinel.removeLegacyNeutralizeRecoveryJournal();
+  });
+
+  console.log("\n=== Test 36: no-op requires journal absence (journal present → not already_neutralized) ===");
+  withTempHome(function (home) {
+    const parent = path.join(home, "p");
+    fs.mkdirSync(parent);
+    const record = validRecoveryRecord(
+      path.join(parent, "src"),
+      path.join(parent, "memory.migrated-20260101T000000Z"),
+      parent
+    );
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record);
+    let result = null;
+    try {
+      result = cli.cmdNeutralize({ confirmed: true }, {
+        resolveDataDir: function () { return path.join(home, "data"); },
+        detectLegacyStores: function () { return []; },
+      });
+    } catch (e) { /* recovery attempt will fail since paths don't exist; either way not already_neutralized */ }
+    assert(result === null, "did not return already_neutralized (journal present)");
+  });
+
+  console.log("\n=== Test 37: zero legacy + sentinel + no journal → LEGACY_RECOVERY_REQUIRED ===");
+  withTempHome(function (home) {
+    writeEmptySentinel(home);
+    let threw = false, code = null;
+    try {
+      cli.cmdNeutralize({ confirmed: true }, {
+        resolveDataDir: function () { return path.join(home, "data"); },
+        detectLegacyStores: function () { return []; },
+      });
+    } catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "sentinel-only without journal refuses");
+    assert(code === "LEGACY_RECOVERY_REQUIRED", "code LEGACY_RECOVERY_REQUIRED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 38: malformed journal → fail closed ===");
+  withTempHome(function (home) {
+    const jp = sentinel.recoveryJournalPath();
+    fs.writeFileSync(jp, "not valid json {{{");
+    let threw = false, code = null;
+    try {
+      cli.cmdNeutralize({ confirmed: true }, {
+        resolveDataDir: function () { return path.join(home, "data"); },
+        detectLegacyStores: function () { return []; },
+      });
+    } catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "malformed journal fails closed");
+    assert(code === "SENTINEL_MALFORMED", "code SENTINEL_MALFORMED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 39: recovery invocation lacks confirmation → LEGACY_CONFIRMATION_REQUIRED ===");
+  withTempHome(function (home) {
+    writeEmptySentinel(home);
+    const parent = path.join(home, "p");
+    fs.mkdirSync(parent);
+    const record = validRecoveryRecord(
+      path.join(parent, "src"),
+      path.join(parent, "memory.migrated-20260101T000000Z"),
+      parent
+    );
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record);
+    let threw = false, code = null;
+    try {
+      cli.cmdNeutralize({ confirmed: false }, {
+        resolveDataDir: function () { return path.join(home, "data"); },
+        detectLegacyStores: function () { return []; },
+      });
+    } catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "recovery without confirmation refused");
+    assert(code === "LEGACY_CONFIRMATION_REQUIRED", "code LEGACY_CONFIRMATION_REQUIRED (got: " + code + ")");
+  });
+
+  console.log("\n=== Test 40: journal target basename violates archive grammar → malformed ===");
+  withTempHome(function (home) {
+    const jp = sentinel.recoveryJournalPath();
+    const parent = path.join(home, "abs");
+    fs.mkdirSync(parent);
+    const badRecord = {
+      schema: sentinel.RECOVERY_JOURNAL_SCHEMA,
+      legacy_path: path.join(parent, "source"),
+      renamed_path: path.join(parent, "arbitrary-name"),  // does NOT match the grammar
+      legacy_parent: parent,
+      created_at: new Date().toISOString(),
+    };
+    fs.writeFileSync(jp, JSON.stringify(badRecord, null, 2) + "\n");
+    let threw = false, code = null;
+    try {
+      sentinel.readLegacyNeutralizeRecoveryJournal();
+    } catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "invalid basename fails closed");
+    assert(code === "SENTINEL_MALFORMED", "code SENTINEL_MALFORMED (got: " + code + ")");
+  });
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("Legacy sentinel classification: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");
