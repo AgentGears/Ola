@@ -996,6 +996,110 @@ function main() {
     assert(code === "SENTINEL_MALFORMED", "code SENTINEL_MALFORMED (got: " + code + ")");
   });
 
+  // ── Absent-sentinel recovery + fd leak fix (Tests 41-44) ────────────────
+
+  console.log("\n=== Test 41: absent-sentinel recovery (journal+target present, sentinel absent) ===");
+  withTempHome(function (home) {
+    // Simulate: rename completed, sentinel already removed, but journal remains.
+    // NO sentinel file at all.
+    const legacyParent = path.join(home, "legacy-parent");
+    fs.mkdirSync(legacyParent);
+    const renamedPath = path.join(legacyParent, "memory.migrated-20260101T000000Z");
+    fs.mkdirSync(renamedPath); // target present
+    const record = validRecoveryRecord(path.join(legacyParent, "old-store"), renamedPath, legacyParent);
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record);
+    var unlinkCalled = false;
+    const result = sentinel.withLegacyEmptySentinelLock({
+      mode: "recover",
+      mutateLegacyStore: function () {}, // source absent, target present — no rename
+      verifyLegacyStore: function () {},
+      legacyDirectoryPath: legacyParent,
+      context: {},
+      deps: {
+        unlinkSync: function () { unlinkCalled = true; }, // spy: should NOT be called
+      },
+    });
+    assert(unlinkCalled === false, "unlinkSync NOT called when sentinel is absent");
+    assert(sentinel.readLegacyNeutralizeRecoveryJournal() === null, "journal removed after absent-sentinel recovery");
+    assert(result.sentinel_directory_fsync !== null, "sentinel directory fsync still occurred");
+  });
+
+  console.log("\n=== Test 42: R2 sentinel during recovery → fail closed, journal preserved ===");
+  withTempHome(function (home) {
+    writeR2Sentinel(home); // R2 sentinel (not legacy-empty)
+    const legacyParent = path.join(home, "legacy-parent");
+    fs.mkdirSync(legacyParent);
+    const renamedPath = path.join(legacyParent, "memory.migrated-20260101T000000Z");
+    fs.mkdirSync(renamedPath);
+    const record = validRecoveryRecord(path.join(legacyParent, "old-store"), renamedPath, legacyParent);
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record);
+    var threw = false, code = null;
+    try {
+      sentinel.withLegacyEmptySentinelLock({
+        mode: "recover",
+        mutateLegacyStore: function () {},
+        verifyLegacyStore: function () {},
+        legacyDirectoryPath: legacyParent,
+        context: {},
+        deps: {},
+      });
+    } catch (e) { threw = true; code = e.code; }
+    assert(threw === true, "R2 sentinel during recovery throws");
+    assert(code === "SENTINEL_IS_R2", "code SENTINEL_IS_R2 (got: " + code + ")");
+    assert(sentinel.readLegacyNeutralizeRecoveryJournal() !== null, "journal preserved after R2 refusal");
+    sentinel.removeLegacyNeutralizeRecoveryJournal();
+  });
+
+  console.log("\n=== Test 43: journal descriptor closed on successful read ===");
+  withTempHome(function (home) {
+    const parent = path.join(home, "p");
+    fs.mkdirSync(parent);
+    const record = validRecoveryRecord(path.join(parent, "src"), path.join(parent, "memory.migrated-20260101T000000Z"), parent);
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record);
+    // Spy on closeSync to verify it's called after a successful read.
+    var closeCount = 0;
+    var origClose = fs.closeSync;
+    fs.closeSync = function (fd) {
+      // Count closes of file descriptors (not other operations).
+      if (typeof fd === "number") closeCount++;
+      return origClose(fd);
+    };
+    try {
+      var result = sentinel.readLegacyNeutralizeRecoveryJournal();
+    } finally {
+      fs.closeSync = origClose;
+    }
+    assert(result !== null, "journal read succeeded");
+    assert(closeCount >= 1, "closeSync called on successful read (fd leak fixed)");
+    sentinel.removeLegacyNeutralizeRecoveryJournal();
+  });
+
+  console.log("\n=== Test 44: under-lock journal reread (primitive uses authoritative record) ===");
+  withTempHome(function (home) {
+    // Place a journal. The primitive should reread it under the lock and pass
+    // the authoritative record to the callback, NOT use the outside-lock record.
+    const legacyParent = path.join(home, "legacy-parent");
+    fs.mkdirSync(legacyParent);
+    const renamedPath = path.join(legacyParent, "memory.migrated-20260101T000000Z");
+    fs.mkdirSync(renamedPath);
+    const record = validRecoveryRecord(path.join(legacyParent, "old-store"), renamedPath, legacyParent);
+    sentinel.writeLegacyNeutralizeRecoveryJournal(record);
+    var callbackRecord = null;
+    sentinel.withLegacyEmptySentinelLock({
+      mode: "recover",
+      mutateLegacyStore: function (d, authoritativeRecord) {
+        callbackRecord = authoritativeRecord; // capture the under-lock record
+      },
+      verifyLegacyStore: function () {},
+      legacyDirectoryPath: legacyParent,
+      context: {},
+      deps: {},
+    });
+    assert(callbackRecord !== null, "callback received the authoritative record");
+    assert(callbackRecord && callbackRecord.schema === sentinel.RECOVERY_JOURNAL_SCHEMA, "authoritative record has correct schema");
+    assert(callbackRecord && callbackRecord.renamed_path === record.renamed_path, "authoritative record paths match");
+  });
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("Legacy sentinel classification: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");

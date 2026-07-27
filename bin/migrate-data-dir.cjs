@@ -662,23 +662,26 @@ function cmdNeutralize(args, deps) {
 
   // ── Recovery path: journal present (retry after a failed neutralization) ──
   // The journal was published before a rename that may not have completed or
-  // whose parent-fsync may not have completed. Use the journal's recorded
-  // paths as the sole source of truth (the primitive re-reads under lock).
+  // whose parent-fsync may not have completed. The primitive strictly re-reads
+  // the journal under the lock as the sole source of truth and passes the
+  // authoritative record to the callback. The outside-lock journalRecord is
+  // routing-only — it must NOT be used for mutation.
   if (journalRecord !== null) {
     const result = sentinel.withLegacyEmptySentinelLock({
       mode: "recover",
-      mutateLegacyStore: function (d) {
-        // Recovery state matrix: check source vs target existence.
-        const srcExists = fsLocal.existsSync(journalRecord.legacy_path);
-        const tgtExists = fsLocal.existsSync(journalRecord.renamed_path);
+      mutateLegacyStore: function (d, authoritativeRecord) {
+        // Recovery state matrix: check source vs target existence using the
+        // UNDER-LOCK authoritative record, NOT the outside-lock routing record.
+        const srcExists = fsLocal.existsSync(authoritativeRecord.legacy_path);
+        const tgtExists = fsLocal.existsSync(authoritativeRecord.renamed_path);
         if (srcExists && tgtExists) {
           // Ambiguous/conflicting — fail closed.
           const err = new Error(
             "recovery state ambiguous: both source and target exist"
           );
           err.code = "LEGACY_RECOVERY_STATE_AMBIGUOUS";
-          err.legacy_path = journalRecord.legacy_path;
-          err.renamed_path = journalRecord.renamed_path;
+          err.legacy_path = authoritativeRecord.legacy_path;
+          err.renamed_path = authoritativeRecord.renamed_path;
           err.manual_verification_required = true;
           throw err;
         }
@@ -693,7 +696,7 @@ function cmdNeutralize(args, deps) {
         }
         if (srcExists && !tgtExists) {
           // Journal published; rename not completed. Resume the rename.
-          d.renameSync(journalRecord.legacy_path, journalRecord.renamed_path);
+          d.renameSync(authoritativeRecord.legacy_path, authoritativeRecord.renamed_path);
         }
         // Else: !srcExists && tgtExists — rename completed, durability uncertain.
         // The primitive will re-fsync the recorded parent.

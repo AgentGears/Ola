@@ -1320,54 +1320,107 @@ function withLegacyEmptySentinelLock(options) {
   }
 
   try {
-    _assertLegacyEmptyCandidate(d);
     progress.callback_started = true;
-    // In "begin" mode with a recovery record, publish the journal BEFORE the
-    // rename so a crash after rename but before fsync can be recovered.
-    if (mode === "begin" && recoveryRecord !== null) {
-      writeLegacyNeutralizeRecoveryJournal(recoveryRecord);
-      progress.journal_published = true;
-    }
-    operationResult = mutateLegacyStore(d);
-    progress.legacy_mutation_completed = true;
-    if (legacyDirectoryPath !== null) {
-      try {
-        legacyFsyncOutcome = d.fsyncDirectory(legacyDirectoryPath);
-      } catch (fsyncError) {
-        const wrapped = new Error(
-          "legacy directory fsync failed: " + legacyDirectoryPath
+
+    if (mode === "recover") {
+      // ── RECOVER mode ──────────────────────────────────────────────────
+      // Strictly reread the journal UNDER the lock as the sole source of truth.
+      // The outside-lock read was routing-only.
+      var authoritativeRecord = readLegacyNeutralizeRecoveryJournal();
+      if (authoritativeRecord === null) {
+        throw Object.assign(
+          new Error("journal vanished between routing and lock acquisition"),
+          { code: "LEGACY_RECOVERY_JOURNAL_LOST" }
         );
-        wrapped.code = "LEGACY_DIRECTORY_FSYNC_FAILED";
-        wrapped.cause = fsyncError;
-        throw wrapped;
+      }
+      // Apply the source/target state matrix using the under-lock record.
+      operationResult = mutateLegacyStore(d, authoritativeRecord);
+      progress.legacy_mutation_completed = true;
+      // Fsync the recorded legacy parent.
+      try {
+        legacyFsyncOutcome = d.fsyncDirectory(authoritativeRecord.legacy_parent);
+      } catch (fsyncError) {
+        var rfErr = new Error("legacy directory fsync failed during recovery: " + authoritativeRecord.legacy_parent);
+        rfErr.code = "LEGACY_DIRECTORY_FSYNC_FAILED";
+        rfErr.cause = fsyncError;
+        throw rfErr;
       }
       progress.legacy_directory_synced = true;
-    }
-    verifyLegacyStore(d);
-    progress.legacy_verification_completed = true;
-    _assertLegacyEmptyCandidate(d);
-    progress.sentinel_recheck_completed = true;
-    d.unlinkSync(d.sentinelPath());
-    progress.sentinel_unlinked = true;
-    try {
-      sentinelFsyncOutcome = d.fsyncDirectory(path.dirname(d.sentinelPath()));
-    } catch (fsyncError) {
-      const wrapped = new Error("sentinel directory fsync failed");
-      wrapped.code = "SENTINEL_DIRECTORY_FSYNC_FAILED";
-      wrapped.cause = fsyncError;
-      throw wrapped;
-    }
-    progress.sentinel_directory_synced = true;
-    _assertSentinelAbsentViaLstat(d);
-    progress.sentinel_absence_verified = true;
-    // Remove the recovery journal only after everything above succeeds.
-    // In "begin" mode: remove the journal THIS invocation published.
-    // In "recover" mode: remove the journal a PRIOR invocation published.
-    // If this fails, report failure (not success); the next invocation enters
-    // the journal-present/sentinel-absent cleanup path.
-    if (progress.journal_published || mode === "recover") {
+      verifyLegacyStore(d);
+      progress.legacy_verification_completed = true;
+      // Classify sentinel: accept legacy_empty_candidate OR absent.
+      // R2/nonempty/malformed/unreadable → fail closed, preserve journal.
+      var recoverClassification = d.classifyLegacySentinelFile(d.sentinelPath());
+      if (recoverClassification === "legacy_empty_candidate") {
+        d.unlinkSync(d.sentinelPath());
+        progress.sentinel_unlinked = true;
+        progress.sentinel_recheck_completed = true;
+      } else if (recoverClassification === "absent") {
+        // Sentinel already removed by a prior crashed attempt. Do NOT unlink.
+        // Still fsync the sentinel directory for durability.
+      } else {
+        throw Object.assign(
+          new Error("sentinel is " + recoverClassification + " during recovery — refusing to proceed"),
+          { code: recoverClassification === "r2" ? "SENTINEL_IS_R2" : "SENTINEL_NOT_LEGACY_EMPTY" }
+        );
+      }
+      try {
+        sentinelFsyncOutcome = d.fsyncDirectory(path.dirname(d.sentinelPath()));
+      } catch (fsyncError) {
+        var rsErr = new Error("sentinel directory fsync failed during recovery");
+        rsErr.code = "SENTINEL_DIRECTORY_FSYNC_FAILED";
+        rsErr.cause = fsyncError;
+        throw rsErr;
+      }
+      progress.sentinel_directory_synced = true;
+      _assertSentinelAbsentViaLstat(d);
+      progress.sentinel_absence_verified = true;
+      // Remove the journal a PRIOR invocation published.
       removeLegacyNeutralizeRecoveryJournal();
       progress.journal_removed = true;
+    } else {
+      // ── BEGIN mode ────────────────────────────────────────────────────
+      _assertLegacyEmptyCandidate(d);
+      // Publish journal BEFORE rename if recoveryRecord provided.
+      if (recoveryRecord !== null) {
+        writeLegacyNeutralizeRecoveryJournal(recoveryRecord);
+        progress.journal_published = true;
+      }
+      operationResult = mutateLegacyStore(d);
+      progress.legacy_mutation_completed = true;
+      if (legacyDirectoryPath !== null) {
+        try {
+          legacyFsyncOutcome = d.fsyncDirectory(legacyDirectoryPath);
+        } catch (fsyncError) {
+          var bfErr = new Error("legacy directory fsync failed: " + legacyDirectoryPath);
+          bfErr.code = "LEGACY_DIRECTORY_FSYNC_FAILED";
+          bfErr.cause = fsyncError;
+          throw bfErr;
+        }
+        progress.legacy_directory_synced = true;
+      }
+      verifyLegacyStore(d);
+      progress.legacy_verification_completed = true;
+      _assertLegacyEmptyCandidate(d);
+      progress.sentinel_recheck_completed = true;
+      d.unlinkSync(d.sentinelPath());
+      progress.sentinel_unlinked = true;
+      try {
+        sentinelFsyncOutcome = d.fsyncDirectory(path.dirname(d.sentinelPath()));
+      } catch (fsyncError) {
+        var bsErr = new Error("sentinel directory fsync failed");
+        bsErr.code = "SENTINEL_DIRECTORY_FSYNC_FAILED";
+        bsErr.cause = fsyncError;
+        throw bsErr;
+      }
+      progress.sentinel_directory_synced = true;
+      _assertSentinelAbsentViaLstat(d);
+      progress.sentinel_absence_verified = true;
+      // Remove the journal THIS invocation published.
+      if (progress.journal_published) {
+        removeLegacyNeutralizeRecoveryJournal();
+        progress.journal_removed = true;
+      }
     }
   } catch (error) {
     _decorateError(
@@ -1574,11 +1627,13 @@ function readLegacyNeutralizeRecoveryJournal(deps) {
       throw err7;
     }
     return parsed;
-  } catch (error) {
-    try { d.closeSync(fd); } catch {}
-    throw error;
+  } finally {
+    // Close the descriptor on BOTH success and failure paths (the previous
+    // implementation only closed in the catch, leaking on successful reads).
+    if (fd !== undefined) {
+      try { d.closeSync(fd); } catch {}
+    }
   }
-  // Unreachable (return above or throw), but satisfy linters.
 }
 
 // No-clobber publication via linkSync. Sequence:
