@@ -561,6 +561,32 @@ async function main() {
     assert(true, "Test 16 confirms finalize IS invoked and transitions to backup_completed on genuine success");
   }
 
+  console.log("\n=== Test 18: fsync targets the fixture-aware directory (not module-global) ===");
+  {
+    // Prove cmdFinalizeBackup fsyncs path.dirname(sentinelPath) where sentinelPath
+    // is derived from paths.home — NOT the module-global sentinelDir() (os.homedir()).
+    // Without this, when paths.home !== os.homedir(), the durability barrier
+    // operates on a different directory than the strict absence checks inspect.
+    const { plan, paths } = setupFixture("fin-18");
+    const { runId } = createReleasePendingRun(paths, plan);
+    var fsyncArg = null;
+    var origFsync18 = sentinel.fsyncMigrationSentinelDirectory;
+    sentinel.fsyncMigrationSentinelDirectory = function (dirPath) {
+      fsyncArg = dirPath || "<no-arg: module-global>";
+      // Call the real one to preserve the protocol.
+      return origFsync18(dirPath);
+    };
+    var threw18 = false;
+    try { m.cmdFinalizeBackup({ flags: { run: runId } }, paths); }
+    catch (e) { threw18 = true; }
+    finally { sentinel.fsyncMigrationSentinelDirectory = origFsync18; }
+    var expectedDir = path.dirname(path.join(paths.home, ".ola-migration", ".migration-in-progress"));
+    assert(fsyncArg !== null, "fsyncMigrationSentinelDirectory was called");
+    assert(fsyncArg === expectedDir, "fsync targets fixture-aware dir (got: " + fsyncArg + ", expected: " + expectedDir + ")");
+    assert(fsyncArg !== "<no-arg: module-global>", "fsync received an explicit path (not the module-global default)");
+    cleanup(paths);
+  }
+
   console.log("");
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("finalize-backup: " + passed + " passed, " + failed + " failed (" + (passed + failed) + " total)");

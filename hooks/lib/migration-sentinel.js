@@ -80,10 +80,24 @@ function sentinelPath() {
 // On win32, directory fsync via openSync("r") may not be supported —
 // consistent with detectDirFsyncCapability (returns "unsupported").
 // On other platforms, failures propagate.
-function fsyncMigrationSentinelDirectory() {
-  if (!fs.existsSync(sentinelDir())) return; // idempotent if dir absent
+// Fsync the sentinel parent directory so prior directory-entry changes
+// (including a sentinel removal by another process) are durable.
+// On win32, directory fsync via openSync("r") may not be supported —
+// consistent with detectDirFsyncCapability (returns "unsupported").
+// On other platforms, failures propagate.
+//
+// dirPath (optional): the directory to fsync. Defaults to sentinelDir() (the
+// module-global path via os.homedir()). Callers that inspect a fixture-aware
+// path (e.g. cmdFinalizeBackup deriving from paths.home) MUST pass
+// path.dirname(theirSentinelPath) explicitly, so the fsync operates on the
+// SAME directory that the strict absence checks inspect. Without this, the
+// durability invariant "strict absence → fsync that entry's parent → strict
+// absence" can be violated when paths.home !== os.homedir().
+function fsyncMigrationSentinelDirectory(dirPath) {
+  const targetDir = dirPath || sentinelDir();
+  if (!fs.existsSync(targetDir)) return; // idempotent if dir absent
   try {
-    const dirFd = fs.openSync(sentinelDir(), "r");
+    const dirFd = fs.openSync(targetDir, "r");
     try {
       fs.fsyncSync(dirFd);
     } finally {

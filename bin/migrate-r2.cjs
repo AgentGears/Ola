@@ -11951,8 +11951,13 @@ function cmdFinalizeBackup(args, paths, injectedDeps) {
   // unlink by another process is durable before we write backup_completed.
   // Without this, a crash could let an unsynced sentinel reappear after
   // canonical state says owned=false.
+  //
+  // Pass path.dirname(sentinelPath) explicitly so the fsync operates on the
+  // SAME directory the strict absence checks inspect (derived from paths.home).
+  // The zero-arg default would fsync sentinelDir() (os.homedir()-based), which
+  // diverges when paths.home !== os.homedir().
   try {
-    sentinel.fsyncMigrationSentinelDirectory();
+    sentinel.fsyncMigrationSentinelDirectory(path.dirname(sentinelPath));
   } catch (syncErr) {
     throw new R2Error("SENTINEL_DIR_FSYNC_FAILED",
       "could not durably sync sentinel directory before finalization: " + syncErr.message, syncErr.code);
