@@ -888,24 +888,97 @@ function collectQuiescenceEvidence(paths) {
   // in_progress or verified_pending_release). We don't need to be exhaustive
   // — the presence of a sentinel above is the real signal; this is a
   // secondary check that flags half-cleaned-up runs.
+  // Authority namespace scan: classify the runs/ directory explicitly.
+  // No existsSync prefilter — distinguish absent (OK) from inaccessible (block).
+  // Non-directory entries (symlinks, regular files) are unresolved evidence.
+  const runsDir = path.join(paths.olaMigrationRoot, "runs");
+  let runEntries;
   try {
-    const runsDir = path.join(paths.olaMigrationRoot, "runs");
-    if (fs.existsSync(runsDir)) {
-      for (const entry of fs.readdirSync(runsDir, { withFileTypes: true })) {
-        if (!entry.isDirectory()) continue;
-        const stateFile = path.join(runsDir, entry.name, "state.json");
-        if (!fs.existsSync(stateFile)) continue;
-        try {
-          const st = JSON.parse(fs.readFileSync(stateFile, "utf8"));
-          if (st.status === "in_progress" || st.status === "verified_pending_release") {
-            evidence.processing_job_present = true;
-            evidence.detected_processes.push({
-              kind: "incomplete_run",
-              run_id: entry.name,
-              status: st.status,
-            });
-          }
-        } catch {}
+    runEntries = fs.readdirSync(runsDir, { withFileTypes: true });
+  } catch (dirErr) {
+    if (dirErr.code !== "ENOENT") {
+      // Inaccessible runs directory fails closed.
+      evidence.processing_job_present = true;
+      evidence.detected_processes.push({
+        kind: "run_state_directory_unreadable",
+        path: runsDir,
+        code: dirErr.code || "RUNS_DIR_READ_FAILED",
+        detail: dirErr.message,
+      });
+    }
+    runEntries = [];
+  }
+
+  for (const entry of runEntries) {
+    if (!entry.isDirectory()) {
+      // Symlinks, regular files, or other non-directory entries in the
+      // canonical runs/ namespace are unresolved authority evidence.
+      evidence.processing_job_present = true;
+      evidence.detected_processes.push({
+        kind: "invalid_run_authority_entry",
+        run_id: entry.name,
+        path: path.join(runsDir, entry.name),
+        entry_type: entry.isSymbolicLink() ? "symlink" : "non_directory",
+      });
+      continue;
+    }
+
+    const stateFile = path.join(runsDir, entry.name, "state.json");
+    // readState() is the sole authority test. A missing state.json in a run
+    // directory is itself unresolved evidence and must block quiescence.
+    try {
+      const st = readState(paths.olaMigrationRoot, entry.name);
+      const activeByStatus =
+        st.status === RUN_STATUSES.initializing ||
+        st.status === RUN_STATUSES.in_progress ||
+        st.status === RUN_STATUSES.backup_release_pending ||
+        st.status === RUN_STATUSES.rollback_in_progress ||
+        st.status === RUN_STATUSES.verified_pending_release;
+      const activeByAuthority =
+        st.sentinel && st.sentinel.owned === true;
+      if (activeByStatus || activeByAuthority) {
+        evidence.processing_job_present = true;
+        evidence.detected_processes.push({
+          kind: "incomplete_run",
+          run_id: entry.name,
+          status: st.status,
+          sentinel_owned: st.sentinel ? st.sentinel.owned : undefined,
+        });
+      }
+    } catch (error) {
+      // Unreadable, malformed, or invalid state files fail closed.
+      evidence.processing_job_present = true;
+      evidence.detected_processes.push({
+        kind: "unreadable_run_state",
+        run_id: entry.name,
+        state_path: stateFile,
+        code: error.code || "STATE_READ_OR_VALIDATION_FAILED",
+        detail: error.message,
+      });
+    }
+  }
+
+  // Sentinel mutation lock check. A present mutation lock blocks quiescence
+  // regardless of whether its metadata is valid — it is an unresolved
+  // authority object that requires explicit recovery.
+  try {
+    var mutationLockPath = path.join(paths.olaMigrationRoot, sentinel.LOCK_NAME);
+    try {
+      fs.lstatSync(mutationLockPath);
+      evidence.mutation_lock_present = true;
+      evidence.detected_processes.push({
+        kind: "sentinel_mutation_lock",
+        path: mutationLockPath,
+      });
+    } catch (lockErr) {
+      if (lockErr.code !== "ENOENT") {
+        // Unreadable or unstatable authority files fail closed.
+        evidence.mutation_lock_present = true;
+        evidence.detected_processes.push({
+          kind: "sentinel_mutation_lock_unreadable",
+          path: mutationLockPath,
+          code: lockErr.code || null,
+        });
       }
     }
   } catch {}
@@ -2490,6 +2563,11 @@ async function createVerifiedBackup(options) {
 // Detect platform dir-fsync capability (memoized). Returns "synced" |
 // "unsupported" | "failed".
 let dirFsyncCache = null;
+
+// Test-only: reset the fsync capability cache so the next probe re-checks.
+function _resetDirFsyncCacheForTests() {
+  dirFsyncCache = null;
+}
 function detectDirFsyncCapability(dirPath) {
   if (dirFsyncCache !== null) return dirFsyncCache;
   if (process.platform === "win32") {
@@ -8710,6 +8788,8 @@ const RUN_STATUSES = Object.freeze({
   initializing: "initializing",
   initialization_failed: "initialization_failed",   // terminal: pre-sentinel or sentinel-acquisition failure
   in_progress: "in_progress",
+  backup_release_pending: "backup_release_pending", // non-terminal: backup verified, sentinel release intent durably recorded
+  backup_completed: "backup_completed",             // terminal: standalone backup succeeded, sentinel released
   backup_failed: "backup_failed",
   rollback_in_progress: "rollback_in_progress",
   rolled_back: "rolled_back",
@@ -8722,6 +8802,7 @@ const RUN_STATUSES = Object.freeze({
 const ROLLBACK_STATUSES = Object.freeze({
   not_started: "not_started",
   not_available: "not_available",       // no trusted backup to restore from
+  not_applicable: "not_applicable",     // rollback does not apply (e.g., standalone backup)
   in_progress: "in_progress",
   completed: "completed",
   failed: "failed",
@@ -8754,8 +8835,13 @@ const RUN_TRANSITIONS = Object.freeze({
     "failed_manual_intervention",
   ])),
   in_progress: Object.freeze(new Set([
+    "backup_release_pending",
     "rollback_in_progress", "verified_pending_release",
     "backup_failed", "failed_manual_intervention",
+  ])),
+  backup_release_pending: Object.freeze(new Set([
+    "backup_completed",
+    "failed_manual_intervention",
   ])),
   rollback_in_progress: Object.freeze(new Set([
     "rolled_back", "failed_manual_intervention",
@@ -8765,6 +8851,7 @@ const RUN_TRANSITIONS = Object.freeze({
   ])),
   // Terminal:
   completed: Object.freeze(new Set([])),
+  backup_completed: Object.freeze(new Set([])),
   rolled_back: Object.freeze(new Set([])),
   backup_failed: Object.freeze(new Set([])),
   initialization_failed: Object.freeze(new Set([])),
@@ -9281,6 +9368,96 @@ function validateState(state) {
           "backup_failed requires sentinel.owned to be boolean");
       }
       break;
+    case RUN_STATUSES.backup_release_pending:
+      // Non-terminal: backup verified, evidence persisted, sentinel release intent recorded.
+      // Sentinel is still owned; physical removal is about to happen.
+      if (cs.length !== 1 || cs[0] !== "backup") {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_release_pending requires completed_steps=['backup'] (got " + JSON.stringify(cs) + ")");
+      }
+      if (state.backup.verified !== true) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_release_pending requires backup.verified=true");
+      }
+      if (typeof state.backup.path !== "string" || state.backup.path.length === 0) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_release_pending requires backup.path non-empty string");
+      }
+      if (typeof state.backup.manifest_digest !== "string" || state.backup.manifest_digest.length !== 64) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_release_pending requires backup.manifest_digest 64-char hex");
+      }
+      if (state.sentinel.owned !== true) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_release_pending requires sentinel.owned=true (release not yet completed)");
+      }
+      if (state.sentinel.released_at !== null) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_release_pending requires sentinel.released_at=null (not yet released)");
+      }
+      if (state.rollback.status !== ROLLBACK_STATUSES.not_applicable) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_release_pending requires rollback.status=not_applicable");
+      }
+      if (state.structural_verification !== VERIFICATION_STATUSES.not_applicable) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_release_pending requires structural_verification=not_applicable");
+      }
+      if (state.live_verification !== VERIFICATION_STATUSES.not_applicable) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_release_pending requires live_verification=not_applicable");
+      }
+      if (state.failure !== null) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_release_pending requires state.failure=null (intent, not failure)");
+      }
+      break;
+    case RUN_STATUSES.backup_completed:
+      // Terminal: standalone backup succeeded. Only the backup step ran;
+      // the full forward migration was not attempted.
+      if (cs.length !== 1 || cs[0] !== "backup") {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires completed_steps=['backup'] (got " + JSON.stringify(cs) + ")");
+      }
+      if (state.backup.verified !== true) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires backup.verified=true");
+      }
+      if (typeof state.backup.path !== "string" || state.backup.path.length === 0) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires backup.path to be a non-empty string");
+      }
+      if (typeof state.backup.manifest_digest !== "string" || state.backup.manifest_digest.length !== 64) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires backup.manifest_digest to be a 64-char hex string");
+      }
+      // Sentinel must be released: owned=false, released_at set.
+      if (state.sentinel.owned !== false) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires sentinel.owned=false (physical sentinel released)");
+      }
+      if (state.sentinel.released_at === null || typeof state.sentinel.released_at !== "string") {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires sentinel.released_at set (non-null ISO timestamp)");
+      }
+      // No rollback, structural, or live verification applies to standalone backup.
+      if (state.rollback.status !== ROLLBACK_STATUSES.not_applicable) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires rollback.status=not_applicable");
+      }
+      if (state.structural_verification !== VERIFICATION_STATUSES.not_applicable) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires structural_verification=not_applicable");
+      }
+      if (state.live_verification !== VERIFICATION_STATUSES.not_applicable) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires live_verification=not_applicable");
+      }
+      if (state.failure !== null) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "backup_completed requires state.failure=null (no failure on success)");
+      }
+      break;
     case RUN_STATUSES.verified_pending_release:
       if (!allFive) {
         throw new R2Error("RUN_STATE_INVALID",
@@ -9337,14 +9514,37 @@ function validateState(state) {
       // Sentinel remains owned until separately released via release-sentinel.
       break;
     case RUN_STATUSES.failed_manual_intervention:
-      // Sentinel remains active; failure must be recorded.
-      if (state.sentinel.owned !== true) {
-        throw new R2Error("RUN_STATE_INVALID",
-          "failed_manual_intervention requires sentinel.owned=true (sentinel remains active)");
-      }
+      // Failure must be recorded.
       if (!state.failure) {
         throw new R2Error("RUN_STATE_INVALID",
           "failed_manual_intervention requires state.failure to be set");
+      }
+      if (state.sentinel.owned === true) {
+        // Active-sentinel substate: released_at must be null.
+        if (state.sentinel.released_at !== null) {
+          throw new R2Error("RUN_STATE_INVALID",
+            "owned failed_manual_intervention requires released_at=null");
+        }
+        break;
+      }
+      // Released substate: permitted only for the exact sentinel-lock-release
+      // recovery case (no mutation ran; sentinel was created but lock release
+      // failed; operator has since removed the sentinel via release-sentinel).
+      var isReleasedLockFailure =
+        state.sentinel.owned === false &&
+        typeof state.sentinel.released_at === "string" &&
+        state.sentinel.released_at.length > 0 &&
+        state.failure.step === "sentinel-lock-release" &&
+        state.failure.code === "SENTINEL_CREATED_LOCK_RELEASE_FAILED" &&
+        state.completed_steps.length === 0 &&
+        state.backup.verified === false &&
+        state.rollback.status === ROLLBACK_STATUSES.not_available &&
+        state.structural_verification === VERIFICATION_STATUSES.not_applicable &&
+        state.live_verification === VERIFICATION_STATUSES.not_applicable;
+      if (!isReleasedLockFailure) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "released failed_manual_intervention is permitted only for " +
+          "the no-mutation sentinel-lock-release recovery case");
       }
       break;
     case RUN_STATUSES.rollback_in_progress:
@@ -9441,7 +9641,10 @@ function readState(olaMigrationRoot, runId) {
 // content changed since last read — callers should always read → mutate →
 // write, never write a stale body. (This is enforced by the post-write
 // verify, which recomputes the digest from what was actually written.)
-function writeStateAtomic(olaMigrationRoot, runId, stateBody) {
+function writeStateAtomic(olaMigrationRoot, runId, stateBody, options) {
+  var opts = options || {};
+  var detectFn = opts.detectDirFsyncCapability || detectDirFsyncCapability;
+  var renameFn = opts.renameSync || fs.renameSync;
   if (stateBody.state_digest !== undefined) {
     throw new R2Error("NON_CANONICAL_PLAN_VALUE",
       "stateBody already has state_digest set; writeStateAtomic computes it");
@@ -9473,10 +9676,18 @@ function writeStateAtomic(olaMigrationRoot, runId, stateBody) {
     fs.closeSync(fd);
   }
 
-  // Parent-directory fsync attempt (Windows fallback: detectDirFsyncCapability
-  // returns "unsupported" on win32, and we skip without suppressing an
-  // unexpected failure on platforms that DO support it).
-  const dirFsync = detectDirFsyncCapability(dir);
+  // Parent-directory fsync capability check.
+  //   "synced"      → perform pre-rename and post-rename directory fsync
+  //   "unsupported" → documented platform fallback (win32) — skip without error
+  //   "failed"      → the platform was expected to support fsync but the probe failed.
+  //                   Fail closed: refuse to publish a state transition whose durability
+  //                   cannot be guaranteed.
+  const dirFsync = detectFn(dir);
+  if (dirFsync === "failed") {
+    try { fs.unlinkSync(tmpPath); } catch {}
+    throw new R2Error("RUN_STATE_FSYNC_FAILED",
+      "directory fsync capability probe failed; refusing to publish state without a durability barrier");
+  }
   if (dirFsync === "synced") {
     try {
       const dfd = fs.openSync(dir, "r");
@@ -9491,11 +9702,24 @@ function writeStateAtomic(olaMigrationRoot, runId, stateBody) {
 
   // Atomic rename.
   try {
-    fs.renameSync(tmpPath, finalPath);
+    renameFn(tmpPath, finalPath);
   } catch (e) {
     try { fs.unlinkSync(tmpPath); } catch {}
     throw new R2Error("RUN_STATE_FSYNC_FAILED",
       "atomic rename failed: " + e.message);
+  }
+
+  // Post-rename directory fsync: ensures the rename itself is durable.
+  // Without this, a crash after rename could revert to the pre-rename state,
+  // making backup_release_pending (or any state transition) non-durable.
+  if (dirFsync === "synced") {
+    try {
+      const dfd = fs.openSync(dir, "r");
+      try { fs.fsyncSync(dfd); } finally { fs.closeSync(dfd); }
+    } catch (e) {
+      throw new R2Error("RUN_STATE_FSYNC_FAILED",
+        "post-rename dir fsync failed: " + e.message);
+    }
   }
 
   // Reopen and verify. Reads back the file and recomputes the digest; any
@@ -9667,9 +9891,12 @@ function assertMonotonicStateUpdate(previousState, nextState) {
   function rbLegalTransition(from, to) {
     if (from === to) return true;
     if (from === ROLLBACK_STATUSES.not_started) {
-      return to === ROLLBACK_STATUSES.in_progress || to === ROLLBACK_STATUSES.not_available;
+      return to === ROLLBACK_STATUSES.in_progress
+        || to === ROLLBACK_STATUSES.not_available
+        || to === ROLLBACK_STATUSES.not_applicable;
     }
     if (from === ROLLBACK_STATUSES.not_available) return false;  // terminal
+    if (from === ROLLBACK_STATUSES.not_applicable) return false;  // terminal
     if (from === ROLLBACK_STATUSES.in_progress) {
       return to === ROLLBACK_STATUSES.completed || to === ROLLBACK_STATUSES.failed;
     }
@@ -9964,8 +10191,11 @@ function defaultBootstrapDeps() {
   return {
     now: () => new Date(),
     generateRunId: (now) => {
-      const iso = (now || new Date()).toISOString();
-      return isoForPath(iso) + "-" + crypto.randomBytes(8).toString("hex").slice(0, 16);
+      // Truncate to seconds (strip milliseconds) so isoForPath produces
+      // a YYYYMMDDTHHMMSSZ prefix that matches RUN_ID_RE.
+      const d = now || new Date();
+      const isoSec = d.toISOString().replace(/\.\d{3}Z$/, "Z");
+      return isoForPath(isoSec) + "-" + crypto.randomBytes(8).toString("hex").slice(0, 16);
     },
     loadAndVerifyPlan: (planPath) => loadAndVerifyPlan(planPath),
     assertPlanExecutable: (plan) => assertPlanExecutable(plan),
@@ -10035,10 +10265,12 @@ function defaultBootstrapDeps() {
     },
     writeStateAtomic: (olaMigrationRoot, runId, stateBody) =>
       writeStateAtomic(olaMigrationRoot, runId, stateBody),
-    createMigrationSentinel: (metadata) => sentinel.createMigrationSentinel(metadata),
+    createMigrationSentinel: (metadata) => sentinel.createMigrationSentinelWithLock(metadata),
     assertSentinelOwnedBy: (runId, planDigest) =>
       sentinel.assertSentinelOwnedBy(runId, planDigest),
     removeMigrationSentinel: () => sentinel.removeMigrationSentinel(),
+    removeMigrationSentinelOwnedBy: (runId, planDigest) =>
+      sentinel.removeMigrationSentinelOwnedBy(runId, planDigest),
     readSentinel: () => sentinel.readSentinel(),
     isMigrationInProgress: () => sentinel.isMigrationInProgress(),
     beginBackup: null,  // 10b.2 supplies the real primitive; 10b.1 test passes a stub
@@ -10178,31 +10410,44 @@ function bootstrapExecution({ externalPlanPath, confirmDigest, options, deps }) 
       operator: process.env.USER || "unknown",
     });
   } catch (e) {
-    // Foreign/malformed/create-failed sentinel. Do NOT remove the existing
-    // sentinel — it may belong to another run.
     // Classify the failure.
     let code = "SENTINEL_CREATE_FAILED";
-    // Inspect the sentinel state to classify.
-    const existing = d.readSentinel ? d.readSentinel() : null;
-    if (existing && existing.raw === true) {
-      code = "SENTINEL_MALFORMED";
-    } else if (existing && existing.run_id !== undefined) {
-      code = "SENTINEL_ALREADY_ACTIVE";
+    let sentinelOwned = false; // default: we never acquired the sentinel
+    let failStatus = RUN_STATUSES.initialization_failed;
+
+    if (e.code === "SENTINEL_CREATED_LOCK_RELEASE_FAILED") {
+      // Sentinel was created but lock release failed. The sentinel IS owned
+      // by this run — persist as failed_manual_intervention with owned=true.
+      code = e.code;
+      sentinelOwned = true;
+      failStatus = RUN_STATUSES.failed_manual_intervention;
+    } else if (e.code === "SENTINEL_LOCK_HELD") {
+      code = "SENTINEL_LOCK_HELD";
+    } else if (e.code === "SENTINEL_LOCK_STRANDED") {
+      code = "SENTINEL_LOCK_STRANDED";
+    } else {
+      // Inspect the sentinel state to classify.
+      const existing = d.readSentinel ? d.readSentinel() : null;
+      if (existing && existing.raw === true) {
+        code = "SENTINEL_MALFORMED";
+      } else if (existing && existing.run_id !== undefined) {
+        code = "SENTINEL_ALREADY_ACTIVE";
+      }
     }
-    // Persist initialization_failed (sentinel.owned=false because we never
-    // acquired it).
+    // Persist the failure state.
     try {
       const failBody = transitionState(state, {
-        status: RUN_STATUSES.initialization_failed,
-        sentinel: { owned: false, released_at: null },
+        status: failStatus,
+        sentinel: { owned: sentinelOwned, released_at: null },
         rollback: { status: ROLLBACK_STATUSES.not_available, verified: false },
         structural_verification: VERIFICATION_STATUSES.not_applicable,
         live_verification: VERIFICATION_STATUSES.not_applicable,
         failure: {
-          step: "sentinel-create", code, message: e.message,
+          step: sentinelOwned ? "sentinel-lock-release" : "sentinel-create",
+          code, message: e.message,
           at: new Date().toISOString(),
         },
-      });
+      }, undefined, { skipTransitionCheck: true });
       d.writeStateAtomic(pathsFromPlan.olaMigrationRoot, runId, failBody);
     } catch (persistErr) {
       // State store itself unavailable. Cannot persist initialization_failed.
@@ -10220,7 +10465,7 @@ function bootstrapExecution({ externalPlanPath, confirmDigest, options, deps }) 
     return {
       ok: false, code, message: e.message,
       run_created: true, run_id: runId,
-      final_status: RUN_STATUSES.initialization_failed,
+      final_status: failStatus,
       sentinel_released: false,
     };
   }
@@ -10236,12 +10481,17 @@ function bootstrapExecution({ externalPlanPath, confirmDigest, options, deps }) 
     inProgressState = d.writeStateAtomic(pathsFromPlan.olaMigrationRoot, runId, nextBody);
   } catch (e) {
     // Sentinel acquired but in_progress persistence failed.
-    // Attempt safe sentinel removal (verify ownership first).
+    // Attempt safe owned removal via the combined lock-backed primitive.
     let released = false;
     let releaseErr = null;
     try {
-      d.assertSentinelOwnedBy(runId, plan.plan_digest);
-      d.removeMigrationSentinel();
+      if (d.removeMigrationSentinelOwnedBy) {
+        d.removeMigrationSentinelOwnedBy(runId, plan.plan_digest);
+      } else {
+        // Backward compat: old deps without the combined primitive
+        d.assertSentinelOwnedBy(runId, plan.plan_digest);
+        d.removeMigrationSentinel();
+      }
       released = true;
     } catch (releaseError) {
       releaseErr = releaseError;
@@ -10679,6 +10929,29 @@ function defaultForwardDeps() {
     verifyTranscriptPostState: (args) => verifyTranscriptPostState(args),
     verifyMergedPhysicalState: (args) => verifyMergedPhysicalState(args),
     verifyPortedPhysicalState: (args) => verifyPortedPhysicalState(args),
+    trace: () => {},
+  };
+}
+
+// Dependency factory for the standalone backup command (cmdBackup).
+// Tests inject substitutes to inject failures at specific boundaries.
+function defaultBackupCommandDeps() {
+  return {
+    now: () => new Date(),
+    loadAndVerifyPlan: (planPath) => loadAndVerifyPlan(planPath),
+    assertPlanExecutable: (plan) => assertPlanExecutable(plan),
+    reconstructPathsFromPlan: (plan, opts) => reconstructPathsFromPlan(plan, opts),
+    bootstrapDeps: defaultBootstrapDeps(),
+    bootstrapExecution: (opts) => bootstrapExecution(opts),
+    createVerifiedBackup: async (opts) => createVerifiedBackup(opts),
+    projectBackupEvidence: (result) => projectBackupEvidence(result),
+    readState: (root, runId) => readState(root, runId),
+    writeStateAtomic: (root, runId, body) => writeStateAtomic(root, runId, body),
+    transitionState: (state, updates, ts, opts) => transitionState(state, updates, ts, opts),
+    removeMigrationSentinel: () => sentinel.removeMigrationSentinel(),
+    isMigrationInProgress: () => sentinel.isMigrationInProgress(),
+    assertSentinelOwnedBy: (runId, planDigest) => sentinel.assertSentinelOwnedBy(runId, planDigest),
+    removeMigrationSentinelOwnedBy: (runId, planDigest) => sentinel.removeMigrationSentinelOwnedBy(runId, planDigest),
     trace: () => {},
   };
 }
@@ -11378,163 +11651,730 @@ function cmdPlan(args, paths) {
   return { plan: written, outputPath: outPath };
 }
 
+// ── release-sentinel: explicit recovery for failed backups ──────────────
+//
+// When a backup fails and the sentinel is retained (owned=true), the system
+// is locked. This command allows the operator to explicitly release the
+// sentinel after confirming no mutation step completed.
+//
+// Usage:
+//   node bin/migrate-r2.cjs release-sentinel --run <run_id> --confirm-no-mutation
+//
+// Preconditions (validated before any action):
+//   status === backup_failed
+//   completed_steps === []
+//   backup.verified === false
+//   --confirm-no-mutation present
+//
+// Then: remove physical sentinel, verify absent, persist owned=false + released_at.
+
+function cmdReleaseSentinel(args, paths) {
+  var runId = args.flags.run;
+  if (!runId) throw new R2Error("RUN_ID_REQUIRED", "release-sentinel requires --run <run_id>");
+  validateRunId(runId);
+
+  if (args.flags["confirm-no-mutation"] !== true) {
+    throw new R2Error("CONFIRMATION_REQUIRED",
+      "release-sentinel requires the bare --confirm-no-mutation flag; " +
+      "values supplied after the flag are not accepted");
+  }
+
+  var root = paths.olaMigrationRoot;
+  var statePath = runStatePath(root, runId);
+  if (!fs.existsSync(statePath)) {
+    throw new R2Error("RUN_NOT_FOUND", "no run state found for run_id: " + runId);
+  }
+
+  var state = readState(root, runId);
+
+  // Validate preconditions.
+  // Accept two admissible states:
+  //   1. backup_failed (original backup creation failure)
+  //   2. failed_manual_intervention with failure.code=SENTINEL_CREATED_LOCK_RELEASE_FAILED
+  //      (sentinel was created but lock release failed — no mutation ran)
+  var admissibleStatus = state.status === RUN_STATUSES.backup_failed;
+  var admissibleLockRelease = (
+    state.status === RUN_STATUSES.failed_manual_intervention &&
+    state.failure &&
+    state.failure.code === "SENTINEL_CREATED_LOCK_RELEASE_FAILED" &&
+    state.failure.step === "sentinel-lock-release"
+  );
+  if (!admissibleStatus && !admissibleLockRelease) {
+    throw new R2Error("RELEASE_PRECONDITION_FAILED",
+      "release-sentinel requires status=backup_failed or failed_manual_intervention with SENTINEL_CREATED_LOCK_RELEASE_FAILED (got: " + state.status + ")");
+  }
+  if (state.completed_steps.length > 0) {
+    throw new R2Error("RELEASE_PRECONDITION_FAILED",
+      "release-sentinel requires completed_steps=[] — mutation evidence present means rollback is needed, not release (got: " + JSON.stringify(state.completed_steps) + ")");
+  }
+  if (state.backup.verified !== false) {
+    throw new R2Error("RELEASE_PRECONDITION_FAILED",
+      "release-sentinel requires backup.verified=false (a verified backup should use backup_completed, not release)");
+  }
+
+  // If already released (owned=false), accept as idempotent.
+  // Ownership-aware: a foreign sentinel is not inconsistent with this run's released state.
+  if (state.sentinel.owned === false && state.sentinel.released_at !== null) {
+    var rsClassification;
+    try {
+      rsClassification = _classifySentinelForRun(sentinel.readSentinel(), runId, state.plan_digest);
+    } catch (classErr) {
+      throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
+        "durable state says released, but the active global sentinel cannot be classified: " + classErr.message, classErr.code);
+    }
+    if (rsClassification === "absent") {
+      // Complete durability for a prior unlink that may have crashed before fsync.
+      sentinel.fsyncMigrationSentinelDirectory();
+      // Reclassify after the barrier — another run may have created a sentinel concurrently.
+      try {
+        rsClassification = _classifySentinelForRun(sentinel.readSentinel(), runId, state.plan_digest);
+      } catch (reclassErr) {
+        throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
+          "after directory fsync, the active global sentinel cannot be classified: " + reclassErr.message, reclassErr.code);
+      }
+    }
+    if (rsClassification === "owned") {
+      throw new R2Error("SENTINEL_STATE_INCONSISTENT",
+        "durable state says released, but this run's sentinel is present");
+    }
+    // absent or foreign — return idempotent success
+    return { run_id: runId, status: "already_released", released_at: state.sentinel.released_at };
+  }
+
+  // Atomic ownership-verified removal via mutation lock.
+  // Always call the combined primitive — even when the sentinel appears
+  // absent — because the primitive acquires the mutation lock and its
+  // finally block fsyncs the parent directory, making any prior unlink
+  // durable. This handles the recovery window where an earlier unlink
+  // succeeded but the directory fsync was skipped or crashed.
+  try {
+    sentinel.removeMigrationSentinelOwnedBy(runId, state.plan_digest);
+  } catch (e) {
+    if (e.code === "SENTINEL_FOREIGN" || e.code === "SENTINEL_MALFORMED") {
+      throw new R2Error("SENTINEL_OWNERSHIP_MISMATCH",
+        "refusing to remove a foreign or malformed sentinel: " + e.message, e.code);
+    }
+    throw new R2Error("SENTINEL_RELEASE_FAILED",
+      "physical sentinel release could not be made durable: " + e.message, e.code);
+  }
+
+  // Verify sentinel is absent.
+  if (sentinel.isMigrationInProgress()) {
+    throw new R2Error("SENTINEL_RELEASE_FAILED",
+      "physical sentinel remains present after removal — ownership retained");
+  }
+
+  // Persist sentinel-released state.
+  var releaseTs = new Date().toISOString();
+  // For failed_manual_intervention lock-release recovery, ensure all
+  // companion fields match the released substate requirements.
+  var releaseUpdates = {
+    sentinel: {
+      owned: false,
+      released_at: releaseTs,
+    },
+  };
+  if (admissibleLockRelease) {
+    releaseUpdates.rollback = {
+      schema: "ola.migration.r2.rollback-state.v1",
+      status: ROLLBACK_STATUSES.not_available,
+      trigger_failure_digest: null,
+      intent_path: null, intent_digest: null, completed_steps: [],
+      target_quarantine: null, source_quarantine: null,
+      quarantine_manifest_path: null, quarantine_manifest_digest: null,
+      quarantine_manifest_input_state_digest: null,
+      attestation_path: null, attestation_digest: null,
+      release_intent_path: null, release_intent_digest: null,
+      receipt_path: null, receipt_digest: null,
+      started_at: null, verified_at: null, released_at: null,
+      failure: null, verified: false,
+    };
+    releaseUpdates.structural_verification = VERIFICATION_STATUSES.not_applicable;
+    releaseUpdates.live_verification = VERIFICATION_STATUSES.not_applicable;
+  }
+  var nextState = transitionState(state, releaseUpdates);
+  writeStateAtomic(root, runId, nextState);
+
+  // Reopen and verify.
+  var reopened = readState(root, runId);
+  if (reopened.sentinel.owned !== false) {
+    throw new R2Error("SENTINEL_RELEASE_STATE_FAILED",
+      "reopened state sentinel.owned is not false after release");
+  }
+  if (reopened.sentinel.released_at === null) {
+    throw new R2Error("SENTINEL_RELEASE_STATE_FAILED",
+      "reopened state sentinel.released_at is null after release");
+  }
+
+  return { run_id: runId, status: "released", released_at: releaseTs };
+}
+
+function renderReleaseSentinelSummary(result) {
+  var lines = [];
+  lines.push("********************************************************");
+  lines.push("* R2 SENTINEL RELEASED");
+  lines.push("********************************************************");
+  lines.push("");
+  lines.push("run_id:       " + result.run_id);
+  lines.push("status:       " + result.status);
+  if (result.released_at) lines.push("released_at:  " + result.released_at);
+  lines.push("");
+  lines.push("The migration sentinel has been released.");
+  lines.push("The system is no longer locked by this failed backup run.");
+  lines.push("New plan/backup invocations are now unblocked.");
+  return lines.join("\n");
+}
+
+// ── finalize-backup: recovery for release-pending backup state ───────────
+//
+// After a crash between physical sentinel removal and the final state write,
+// a run may be stuck in `backup_release_pending` with no physical sentinel.
+// No other CLI command can finalize this state. This command reuses the
+// internal _finalizeBackupCompleted helper to complete the transition.
+//
+// Usage:
+//   node bin/migrate-r2.cjs finalize-backup --run <run_id>
+//
+// Preconditions (validated before any action):
+//   status === backup_release_pending
+//   backup.verified === true
+//   completed_steps contains backup and no later mutation steps
+//   sentinel.owned === true
+//   sentinel.released_at === null
+//   rollback.status === not_applicable
+//   structural_verification === not_applicable
+//   live_verification === not_applicable
+//   physical sentinel absent
+//
+// A present physical sentinel must cause refusal; this command never removes it.
+
+// Strict physical-sentinel-absence assertion for finalization.
+// Uses lstat (NOT existsSync) so a dangling symlink — which existsSync reports
+// as absent because its target doesn't exist — is correctly detected as present.
+// Maps SENTINEL_STILL_PRESENT → PHYSICAL_SENTINEL_PRESENT and any other
+// inspection failure → GLOBAL_SENTINEL_UNREADABLE.
+function assertFinalizationSentinelAbsent(sentinelFilePath) {
+  try {
+    sentinel.assertSentinelEntryAbsentStrict(sentinelFilePath);
+  } catch (error) {
+    if (error.code === "SENTINEL_STILL_PRESENT") {
+      throw new R2Error(
+        "PHYSICAL_SENTINEL_PRESENT",
+        "finalize-backup requires the physical sentinel entry to be absent",
+        error.code
+      );
+    }
+    throw new R2Error(
+      "GLOBAL_SENTINEL_UNREADABLE",
+      "cannot establish physical sentinel absence: " + error.message,
+      error.code
+    );
+  }
+}
+
+function cmdFinalizeBackup(args, paths, injectedDeps) {
+  var runId = args.flags.run;
+  if (!runId) throw new R2Error("RUN_ID_REQUIRED", "finalize-backup requires --run <run_id>");
+  validateRunId(runId);
+
+  var root = paths.olaMigrationRoot;
+  var statePath = runStatePath(root, runId);
+  if (!fs.existsSync(statePath)) {
+    throw new R2Error("RUN_NOT_FOUND", "no run state found for run_id: " + runId);
+  }
+
+  var state = readState(root, runId);
+  var sentinelPath = path.join(paths.home, ".ola-migration", ".migration-in-progress");
+
+  // Idempotency: already backup_completed
+  if (state.status === RUN_STATUSES.backup_completed) {
+    if (state.sentinel.owned !== false || state.sentinel.released_at === null) {
+      throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+        "backup_completed state has inconsistent sentinel ownership");
+    }
+    // Ownership-aware sentinel classification via the EXACT fixture-aware path
+    // (paths.home-derived sentinelPath), NOT the module-global readSentinel()
+    // which reads os.homedir(). The strict reader returns an envelope; adapt
+    // it to the metadata-or-null shape _classifySentinelForRun expects.
+    var fbClassification;
+    try {
+      var idempotentEntry = sentinel.readSentinelEntryStrict({ filePath: sentinelPath });
+      var idempotentActive = idempotentEntry.status === "absent" ? null : idempotentEntry.metadata;
+      fbClassification = _classifySentinelForRun(idempotentActive, runId, state.plan_digest);
+    } catch (classErr) {
+      throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
+        "run is already finalized, but the active global sentinel cannot be classified: " + classErr.message, classErr.code);
+    }
+    if (fbClassification === "owned") {
+      throw new R2Error("SENTINEL_STATE_INCONSISTENT",
+        "run is backup_completed, but its own physical sentinel is present");
+    }
+    // absent or foreign — not inconsistent
+    return { run_id: runId, status: "already_finalized", released_at: state.sentinel.released_at };
+  }
+
+  // Preconditions for backup_release_pending
+  if (state.status !== RUN_STATUSES.backup_release_pending) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires status=backup_release_pending (got: " + state.status + ")");
+  }
+  if (state.backup.verified !== true) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires backup.verified=true");
+  }
+  if (state.completed_steps.length !== 1 || state.completed_steps[0] !== "backup") {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires completed_steps=['backup'] only");
+  }
+  if (state.sentinel.owned !== true) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires sentinel.owned=true (release was intended but not completed)");
+  }
+  if (state.sentinel.released_at !== null) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires sentinel.released_at=null (not yet released)");
+  }
+  if (state.rollback.status !== ROLLBACK_STATUSES.not_applicable) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires rollback.status=not_applicable");
+  }
+  if (state.structural_verification !== VERIFICATION_STATUSES.not_applicable) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires structural_verification=not_applicable");
+  }
+  if (state.live_verification !== VERIFICATION_STATUSES.not_applicable) {
+    throw new R2Error("FINALIZE_PRECONDITION_FAILED",
+      "finalize-backup requires live_verification=not_applicable");
+  }
+
+  // Physical sentinel must be absent — this command never removes it.
+  // Uses lstat-based strict assertion (NOT existsSync) so a dangling symlink
+  // is correctly detected as present.
+  assertFinalizationSentinelAbsent(sentinelPath);
+
+  // Durably sync the absent sentinel: fsync the parent directory so any prior
+  // unlink by another process is durable before we write backup_completed.
+  // Without this, a crash could let an unsynced sentinel reappear after
+  // canonical state says owned=false.
+  //
+  // Pass path.dirname(sentinelPath) explicitly so the fsync operates on the
+  // SAME directory the strict absence checks inspect (derived from paths.home).
+  // The zero-arg default would fsync sentinelDir() (os.homedir()-based), which
+  // diverges when paths.home !== os.homedir().
+  try {
+    sentinel.fsyncMigrationSentinelDirectory(path.dirname(sentinelPath));
+  } catch (syncErr) {
+    throw new R2Error("SENTINEL_DIR_FSYNC_FAILED",
+      "could not durably sync sentinel directory before finalization: " + syncErr.message, syncErr.code);
+  }
+
+  // Post-sync recheck: the sentinel must STILL be absent after fsync.
+  // Uses lstat-based strict assertion (NOT existsSync) so a dangling symlink
+  // installed during the fsync seam is correctly detected.
+  assertFinalizationSentinelAbsent(sentinelPath);
+
+  // Mutation lock absence assertion: a stranded mutation lock means the
+  // sentinel removal was interrupted before its finally block released the
+  // lock. The operator must recover it explicitly before finalization.
+  var mutationLockPath = path.join(paths.olaMigrationRoot, sentinel.LOCK_NAME);
+  try {
+    fs.lstatSync(mutationLockPath);
+    throw new R2Error("SENTINEL_MUTATION_LOCK_PRESENT",
+      "cannot finalize backup while the sentinel mutation lock remains. " +
+      "Recover the lock explicitly (release-sentinel-mutation-lock), then rerun finalize-backup.");
+  } catch (lockErr) {
+    if (lockErr.code === "SENTINEL_MUTATION_LOCK_PRESENT") throw lockErr;
+    if (lockErr.code !== "ENOENT") {
+      throw new R2Error("SENTINEL_MUTATION_LOCK_UNREADABLE",
+        "cannot establish that the sentinel mutation lock is absent: " + lockErr.message, lockErr.code);
+    }
+    // ENOENT — lock absent, proceed
+  }
+
+  // Finalize: reuse the internal helper.
+  var d = injectedDeps || defaultBackupCommandDeps();
+  _finalizeBackupCompleted(root, runId, d);
+
+  // Reopen and verify.
+  var reopened = readState(root, runId);
+  if (reopened.status !== RUN_STATUSES.backup_completed) {
+    throw new R2Error("FINALIZE_FAILED",
+      "final state status is not backup_completed (got: " + reopened.status + ")");
+  }
+  if (reopened.sentinel.owned !== false) {
+    throw new R2Error("FINALIZE_FAILED",
+      "final state sentinel.owned is not false");
+  }
+  if (reopened.sentinel.released_at === null) {
+    throw new R2Error("FINALIZE_FAILED",
+      "final state sentinel.released_at is null");
+  }
+
+  return { run_id: runId, status: "finalized", released_at: reopened.sentinel.released_at };
+}
+
+function renderFinalizeBackupSummary(result) {
+  var lines = [];
+  lines.push("********************************************************");
+  lines.push("* R2 BACKUP FINALIZED");
+  lines.push("********************************************************");
+  lines.push("");
+  lines.push("run_id:       " + result.run_id);
+  lines.push("status:       " + result.status);
+  if (result.released_at) lines.push("released_at:  " + result.released_at);
+  lines.push("");
+  lines.push("The backup_release_pending state has been finalized to backup_completed.");
+  lines.push("The system is now unblocked.");
+  return lines.join("\n");
+}
+
+// ── release-sentinel-mutation-lock: crash recovery for mutation lock ──────
+//
+// A crash after exclusive lock creation can leave a lock file that blocks
+// all locked sentinel operations. This command provides explicit recovery.
+//
+// Usage:
+//   node bin/migrate-r2.cjs release-sentinel-mutation-lock \
+//     --token <uuid> --confirm-no-active-migration
+
+function cmdReleaseSentinelMutationLock(args, paths) {
+  var token = args.flags.token;
+  var confirm = args.flags["confirm-no-active-migration"];
+
+  if (confirm !== true) {
+    throw new R2Error("CONFIRMATION_REQUIRED",
+      "release-sentinel-mutation-lock requires the bare --confirm-no-active-migration flag; " +
+      "values supplied after the flag are not accepted");
+  }
+  if (!token) {
+    throw new R2Error("TOKEN_REQUIRED",
+      "release-sentinel-mutation-lock requires --token <uuid>");
+  }
+
+  var result = sentinel.releaseSentinelMutationLockManually(token, true);
+  return result;
+}
+
+function renderReleaseLockSummary(result) {
+  var lines = [];
+  lines.push("********************************************************");
+  lines.push("* SENTINEL MUTATION LOCK RELEASED");
+  lines.push("********************************************************");
+  lines.push("");
+  lines.push("status:   " + result.status);
+  if (result.token) lines.push("token:    " + result.token);
+  lines.push("");
+  lines.push("The mutation lock has been released.");
+  lines.push("Locked sentinel operations are now unblocked.");
+  return lines.join("\n");
+}
+
 // ── Step 5: Backup ────────────────────────────────────────────────────────
 //
 // cmdBackup is the CLI entry point for the standalone backup subcommand.
-// It loads and verifies a frozen plan, bootstraps a migration run (creating
-// the sentinel and run-state), then calls createVerifiedBackup to produce
-// a rollback-complete backup of all pre-migration artifacts.
+// It loads and verifies a frozen plan, bootstraps a migration run, calls
+// createVerifiedBackup, then persists canonical state and releases the sentinel.
 //
-// The backup library (createVerifiedBackup and all helpers) was already
-// implemented for the execute coordinator. This command makes it available
-// as a standalone step so an operator can create a verified backup without
-// running the full execute pipeline.
-//
+// Supports dependency injection (3rd arg) for failure-injection testing.
 // Usage:
 //   node bin/migrate-r2.cjs backup --plan <path> --confirm <plan_digest>
+//   cmdBackup(args, paths, injectedDeps)
 
-async function cmdBackup(args, paths) {
-  // Require --plan and --confirm flags.
-  const planPath = args.flags.plan;
-  if (!planPath) {
-    throw new R2Error("PLAN_PATH_REQUIRED",
-      "backup requires --plan <path> (the frozen plan file)");
-  }
-  const confirmDigest = args.flags.confirm;
-  if (!confirmDigest) {
-    throw new R2Error("PLAN_CONFIRMATION_REQUIRED",
-      "backup requires --confirm <plan_digest> (must match plan.plan_digest exactly)");
-  }
+var _ROLLBACK_NOT_APPLICABLE = Object.freeze({
+  schema: "ola.migration.r2.rollback-state.v1",
+  status: ROLLBACK_STATUSES.not_applicable,
+  trigger_failure_digest: null,
+  intent_path: null, intent_digest: null, completed_steps: [],
+  target_quarantine: null, source_quarantine: null,
+  quarantine_manifest_path: null, quarantine_manifest_digest: null,
+  quarantine_manifest_input_state_digest: null,
+  attestation_path: null, attestation_digest: null,
+  release_intent_path: null, release_intent_digest: null,
+  receipt_path: null, receipt_digest: null,
+  started_at: null, verified_at: null, released_at: null,
+  failure: null, verified: false,
+});
 
-  // 1. Load and verify the plan.
-  const plan = loadAndVerifyPlan(path.resolve(planPath));
+var _ROLLBACK_NOT_AVAILABLE = Object.freeze(Object.assign({}, _ROLLBACK_NOT_APPLICABLE, {
+  status: ROLLBACK_STATUSES.not_available,
+}));
 
-  // 2. Assert the plan is executable.
-  assertPlanExecutable(plan);
+async function cmdBackup(args, paths, injectedDeps) {
+  var d = injectedDeps || defaultBackupCommandDeps();
+  var planPath = args.flags.plan;
+  if (!planPath) throw new R2Error("PLAN_PATH_REQUIRED", "backup requires --plan <path>");
+  var confirmDigest = args.flags.confirm;
+  if (!confirmDigest) throw new R2Error("PLAN_CONFIRMATION_REQUIRED", "backup requires --confirm <plan_digest>");
 
-  // 3. Exact digest confirmation.
-  if (confirmDigest !== plan.plan_digest) {
-    throw new R2Error("PLAN_CONFIRMATION_MISMATCH",
-      "--confirm must exactly match plan.plan_digest");
-  }
+  var plan = d.loadAndVerifyPlan(path.resolve(planPath));
+  d.assertPlanExecutable(plan);
+  if (confirmDigest !== plan.plan_digest) throw new R2Error("PLAN_CONFIRMATION_MISMATCH", "--confirm must exactly match plan.plan_digest");
 
-  // 4. Reconstruct paths from the plan (ensures consistency with plan-time).
-  const planPaths = reconstructPathsFromPlan(plan, {});
+  var planPaths = d.reconstructPathsFromPlan(plan, {});
 
-  // 5. Authoritative preflight: one tested path that performs all checks.
-  //    Mirrors cmdPlan's preflight exactly:
-  //      inventory A → quiescence evidence → inventory B → stable comparison → assert quiescent
-  const beforeInv = inventoryStores(planPaths);
-  const evidence = collectQuiescenceEvidence(planPaths);
-  const afterInv = inventoryStores(planPaths);
+  // Preflight (same as cmdPlan).
+  var beforeInv = inventoryStores(planPaths);
+  var evidence = collectQuiescenceEvidence(planPaths);
+  var afterInv = inventoryStores(planPaths);
   assertInventoryStable(beforeInv, afterInv);
   evidence.source_snapshots_stable = true;
-  assertQuiescent(evidence, /*confirmation=*/ true);
-
-  // Capacity check (same as runPreflight).
-  const cap = estimateBackupCapacity(plan, planPaths);
+  assertQuiescent(evidence, true);
+  var cap = estimateBackupCapacity(plan, planPaths);
   fs.mkdirSync(path.join(planPaths.olaMigrationRoot, "backups"), { recursive: true });
-  const free = freeSpaceBytes(path.join(planPaths.olaMigrationRoot, "backups"));
-  if (free !== null && free < cap.required_free) {
-    throw new R2Error("BACKUP_CAPACITY_INSUFFICIENT",
-      "free space " + free + " < required " + cap.required_free);
-  }
+  var free = freeSpaceBytes(path.join(planPaths.olaMigrationRoot, "backups"));
+  if (free !== null && free < cap.required_free) throw new R2Error("BACKUP_CAPACITY_INSUFFICIENT", "free space " + free + " < required " + cap.required_free);
+  var backupDest = plan.backup_destination.replace(/\//g, path.sep);
+  if (fs.existsSync(backupDest)) throw new R2Error("BACKUP_DESTINATION_EXISTS", "backup destination already exists: " + backupDest);
 
-  // Destination check: backup + archive destinations absent.
-  const backupDest = plan.backup_destination.replace(/\//g, path.sep);
-  if (fs.existsSync(backupDest)) {
-    throw new R2Error("BACKUP_DESTINATION_EXISTS",
-      "backup destination already exists: " + backupDest);
-  }
+  // Bootstrap.
+  var bsResult = d.bootstrapExecution({ externalPlanPath: path.resolve(planPath), confirmDigest: confirmDigest, options: {}, deps: d.bootstrapDeps });
+  if (!bsResult.ok) throw new R2Error(bsResult.code || "BACKUP_BOOTSTRAP_FAILED", "backup bootstrap failed: " + bsResult.message);
+  var runId = bsResult.run_id;
+  var root = planPaths.olaMigrationRoot;
 
-  // 6. Bootstrap the run (creates runId, run-state, sentinel).
-  //    bootstrapExecution re-runs preflight internally, but we've already
-  //    validated above. The bootstrap creates the sentinel and initial state.
-  const bsResult = bootstrapExecution({
-    externalPlanPath: path.resolve(planPath),
-    confirmDigest: confirmDigest,
-    options: {},
-    deps: defaultBootstrapDeps(),
-  });
-
-  if (!bsResult.ok) {
-    throw new R2Error(bsResult.code || "BACKUP_BOOTSTRAP_FAILED",
-      "backup bootstrap failed: " + bsResult.message);
-  }
-
-  const runId = bsResult.run_id;
-
-  // 7. Call createVerifiedBackup with the bootstrapped run.
-  let backupResult;
+  // Backup creation.
+  var backupResult;
   try {
-    backupResult = await createVerifiedBackup({
-      runId: runId,
-      planDigest: plan.plan_digest,
-      plan: plan,
-      paths: planPaths,
-    });
+    backupResult = await d.createVerifiedBackup({ runId: runId, planDigest: plan.plan_digest, plan: plan, paths: planPaths });
   } catch (e) {
-    // Backup failed. Record the failure in run-state using the correct protocol.
-    _backupFailState(planPaths.olaMigrationRoot, runId, bsResult.state, e);
-    // Release the sentinel using the CORRECT import (not a broken require path).
-    _releaseSentinelOrThrow();
+    // Backup creation failed. Persist backup_failed with all companion fields.
+    // Do NOT auto-release the sentinel — the operator clears it after revalidating
+    // that no mutation step completed.
+    try {
+      _persistBackupCreationFailure(root, runId, e, d);
+    } catch (persistErr) {
+      var compFail = new R2Error("BACKUP_FAILURE_STATE_PERSIST_FAILED",
+        "backup creation failed and its canonical failure state could not be persisted: " + persistErr.message);
+      compFail.original_code = e.code || "BACKUP_FAILED";
+      compFail.persistence_code = persistErr.code || "unknown";
+      compFail.run_id = runId;
+      compFail.sentinel_expected_owned = true;
+      compFail.operator_action_required = true;
+      throw compFail;
+    }
     throw e;
   }
 
-  // 8. Persist backup success in run-state using the correct protocol:
-  //    readState → transitionState → writeStateAtomic → reopen + verify.
-  const projected = projectBackupEvidence(backupResult);
-  let persistedState;
+  // Phase 1: project evidence and persist backup evidence (in_progress, sentinel owned).
+  // Both projection and persistence are guarded — a malformed backup result
+  // or a failed state write lands in failed_manual_intervention with sentinel retained.
+  var projected;
   try {
-    const currentState = readState(planPaths.olaMigrationRoot, runId);
-    const nextState = transitionState(currentState, {
-      completed_steps: ["backup"],
-      backup: projected,
-    });
-    writeStateAtomic(planPaths.olaMigrationRoot, runId, nextState);
-    // Reopen and verify persisted state.
-    persistedState = readState(planPaths.olaMigrationRoot, runId);
-    if (!persistedState.completed_steps || persistedState.completed_steps.indexOf("backup") < 0) {
-      throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
-        "reopened state does not contain backup in completed_steps");
+    projected = d.projectBackupEvidence(backupResult);
+    _persistBackupEvidence(root, runId, backupResult, projected, d);
+  }
+  catch (e) {
+    // Do NOT release sentinel. Land in failed_manual_intervention, keep owned.
+    try {
+      _persistManualIntervention(root, runId, "backup-evidence", "BACKUP_EVIDENCE_PERSIST_FAILED",
+        "backup exists but its evidence could not be validated or persisted: " + e.message, e.code, d);
+    } catch (miErr) {
+      var comp1 = new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+        "evidence persist failed AND manual-intervention state write failed: " + miErr.message);
+      comp1.original_code = e.code || "unknown";
+      comp1.persistence_code = miErr.code || "unknown";
+      comp1.run_id = runId;
+      comp1.sentinel_expected_owned = true;
+      comp1.operator_action_required = true;
+      throw comp1;
     }
-  } catch (e) {
-    // State persistence failed. The backup exists on disk but is not durably
-    // recorded. This is a recoverable error — the operator can inspect the
-    // backup directory manually. Do NOT print success.
-    _releaseSentinelOrThrow();
-    throw new R2Error("BACKUP_STATE_PERSIST_FAILED",
-      "backup created but state persistence failed: " + e.message, e.code);
+    throw new R2Error("BACKUP_STATE_PERSIST_FAILED", "backup created but evidence-state persistence failed: " + e.message, e.code);
   }
 
-  // 9. Release the sentinel using the CORRECT imported object.
-  //    This must succeed — do not swallow the error.
-  _releaseSentinelOrThrow();
+  // Phase 1.5: persist backup_release_pending (durable intent to release sentinel).
+  try { _persistBackupReleasePending(root, runId, d); }
+  catch (e) {
+    try {
+      _persistManualIntervention(root, runId, "release-intent", "BACKUP_RELEASE_INTENT_PERSIST_FAILED",
+        "could not persist backup_release_pending intent: " + e.message, e.code, d);
+    } catch (miErr) {
+      var comp2 = new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+        "release-intent persist failed AND manual-intervention state write failed: " + miErr.message);
+      comp2.original_code = e.code || "unknown";
+      comp2.persistence_code = miErr.code || "unknown";
+      comp2.run_id = runId;
+      comp2.sentinel_expected_owned = true;
+      comp2.operator_action_required = true;
+      throw comp2;
+    }
+    throw new R2Error("BACKUP_RELEASE_INTENT_PERSIST_FAILED", "could not persist backup_release_pending intent: " + e.message, e.code);
+  }
 
-  return {
-    run_id: runId,
-    backup_path: backupResult.backup_path,
-    manifest_digest: backupResult.manifest_digest,
-    entries_count: backupResult.entries_count,
-  };
-}
-
-// Helper: persist a backup-failed state using the correct protocol.
-function _backupFailState(olaMigrationRoot, runId, currentState, error) {
+  // Phase 2a: atomic ownership-verified removal via mutation lock.
+  // Uses removeMigrationSentinelOwnedBy which acquires a cross-process
+  // mutation lock, re-validates ownership, unlinks, fsyncs, and releases
+  // the lock — all as one serialized operation.
   try {
-    const nextState = transitionState(currentState, {
-      final_status: "backup_failed",
-      error_code: error.code || "BACKUP_FAILED",
-      error_message: error.message,
-    });
-    writeStateAtomic(olaMigrationRoot, runId, nextState);
-  } catch { /* best effort — state persistence may also fail during error handling */ }
+    d.removeMigrationSentinelOwnedBy(runId, plan.plan_digest);
+    // Postcondition: verify the sentinel is actually gone.
+    if (d.isMigrationInProgress()) {
+      var stillPresentErr = new Error(
+        "physical migration sentinel remains after owned removal returned"
+      );
+      stillPresentErr.code = "SENTINEL_STILL_PRESENT";
+      throw stillPresentErr;
+    }
+  }
+  catch (e) {
+    // Classify the error by code:
+    // SENTINEL_OWNERSHIP_MISMATCH → foreign sentinel, preserve it
+    // SENTINEL_FOREIGN / SENTINEL_MALFORMED → same
+    // SENTINEL_LOCK_HELD → another mutation in progress
+    // Others → removal failure
+    var errCode = e.code || "SENTINEL_RELEASE_FAILED";
+    var physicalPresentAfterFail = d.isMigrationInProgress();
+
+    if (errCode === "SENTINEL_FOREIGN" || errCode === "SENTINEL_MALFORMED" || errCode === "SENTINEL_OWNERSHIP_MISMATCH") {
+      try {
+        _persistManualIntervention(root, runId, "sentinel-ownership", "SENTINEL_OWNERSHIP_MISMATCH",
+          "sentinel does not belong to this run: " + e.message, errCode, d);
+      } catch (miErr) {
+        throw new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+          "ownership mismatch AND state write failed: " + miErr.message);
+      }
+      throw new R2Error("SENTINEL_OWNERSHIP_MISMATCH",
+        "refusing to remove a foreign or malformed sentinel: " + e.message, errCode);
+    }
+
+    if (!physicalPresentAfterFail) {
+      // Unlink succeeded but fsync failed (or post-unlink check raced).
+      // Preserve backup_release_pending — finalize-backup can retry.
+      var durabilityErr = new R2Error("SENTINEL_RELEASE_DURABILITY_FAILED",
+        "sentinel is absent but its directory sync failed; " +
+        "backup_release_pending was preserved for finalize-backup: " + e.message, errCode);
+      durabilityErr.run_id = runId;
+      durabilityErr.sentinel_expected_owned = true;
+      durabilityErr.operator_action_required = true;
+      throw durabilityErr;
+    }
+
+    // Physical sentinel still present — genuine removal failure.
+    try {
+      _persistManualIntervention(root, runId, "sentinel-removal", "SENTINEL_RELEASE_FAILED",
+        "sentinel removal failed — physical sentinel still present: " + e.message, errCode, d);
+    } catch (miErr) {
+      var comp3 = new R2Error("MANUAL_INTERVENTION_STATE_PERSIST_FAILED",
+        "sentinel removal failed AND manual-intervention state write failed: " + miErr.message);
+      comp3.original_code = errCode;
+      comp3.persistence_code = miErr.code || "unknown";
+      comp3.run_id = runId;
+      comp3.sentinel_expected_owned = true;
+      comp3.operator_action_required = true;
+      throw comp3;
+    }
+    throw new R2Error("SENTINEL_RELEASE_FAILED",
+      "sentinel removal failed — physical sentinel still present, authority retained: " + e.message, errCode);
+  }
+
+  // Phase 2b: persist backup_completed (sentinel already removed physically).
+  try { _finalizeBackupCompleted(root, runId, d); }
+  catch (e) {
+    // Final state write failed after physical sentinel removal.
+    // PRESERVE backup_release_pending — the release intent is the recovery signal.
+    // Do NOT overwrite with failed_manual_intervention.
+    // sentinel.owned stays true in durable state (physical absent is intentional
+    // and classified: the operator finalizes backup_completed).
+    throw new R2Error("BACKUP_FINAL_STATE_PERSIST_FAILED",
+      "backup_completed write failed after physical sentinel removal. " +
+      "Recovery: durable state is backup_release_pending, physical sentinel is absent. " +
+      "Finalize by writing backup_completed with sentinel.owned=false. " +
+      "Detail: " + e.message, e.code);
+  }
+
+  return { run_id: runId, backup_path: backupResult.backup_path, manifest_digest: backupResult.manifest_digest, entries_count: backupResult.entries_count };
 }
 
-// Helper: release the sentinel using the correctly-imported module.
-// Throws on failure — callers must propagate the error.
-function _releaseSentinelOrThrow() {
-  sentinel.removeMigrationSentinel();
+// ── Standalone-backup state helpers (all accept deps) ────────────────────
+
+// Shared sentinel classifier for idempotent paths.
+// Returns: "absent" | "owned" | "foreign"
+// Throws GLOBAL_SENTINEL_UNREADABLE for raw/malformed/unreadable sentinels.
+function _classifySentinelForRun(active, runId, planDigest) {
+  if (active === null) return "absent";
+  var validRunId =
+    typeof active.run_id === "string" && RUN_ID_RE.test(active.run_id);
+  var validPlanDigest =
+    typeof active.plan_digest === "string" && /^[0-9a-f]{64}$/.test(active.plan_digest);
+  if (active.raw === true || !validRunId || !validPlanDigest) {
+    throw new R2Error("GLOBAL_SENTINEL_UNREADABLE",
+      "the active global sentinel has invalid ownership metadata");
+  }
+  if (active.run_id === runId && active.plan_digest === planDigest) return "owned";
+  return "foreign";
+}
+
+function _persistBackupEvidence(root, runId, backupResult, projected, d) {
+  var cur = d.readState(root, runId);
+  var completedSteps = cur.completed_steps.indexOf("backup") >= 0 ? cur.completed_steps : ["backup"];
+  var next = d.transitionState(cur, {
+    backup: { path: backupResult.backup_path, verified: true, manifest_digest: backupResult.manifest_digest },
+    step_outputs: Object.assign({}, cur.step_outputs, { backup: projected }),
+    completed_steps: completedSteps,
+  });
+  d.writeStateAtomic(root, runId, next);
+  var reopened = d.readState(root, runId);
+  if (!reopened.backup || reopened.backup.verified !== true)
+    throw new R2Error("BACKUP_STATE_PERSIST_FAILED", "Phase 1 reopen: backup.verified is not true");
+}
+
+function _persistBackupReleasePending(root, runId, d) {
+  var cur = d.readState(root, runId);
+  var next = d.transitionState(cur, {
+    status: RUN_STATUSES.backup_release_pending,
+    rollback: _ROLLBACK_NOT_APPLICABLE,
+    structural_verification: VERIFICATION_STATUSES.not_applicable,
+    live_verification: VERIFICATION_STATUSES.not_applicable,
+  });
+  d.writeStateAtomic(root, runId, next);
+  var reopened = d.readState(root, runId);
+  if (reopened.status !== RUN_STATUSES.backup_release_pending)
+    throw new R2Error("BACKUP_RELEASE_INTENT_PERSIST_FAILED", "reopen: status is not backup_release_pending");
+}
+
+function _finalizeBackupCompleted(root, runId, d) {
+  var cur = d.readState(root, runId);
+  var releaseTs = d.now().toISOString();
+  var next = d.transitionState(cur, {
+    status: RUN_STATUSES.backup_completed,
+    sentinel: { owned: false, released_at: releaseTs },
+    rollback: _ROLLBACK_NOT_APPLICABLE,
+    structural_verification: VERIFICATION_STATUSES.not_applicable,
+    live_verification: VERIFICATION_STATUSES.not_applicable,
+  });
+  d.writeStateAtomic(root, runId, next);
+  var reopened = d.readState(root, runId);
+  if (reopened.status !== RUN_STATUSES.backup_completed)
+    throw new R2Error("BACKUP_FINALIZE_FAILED", "final state status is not backup_completed");
+  if (reopened.sentinel.owned !== false)
+    throw new R2Error("BACKUP_FINALIZE_FAILED", "final state sentinel.owned is not false");
+}
+
+function _persistManualIntervention(root, runId, step, code, message, origCode, d) {
+  var cur = d.readState(root, runId);
+  var next = d.transitionState(cur, {
+    status: RUN_STATUSES.failed_manual_intervention,
+    failure: { step: step, code: code, message: message, at: d.now().toISOString() },
+  });
+  d.writeStateAtomic(root, runId, next);
+  // If we reach here, the manual-intervention state was durably persisted.
+  // If read/transition/write threw, the caller's catch propagates the error
+  // AND the composite recovery information is available in the thrown R2Error.
+}
+
+function _persistBackupCreationFailure(root, runId, error, d) {
+  var cur = d.readState(root, runId);
+  var next = d.transitionState(cur, {
+    status: RUN_STATUSES.backup_failed,
+    failure: { code: error.code || "BACKUP_FAILED", message: error.message, at: d.now().toISOString() },
+    backup: { path: null, verified: false, manifest_digest: null },
+    rollback: _ROLLBACK_NOT_AVAILABLE,
+    structural_verification: VERIFICATION_STATUSES.not_applicable,
+    live_verification: VERIFICATION_STATUSES.not_applicable,
+  });
+  d.writeStateAtomic(root, runId, next);
+  var reopened = d.readState(root, runId);
+  if (reopened.status !== RUN_STATUSES.backup_failed)
+    throw new R2Error("BACKUP_STATE_PERSIST_FAILED", "failure state reopen: status is not backup_failed");
 }
 
 function renderBackupSummary(result) {
@@ -11629,6 +12469,17 @@ function renderHelp() {
     "                                    Requires a frozen, executable plan and exact digest",
     "                                    confirmation. Bootstraps a migration run, creates the",
     "                                    backup, verifies all artifacts, and releases the sentinel.",
+    "  release-sentinel --run <run_id> --confirm-no-mutation",
+    "                                    Release the migration sentinel after a failed backup.",
+    "                                    Requires status=backup_failed, completed_steps=[],",
+    "                                    backup.verified=false, and --confirm-no-mutation.",
+    "  finalize-backup --run <run_id>",
+    "                                    Finalize a backup_release_pending run to backup_completed.",
+    "                                    Used after a crash between physical sentinel removal and",
+    "                                    final state persistence. Requires physical sentinel absent.",
+    "  release-sentinel-mutation-lock --token <uuid> --confirm-no-active-migration",
+    "                                    Release a stranded sentinel mutation lock after a crash.",
+    "                                    Requires exact token match and bare confirmation flag.",
     "",
     "Subcommands implemented in later steps:",
     "  execute --plan <path> --confirm <digest>   (Step 10)",
@@ -11697,6 +12548,21 @@ function main() {
     case "rollback":
       throw new R2Error("NOT_IMPLEMENTED",
         args.subcommand + " is implemented in Step 10 (not yet built)");
+    case "release-sentinel": {
+      var rsResult = cmdReleaseSentinel(args, paths);
+      process.stdout.write(renderReleaseSentinelSummary(rsResult) + "\n");
+      return 0;
+    }
+    case "finalize-backup": {
+      var fbResult = cmdFinalizeBackup(args, paths);
+      process.stdout.write(renderFinalizeBackupSummary(fbResult) + "\n");
+      return 0;
+    }
+    case "release-sentinel-mutation-lock": {
+      var rlResult = cmdReleaseSentinelMutationLock(args, paths);
+      process.stdout.write(renderReleaseLockSummary(rlResult) + "\n");
+      return 0;
+    }
     default:
       throw new R2Error("UNKNOWN_SUBCOMMAND", "unknown subcommand: " + args.subcommand);
   }
@@ -11776,7 +12642,7 @@ module.exports = {
   // Recorded-file verification (Phase 4)
   verifyRecordedMergeFile, verifyRecordedPortFile,
   // Forward coordinator (Step 10b.2b)
-  defaultForwardDeps, persistForwardUpdate, runForwardExecution,
+  defaultForwardDeps, defaultBackupCommandDeps, persistForwardUpdate, runForwardExecution,
   // Structural closeout verifier (Step 10b.3a)
   STRUCTURAL_CLOSEOUT_SCHEMA, STRUCTURAL_ERROR_CODES,
   captureStructuralCloseoutSurface, assertStructuralCloseoutQuiescence,
@@ -11808,7 +12674,8 @@ module.exports = {
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
   // CLI commands (for tests)
-  cmdInventory, cmdPreview, cmdPlan, cmdBackup,
+  cmdInventory, cmdPreview, cmdPlan, cmdBackup, cmdReleaseSentinel, cmdFinalizeBackup,
+  cmdReleaseSentinelMutationLock,
 };
 
 if (require.main === module) {

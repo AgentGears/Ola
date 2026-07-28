@@ -558,60 +558,278 @@ function cmdExecute(resolveConflictsPolicy) {
 
 // ── neutralize ──────────────────────────────────────────────────
 //
-// Rename legacy store so detectLegacyStores() no longer flags it.
-// Run ONLY after execute succeeds and verifies clean.
+// Rename legacy store so detectLegacyStores() no longer flags it, then remove
+// the legacy empty sentinel. Run ONLY after execute succeeds and verifies clean.
+//
+// SENTINEL REMOVAL CONTRACT (revised):
+//   The historical pre-R2 sentinel was a zero-byte file created via `touch`,
+//   whose PRESENCE (not content) was the safety barrier. There is no structured
+//   legacy JSON format. Because a crashed R2 openSync("wx") can also leave a
+//   zero-byte file, zero bytes is a legacy-COMPATIBLE SHAPE, not proof of
+//   legacy authority.
+//
+//   Therefore legacy sentinel removal requires ALL of:
+//     - exact zero-byte regular file (lstat-confirmed)
+//     - explicit bare operator attestation (--confirm-legacy-empty-sentinel)
+//     - mutation lock acquired (operation="remove-legacy-empty")
+//     - in-lock recheck still sees zero bytes
+//     - durable legacy-store rename (parent-dir fsync) before sentinel unlink
+//
+//   The full safety sequence is owned by sentinel.withLegacyEmptySentinelLock()
+//   so it cannot be omitted by a caller. This function throws coded errors;
+//   main() renders them and sets the exit status.
 
-function cmdNeutralize() {
-  const canon = shared.resolveDataDir();
-  const legacy = legacyStores.detectLegacyStores(canon);
-  if (legacy.length === 0) {
-    console.log("No populated legacy stores detected. Already neutralized (or never existed).");
-    // Still remove sentinel if present
-    if (sentinel.isMigrationInProgress()) {
-      sentinel.removeMigrationSentinel();
-      console.log("Sentinel removed.");
-    }
-    return;
+// Parse the neutralize subcommand args. The confirmation flag is BARE:
+//   node ... neutralize --confirm-legacy-empty-sentinel
+// Rejected forms: =true, =false, "yes", "false", etc.
+function parseNeutralizeArgs(argv) {
+  const args = argv.slice(3);
+  const confirmed =
+    args.length === 1 && args[0] === "--confirm-legacy-empty-sentinel";
+  return { confirmed: confirmed };
+}
+
+function cmdNeutralize(args, deps) {
+  args = args || {};
+  deps = deps || {};
+  const canon = (deps.resolveDataDir || shared.resolveDataDir)();
+  const detectLegacy = deps.detectLegacyStores || legacyStores.detectLegacyStores;
+  const legacy = detectLegacy(canon);
+  const fsLocal = deps.fs || fs;
+
+  // Observe sentinel + lock state via lstat (no mutation). Used for the no-op
+  // gate and for early routing before confirmation.
+  const lstatFn = deps.lstatSync || fs.lstatSync;
+  const observe = sentinel.observePathState;
+  const sentinelState = observe(lstatFn, sentinel.sentinelPath());
+  const lockState = observe(lstatFn, sentinel.lockPath());
+
+  // Journal state observation (outside-lock, for routing only). The primitive
+  // re-reads under the mutation lock before any authoritative recovery decision.
+  var journalRecord = null;
+  try {
+    journalRecord = sentinel.readLegacyNeutralizeRecoveryJournal();
+  } catch (journalErr) {
+    // Malformed/unreadable journal — fail closed.
+    const err = new Error(
+      "recovery journal is present but unreadable/malformed: " + journalErr.message
+    );
+    err.code = journalErr.code || "LEGACY_RECOVERY_JOURNAL_MALFORMED";
+    err.cause = journalErr;
+    err.manual_verification_required = true;
+    throw err;
   }
+
+  // Genuine no-op: no legacy store, no sentinel, no mutation lock, no recovery
+  // journal. Observation-only — does NOT acquire/release a lock. A recovery
+  // journal MUST be absent too, since a crash after sentinel removal but before
+  // journal removal leaves all three absent + journal present.
+  if (
+    legacy.length === 0 &&
+    sentinelState === "absent" &&
+    lockState === "absent" &&
+    journalRecord === null
+  ) {
+    return {
+      status: "already_neutralized",
+      observation_only: true,
+      note: "no legacy store, sentinel, mutation lock, or recovery journal observed during this invocation",
+    };
+  }
+
+  // Multiple legacy stores: refuse BEFORE confirmation and lock acquisition.
   if (legacy.length > 1) {
-    console.error("Multiple legacy stores detected. Manual neutralization required.");
-    process.exit(1);
-  }
-  const legacyPath = legacy[0].path;
-  const legacyParent = path.dirname(legacyPath);
-  const iso = new Date().toISOString().replace(/[:.]/g, "").slice(0, -1) + "Z";
-  const newName = "memory.migrated-" + iso;
-  const newPath = path.join(legacyParent, newName);
-
-  // Sanity: only proceed if sentinel is active (meaning a migration is in flight)
-  if (!sentinel.isMigrationInProgress()) {
-    console.error("No sentinel active. Neutralize only runs during an active migration window.");
-    console.error("If you're sure, create the sentinel first, or perform the rename manually.");
-    process.exit(1);
+    const err = new Error(
+      "multiple legacy stores detected; automatic neutralization refused"
+    );
+    err.code = "MULTIPLE_LEGACY_STORES";
+    err.legacy_paths = legacy.map(function (entry) { return entry.path; });
+    throw err;
   }
 
-  console.log("Renaming legacy store:");
-  console.log("  from: " + legacyPath);
-  console.log("  to:   " + newPath);
-  fs.renameSync(legacyPath, newPath);
-
-  // Verify neutralization: detectLegacyStores should now return empty
-  const stillLegacy = legacyStores.detectLegacyStores(canon);
-  if (stillLegacy.length > 0) {
-    console.error("WARNING: legacy store still detected after rename:");
-    for (const l of stillLegacy) console.error("  - " + l.path);
-    console.error("Manual cleanup required.");
-    process.exit(1);
+  // Attestation gate. Removing the sentinel is the dangerous authority
+  // mutation regardless of whether a rename is needed, so confirmation is
+  // required on every deletion path — INCLUDING recovery. A valid journal
+  // proves prior durable intent; it does NOT replace the explicit operator
+  // attestation policy. Only the genuine no-op above may skip it.
+  if (args.confirmed !== true) {
+    const err = new Error(
+      "legacy neutralization requires bare --confirm-legacy-empty-sentinel"
+    );
+    err.code = "LEGACY_CONFIRMATION_REQUIRED";
+    throw err;
   }
-  console.log("Verified: detectLegacyStores() now returns empty.");
 
-  // Remove sentinel
-  sentinel.removeMigrationSentinel();
-  console.log("Sentinel removed.");
+  // ── Recovery path: journal present (retry after a failed neutralization) ──
+  // The journal was published before a rename that may not have completed or
+  // whose parent-fsync may not have completed. The primitive strictly re-reads
+  // the journal under the lock as the sole source of truth and passes the
+  // authoritative record to the callback. The outside-lock journalRecord is
+  // routing-only — it must NOT be used for mutation.
+  if (journalRecord !== null) {
+    const result = sentinel.withLegacyEmptySentinelLock({
+      mode: "recover",
+      mutateLegacyStore: function (d, authoritativeRecord) {
+        // Recovery state matrix: check source vs target existence using the
+        // UNDER-LOCK authoritative record, NOT the outside-lock routing record.
+        const srcExists = fsLocal.existsSync(authoritativeRecord.legacy_path);
+        const tgtExists = fsLocal.existsSync(authoritativeRecord.renamed_path);
+        if (srcExists && tgtExists) {
+          // Ambiguous/conflicting — fail closed.
+          const err = new Error(
+            "recovery state ambiguous: both source and target exist"
+          );
+          err.code = "LEGACY_RECOVERY_STATE_AMBIGUOUS";
+          err.legacy_path = authoritativeRecord.legacy_path;
+          err.renamed_path = authoritativeRecord.renamed_path;
+          err.manual_verification_required = true;
+          throw err;
+        }
+        if (!srcExists && !tgtExists) {
+          // Evidence lost — fail closed.
+          const err = new Error(
+            "recovery state invalid: both source and target absent"
+          );
+          err.code = "LEGACY_RECOVERY_STATE_INVALID";
+          err.manual_verification_required = true;
+          throw err;
+        }
+        if (srcExists && !tgtExists) {
+          // Journal published; rename not completed. Resume the rename.
+          d.renameSync(authoritativeRecord.legacy_path, authoritativeRecord.renamed_path);
+        }
+        // Else: !srcExists && tgtExists — rename completed, durability uncertain.
+        // The primitive will re-fsync the recorded parent.
+      },
+      verifyLegacyStore: function () {
+        const remaining = detectLegacy(canon);
+        if (remaining.length !== 0) {
+          const err = new Error("legacy store remains detectable after recovery rename");
+          err.code = "LEGACY_NEUTRALIZATION_VERIFY_FAILED";
+          err.remaining_paths = remaining.map(function (e) { return e.path; });
+          throw err;
+        }
+      },
+      legacyDirectoryPath: journalRecord.legacy_parent,
+      context: { legacy_path: journalRecord.legacy_path, renamed_path: journalRecord.renamed_path },
+      deps: deps.sentinelDeps,
+    });
 
-  console.log("");
-  console.log("Legacy store neutralized. Migration complete.");
-  console.log("Old legacy path preserved as backup at: " + newPath);
+    return {
+      status: "recovered",
+      legacy_path: journalRecord.legacy_path,
+      renamed_path: journalRecord.renamed_path,
+      legacy_directory_fsync: result.legacy_directory_fsync,
+      sentinel_directory_fsync: result.sentinel_directory_fsync,
+    };
+  }
+
+  // ── Normal paths (no journal present) ─────────────────────────────────────
+
+  // Dispatch to the primitive. The primitive owns the full safety sequence;
+  // we provide only the legacy-store mutation + verification.
+  if (legacy.length === 1) {
+    // Single-legacy branch: rename the store, then the primitive handles
+    // sentinel classify/journal-publish/rename/fsync-legacy-dir/verify/recheck/
+    // unlink/fsync/verify/journal-remove.
+    const legacyPath = legacy[0].path;
+    const legacyParent = path.dirname(legacyPath);
+    const newName = "memory.migrated-" + sentinel.formatLegacyArchiveTimestamp(new Date());
+    const newPath = path.join(legacyParent, newName);
+
+    const recoveryRecord = {
+      schema: sentinel.RECOVERY_JOURNAL_SCHEMA,
+      legacy_path: legacyPath,
+      renamed_path: newPath,
+      legacy_parent: legacyParent,
+      created_at: new Date().toISOString(),
+    };
+
+    const result = sentinel.withLegacyEmptySentinelLock({
+      mode: "begin",
+      mutateLegacyStore: function (d) {
+        d.renameSync(legacyPath, newPath);
+      },
+      verifyLegacyStore: function () {
+        const remaining = detectLegacy(canon);
+        if (remaining.length !== 0) {
+          const err = new Error(
+            "legacy store remains detectable after rename"
+          );
+          err.code = "LEGACY_NEUTRALIZATION_VERIFY_FAILED";
+          err.remaining_paths = remaining.map(function (e) { return e.path; });
+          throw err;
+        }
+      },
+      legacyDirectoryPath: legacyParent,
+      context: { legacy_path: legacyPath, renamed_path: newPath },
+      recoveryRecord: recoveryRecord,
+      deps: deps.sentinelDeps,
+    });
+
+    return {
+      status: "neutralized",
+      legacy_path: legacyPath,
+      renamed_path: newPath,
+      legacy_directory_fsync: result.legacy_directory_fsync,
+      sentinel_directory_fsync: result.sentinel_directory_fsync,
+    };
+  }
+
+  // Empty-legacy branch: legacy store absent, sentinel present, no journal.
+  // COMPATIBILITY CHANGE: the command cannot prove whether an unjournaled
+  // rename already occurred. Refuse with LEGACY_RECOVERY_REQUIRED instead of
+  // removing the sentinel with legacyDirectoryPath=null (the old behavior,
+  // which could lose rename durability if a prior rename's fsync failed).
+  if (legacy.length === 0 && sentinelState === "present") {
+    const err = new Error(
+      "sentinel present with no detected legacy store and no recovery journal. " +
+      "Cannot safely remove the sentinel: an unjournaled rename may have occurred " +
+      "without a durable parent-fsync. Inspect the system manually."
+    );
+    err.code = "LEGACY_RECOVERY_REQUIRED";
+    err.manual_verification_required = true;
+    throw err;
+  }
+
+  // Fallback: should not reach here (the no-op gate handles all-absent).
+  const fallback = new Error("neutralize reached unexpected state");
+  fallback.code = "INTERNAL_ERROR";
+  fallback.sentinelState = sentinelState;
+  fallback.lockState = lockState;
+  fallback.legacyLength = legacy.length;
+  fallback.journalPresent = journalRecord !== null;
+  throw fallback;
+}
+
+// Render a neutralize error to stderr lines for the CLI.
+function renderNeutralizeError(error) {
+  const lines = ["ERROR: " + (error.message || "neutralization failed")];
+  if (error.code) lines.push("  code: " + error.code);
+  if (error.sentinel_observed_state) {
+    lines.push("  sentinel_observed_state: " + error.sentinel_observed_state);
+  }
+  if (error.sentinel_preserved !== undefined) {
+    lines.push("  sentinel_preserved: " + error.sentinel_preserved);
+  }
+  if (error.lock_observed_state) {
+    lines.push("  lock_observed_state: " + error.lock_observed_state);
+  }
+  if (error.legacy_store_may_be_renamed) {
+    lines.push("  legacy_store_may_be_renamed: true");
+  }
+  if (error.legacy_path) lines.push("  legacy_path: " + error.legacy_path);
+  if (error.renamed_path) lines.push("  renamed_path: " + error.renamed_path);
+  if (error.legacy_paths) {
+    lines.push("  legacy_paths:");
+    for (const p of error.legacy_paths) lines.push("    - " + p);
+  }
+  if (error.lock_path) lines.push("  lock_path: " + error.lock_path);
+  if (error.token) lines.push("  token: " + error.token);
+  if (error.manual_verification_required) {
+    lines.push("  manual_verification_required: true");
+  }
+  return lines.join("\n");
 }
 
 // ── main ────────────────────────────────────────────────────────
@@ -619,7 +837,7 @@ function cmdNeutralize() {
 function main() {
   const cmd = process.argv[2];
   if (!cmd || cmd === "--help" || cmd === "-h") {
-    console.log("Usage: node bin/migrate-data-dir.cjs <inventory|dry-run|backup|sentinel-on|execute|neutralize>");
+    console.log("Usage: node bin/migrate-data-dir.cjs <inventory|dry-run|backup|sentinel-on|execute|neutralize [--confirm-legacy-empty-sentinel]>");
     console.log("");
     console.log("Sequence (each step discrete):");
     console.log("  1. inventory     — list stores + counts (read-only)");
@@ -627,7 +845,8 @@ function main() {
     console.log("  3. backup        — verified-restorable backup of both stores + manifest");
     console.log("  4. sentinel-on   — create the migration write barrier");
     console.log("  5. execute       — verbatim import; post-verify; atomic-by-restart on failure");
-    console.log("  6. neutralize    — rename legacy store so fail-closed guard releases");
+    console.log("  6. neutralize    — rename legacy store + remove legacy empty sentinel");
+    console.log("                    (requires --confirm-legacy-empty-sentinel to remove a sentinel)");
     console.log("");
     console.log("Stop MCP server before backup. Sentinel required before execute.");
     process.exit(0);
@@ -655,9 +874,35 @@ function main() {
     }
     return cmdExecute(policy);
   }
-  if (cmd === "neutralize") return cmdNeutralize();
+  if (cmd === "neutralize") {
+    try {
+      const result = cmdNeutralize(parseNeutralizeArgs(process.argv));
+      if (result.status === "already_neutralized") {
+        console.log("Already neutralized. " + result.note);
+      } else if (result.status === "neutralized") {
+        console.log("Legacy store renamed: " + result.legacy_path + " -> " + result.renamed_path);
+        console.log("Legacy empty sentinel removed.");
+        console.log("  legacy_directory_fsync: " + result.legacy_directory_fsync);
+        console.log("  sentinel_directory_fsync: " + result.sentinel_directory_fsync);
+        console.log("");
+        console.log("Legacy store neutralized. Migration complete.");
+        console.log("Old legacy path preserved as backup at: " + result.renamed_path);
+      } else if (result.status === "sentinel_removed") {
+        console.log("Legacy empty sentinel removed (no legacy store present).");
+        console.log("  sentinel_directory_fsync: " + result.sentinel_directory_fsync);
+      }
+    } catch (error) {
+      console.error(renderNeutralizeError(error));
+      process.exitCode = 1;
+    }
+    return;
+  }
   console.error("Unknown subcommand:", cmd);
   process.exit(1);
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { cmdNeutralize, parseNeutralizeArgs, renderNeutralizeError };
