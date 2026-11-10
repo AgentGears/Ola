@@ -108,15 +108,20 @@ function fsyncMigrationSentinelDirectory(dirPath) {
   }
 }
 
-// True if a migration is currently in progress (sentinel file exists).
-// Never throws - treats unreadable/missing as "no sentinel" for this boolean.
-// NOTE: this is the proxy used by mutation guards. A malformed sentinel still
-// returns true here (existsSync only); the safety property is PRESENCE.
+// True if the migration sentinel entry is present, including malformed files.
+// Only ENOENT proves absence. An inaccessible or unreadable path must block
+// mutation rather than silently returning "no migration".
 function isMigrationInProgress() {
+  const sp = sentinelPath();
   try {
-    return fs.existsSync(sentinelPath());
-  } catch {
-    return false;
+    fs.lstatSync(sp);
+    return true;
+  } catch (cause) {
+    if (cause && cause.code === "ENOENT") return false;
+    const err = new Error("cannot determine migration sentinel status: " + sp);
+    err.code = "SENTINEL_UNREADABLE";
+    err.cause = cause;
+    throw err;
   }
 }
 
