@@ -39,11 +39,10 @@ echo "  ✓ Node.js $(node --version)"
 
 echo ""
 echo "Running contract tests..."
-if node bin/test-contracts.cjs 2>&1 | tail -1 | grep -q "0 failed"; then
+if node bin/test-contracts.cjs; then
   echo "  ✓ All contract tests passed"
 else
   echo "  ✗ Contract tests failed. Fix before proceeding."
-  node bin/test-contracts.cjs
   exit 1
 fi
 
