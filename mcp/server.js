@@ -54,25 +54,26 @@ function recallSearch(query, projectDir, sessionId, contextParts) {
 
   try {
     // Keyword search (the reliable baseline; semantic added later)
+    // The host transcript DB may contain multiple projects. Project scope is
+    // mandatory even when a caller supplies a session_id: the session must
+    // belong to the current project's directory.
+    const queryParams = [`%${query}%`, projectDir];
+    if (sessionId) queryParams.push(sessionId);
     const results = db.prepare(`
       SELECT p.id, p.session_id, json_extract(m.data, '$.role') AS role,
              json_extract(p.data, '$.type') AS type,
              json_extract(p.data, '$.text') AS text,
              p.time_created
-      FROM part p JOIN message m ON p.message_id = m.id
+      FROM part p
+      JOIN message m ON p.message_id = m.id
+      JOIN session s ON s.id = p.session_id
       WHERE json_extract(p.data, '$.type') = 'text'
         AND json_extract(p.data, '$.text') LIKE ?
+        AND s.directory = ?
       ${sessionId ? "AND p.session_id = ?" : ""}
       ORDER BY p.time_created DESC
       LIMIT 15
-    `).all(...(sessionId ? [`%${query}%`, sessionId] : [`%${query}%`]));
-
-    const sessions = db.prepare(`
-      SELECT DISTINCT s.id, s.title FROM session s
-      WHERE s.directory = ? OR 1=1
-      ${sessionId ? "AND s.id = ?" : ""}
-      ORDER BY s.time_updated DESC LIMIT 5
-    `).all(...(sessionId ? [projectDir || "", sessionId] : [projectDir || ""]));
+    `).all(...queryParams);
 
     return {
       query,
@@ -179,7 +180,8 @@ function recallMemory(query, mode, limit) {
       try { return JSON.parse(line); } catch { return null; }
     }).filter(Boolean);
 
-    // Exclude archived/tombstoned/deleted (check stats DB)
+    // The lifecycle database is authoritative for archived/tombstoned state.
+    // An unavailable database is not proof that every inbox entry is active.
     let activeMemories = allMemories;
     let statsDb = null;
     try {
@@ -194,7 +196,10 @@ function recallMemory(query, mode, limit) {
       }
       activeMemories = allMemories.filter((m) => !hidden.has(m.memory_id));
     } catch {
-      // Stats DB unavailable — show all
+      if (statsDb) {
+        try { statsDb.close(); } catch {}
+      }
+      return { error: "memory lifecycle status unavailable; recall refused" };
     }
 
     // Build candidates for retrieval scoring
