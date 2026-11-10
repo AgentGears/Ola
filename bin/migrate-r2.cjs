@@ -8476,14 +8476,25 @@ function deriveBackupAuthority({
     throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID,
       "backup component path exists for " + sourceLabel + " but manifest has no entries");
   }
-  // Both present — verify and fingerprint.
-  try { _verifyTree(backupComponentPath, entries, sourceLabel); }
-  catch (e) { throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID, "backup tree verification: " + e.message); }
-  const fp = _fingerprint(backupComponentPath);
-  // Reject symlinks at the backup root.
-  const rootLstat = _lstat(backupComponentPath);
-  if (rootLstat.isSymbolicLink()) {
-    throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID, "backup component root is a symlink");
+  // Both present: inspect the root BEFORE following or fingerprinting its
+  // content. A symlink root must never be traversed, even temporarily.
+  let rootLstat;
+  try { rootLstat = _lstat(backupComponentPath); }
+  catch (e) {
+    throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID,
+      "backup component cannot be inspected: " + e.message);
+  }
+  if (rootLstat.isSymbolicLink() || !rootLstat.isDirectory()) {
+    throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID,
+      "backup component root must be a real directory");
+  }
+  let fp;
+  try {
+    _verifyTree(backupComponentPath, entries, sourceLabel);
+    fp = _fingerprint(backupComponentPath);
+  } catch (e) {
+    throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID,
+      "backup tree verification: " + e.message);
   }
   return {
     presence: "present",
