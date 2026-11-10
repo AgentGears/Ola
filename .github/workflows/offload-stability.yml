@@ -30,6 +30,7 @@ on:
       - 'tests/r2/step5-finalize-backup.test.cjs'
       - 'tests/r2/step5-legacy-sentinel-classification.test.cjs'
       - 'tests/r2/step5-owned-removal-strict.test.cjs'
+      - 'tests/review-runtime-boundaries.test.cjs'
       - 'tests/helpers/managed-offload-worker.cjs'
       - '.github/workflows/offload-stability.yml'
       - '.github/workflows/baseline-tests.yml'
@@ -53,6 +54,7 @@ on:
       - 'tests/r2/step5-finalize-backup.test.cjs'
       - 'tests/r2/step5-legacy-sentinel-classification.test.cjs'
       - 'tests/r2/step5-owned-removal-strict.test.cjs'
+      - 'tests/review-runtime-boundaries.test.cjs'
       - 'tests/helpers/managed-offload-worker.cjs'
       - '.github/workflows/offload-stability.yml'
 
@@ -172,6 +174,7 @@ jobs:
             "tests/r2/step5-finalize-backup.test.cjs"
             "tests/r2/step5-legacy-sentinel-classification.test.cjs"
             "tests/r2/step5-owned-removal-strict.test.cjs"
+            "tests/review-runtime-boundaries.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
