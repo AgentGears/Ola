@@ -8447,6 +8447,7 @@ const RESTORE_ERROR_CODES = Object.freeze({
   PUBLICATION_DURABILITY_FAILED: "ROLLBACK_RESTORE_PUBLICATION_DURABILITY_FAILED",
   POSTCHECK_FAILED:          "ROLLBACK_RESTORE_POSTCHECK_FAILED",
   SOURCE_CHANGED:            "ROLLBACK_RESTORE_SOURCE_CHANGED",
+  PATH_UNREADABLE:           "ROLLBACK_RESTORE_PATH_UNREADABLE",
 });
 
 // Derive backup authority from the verified backup manifest. Returns:
@@ -8475,14 +8476,25 @@ function deriveBackupAuthority({
     throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID,
       "backup component path exists for " + sourceLabel + " but manifest has no entries");
   }
-  // Both present — verify and fingerprint.
-  try { _verifyTree(backupComponentPath, entries, sourceLabel); }
-  catch (e) { throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID, "backup tree verification: " + e.message); }
-  const fp = _fingerprint(backupComponentPath);
-  // Reject symlinks at the backup root.
-  const rootLstat = _lstat(backupComponentPath);
-  if (rootLstat.isSymbolicLink()) {
-    throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID, "backup component root is a symlink");
+  // Both present: inspect the root BEFORE following or fingerprinting its
+  // content. A symlink root must never be traversed, even temporarily.
+  let rootLstat;
+  try { rootLstat = _lstat(backupComponentPath); }
+  catch (e) {
+    throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID,
+      "backup component cannot be inspected: " + e.message);
+  }
+  if (rootLstat.isSymbolicLink() || !rootLstat.isDirectory()) {
+    throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID,
+      "backup component root must be a real directory");
+  }
+  let fp;
+  try {
+    _verifyTree(backupComponentPath, entries, sourceLabel);
+    fp = _fingerprint(backupComponentPath);
+  } catch (e) {
+    throw new R2Error(RESTORE_ERROR_CODES.BACKUP_INVALID,
+      "backup tree verification: " + e.message);
   }
   return {
     presence: "present",
@@ -8500,6 +8512,7 @@ function restoreTreeFromVerifiedBackup({
   destinationPath,       // absolute path to the final destination
   stagingPath,           // absolute path to the staging directory
   intent,                // rollback intent object (for sentinel + run binding)
+  recovery = false,      // opt-in: adopt verified staging or published destination
   deps,                  // injected deps
 }) {
   const d = deps || {};
@@ -8529,6 +8542,18 @@ function restoreTreeFromVerifiedBackup({
     return fs.statSync(check).dev;
   });
   const now = d.now || (() => new Date());
+
+  // lstat is the authoritative presence check: ENOENT alone means absent.
+  // fs.existsSync silently treats many inaccessible paths and dangling
+  // symlinks as absent, which is unsafe for crash recovery.
+  const inspectEntry = (entryPath) => {
+    try { return _lstat(entryPath); }
+    catch (e) {
+      if (e && e.code === "ENOENT") return null;
+      throw new R2Error(RESTORE_ERROR_CODES.PATH_UNREADABLE,
+        "rollback path cannot be inspected: " + entryPath + ": " + e.message);
+    }
+  };
 
   // ── Path binding checks ─────────────────────────────────────────────
   // Backup must be outside destination, staging, and quarantine.
@@ -8574,13 +8599,88 @@ function restoreTreeFromVerifiedBackup({
     catch (e) { throw new R2Error(RESTORE_ERROR_CODES.SOURCE_CHANGED, "quiescence: " + e.message); }
   }
 
-  // ── 2. Require final destination absent ─────────────────────────────
-  try { _lstat(destinationPath); throw new R2Error(RESTORE_ERROR_CODES.DESTINATION_EXISTS, "destination already exists"); }
-  catch (e) { if (e instanceof R2Error) throw e; }
+  // ── 2-3. Inspect final destination and staging (ENOENT-only) ─────────
+  const destinationEntry = inspectEntry(destinationPath);
+  const stagingEntry = inspectEntry(stagingPath);
+  if (recovery && destinationEntry && stagingEntry) {
+    throw new R2Error(RESTORE_ERROR_CODES.STAGING_CONFLICT,
+      "both staging and final destination exist; manual reconciliation required");
+  }
 
-  // ── 3. Require staging absent (clean start) ─────────────────────────
-  try { _lstat(stagingPath); throw new R2Error(RESTORE_ERROR_CODES.STAGING_CONFLICT, "staging path already occupied"); }
-  catch (e) { if (e instanceof R2Error) throw e; }
+  // Recovery after a successful rename but before durable evidence was
+  // persisted: adopt only an exact backup-matching published tree. Never
+  // overwrite or remove the destination.
+  if (recovery && destinationEntry) {
+    if (destinationEntry.isSymbolicLink() || !destinationEntry.isDirectory()) {
+      throw new R2Error(RESTORE_ERROR_CODES.DESTINATION_EXISTS,
+        "published destination is not a real directory");
+    }
+    try { _verifyTree(destinationPath, backupManifestEntries, sourceLabel); }
+    catch (e) {
+      throw new R2Error(RESTORE_ERROR_CODES.POSTCHECK_FAILED,
+        "published destination does not match backup: " + e.message);
+    }
+    const publishedFp = _fingerprint(destinationPath);
+    if (publishedFp.aggregate_digest !== authority.fingerprint) {
+      throw new R2Error(RESTORE_ERROR_CODES.POSTCHECK_FAILED,
+        "published destination fingerprint is not the backup fingerprint");
+    }
+    try { _fsyncDir(path.dirname(destinationPath)); }
+    catch (e) {
+      throw new R2Error(RESTORE_ERROR_CODES.PUBLICATION_DURABILITY_FAILED,
+        "recovered destination parent fsync failed: " + e.message);
+    }
+    if (d.assertSentinelOwnedBy) d.assertSentinelOwnedBy(intent.run_id, intent.plan_digest);
+    if (d.assertRollbackQuiescence) d.assertRollbackQuiescence();
+    const finalEntry = inspectEntry(destinationPath);
+    if (!finalEntry || finalEntry.isSymbolicLink() || !finalEntry.isDirectory()) {
+      throw new R2Error(RESTORE_ERROR_CODES.POSTCHECK_FAILED,
+        "published destination changed during recovery");
+    }
+    try { _verifyTree(destinationPath, backupManifestEntries, sourceLabel); }
+    catch (e) {
+      throw new R2Error(RESTORE_ERROR_CODES.POSTCHECK_FAILED,
+        "published destination changed during recovery: " + e.message);
+    }
+    if (_fingerprint(destinationPath).aggregate_digest !== authority.fingerprint) {
+      throw new R2Error(RESTORE_ERROR_CODES.POSTCHECK_FAILED,
+        "published fingerprint changed during recovery");
+    }
+    return buildRestoreEvidence({
+      component, action: "restored", backupComponent: sourceLabel,
+      destinationName: path.basename(destinationPath),
+      expectedFingerprint: authority.fingerprint,
+      stagedFingerprint: publishedFp.aggregate_digest,
+      publishedFingerprint: publishedFp.aggregate_digest,
+      entryCount: publishedFp.entries ? publishedFp.entries.length : 0,
+      byteSize: publishedFp.totalByteSize || 0,
+      completedAt: now().toISOString(),
+    });
+  }
+  if (destinationEntry) {
+    throw new R2Error(RESTORE_ERROR_CODES.DESTINATION_EXISTS,
+      "destination already exists");
+  }
+  if (stagingEntry && !recovery) {
+    throw new R2Error(RESTORE_ERROR_CODES.STAGING_CONFLICT,
+      "staging path already occupied");
+  }
+  const reuseStaging = Boolean(stagingEntry);
+  if (reuseStaging) {
+    if (stagingEntry.isSymbolicLink() || !stagingEntry.isDirectory()) {
+      throw new R2Error(RESTORE_ERROR_CODES.STAGING_INVALID,
+        "recovery staging is not a real directory");
+    }
+    try { _verifyTree(stagingPath, backupManifestEntries, sourceLabel); }
+    catch (e) {
+      throw new R2Error(RESTORE_ERROR_CODES.STAGING_INVALID,
+        "recovery staging does not match backup: " + e.message);
+    }
+    if (_fingerprint(stagingPath).aggregate_digest !== authority.fingerprint) {
+      throw new R2Error(RESTORE_ERROR_CODES.STAGING_INVALID,
+        "recovery staging fingerprint does not match backup");
+    }
+  }
 
   // ── 4. Device identity ──────────────────────────────────────────────
   const stagingDev = statDev(path.dirname(stagingPath));
@@ -8594,11 +8694,13 @@ function restoreTreeFromVerifiedBackup({
   // Staged files are always writable (copyTreeExact creates new files).
   // File modes are NOT part of the frozen backup contract — staging
   // keeps files writable so fsync succeeds on Windows.
-  _mkdir(stagingPath, { recursive: true });
-  try { _copyTree(backupComponentPath, stagingPath, sourceLabel); }
-  catch (e) {
-    try { _rmSync(stagingPath, { recursive: true, force: true }); } catch {}
-    throw new R2Error(RESTORE_ERROR_CODES.COPY_FAILED, "backup copy to staging failed: " + e.message);
+  if (!reuseStaging) {
+    _mkdir(stagingPath, { recursive: true });
+    try { _copyTree(backupComponentPath, stagingPath, sourceLabel); }
+    catch (e) {
+      try { _rmSync(stagingPath, { recursive: true, force: true }); } catch {}
+      throw new R2Error(RESTORE_ERROR_CODES.COPY_FAILED, "backup copy to staging failed: " + e.message);
+    }
   }
 
   // ── 6. Fsync every staged file (bottom-up) ──────────────────────────
@@ -8632,8 +8734,10 @@ function restoreTreeFromVerifiedBackup({
   }
 
   // ── 9. Destination lstat check (immediate pre-publish) ──────────────
-  try { _lstat(destinationPath); throw new R2Error(RESTORE_ERROR_CODES.DESTINATION_EXISTS, "destination appeared during staging"); }
-  catch (e) { if (e instanceof R2Error) throw e; }
+  if (inspectEntry(destinationPath)) {
+    throw new R2Error(RESTORE_ERROR_CODES.DESTINATION_EXISTS,
+      "destination appeared during staging");
+  }
 
   // ── 10. Recheck device identity ─────────────────────────────────────
   const stagingDev2 = statDev(stagingPath);
