@@ -837,42 +837,32 @@ function renderNeutralizeError(error) {
 function main() {
   const cmd = process.argv[2];
   if (!cmd || cmd === "--help" || cmd === "-h") {
-    console.log("Usage: node bin/migrate-data-dir.cjs <inventory|dry-run|backup|sentinel-on|execute|neutralize [--confirm-legacy-empty-sentinel]>");
+    console.log("Usage: node bin/migrate-data-dir.cjs <inventory|dry-run|backup|neutralize [--confirm-legacy-empty-sentinel]>");
     console.log("");
     console.log("Sequence (each step discrete):");
     console.log("  1. inventory     — list stores + counts (read-only)");
     console.log("  2. dry-run       — 4-way classification (read-only)");
     console.log("  3. backup        — verified-restorable backup of both stores + manifest");
-    console.log("  4. sentinel-on   — create the migration write barrier");
-    console.log("  5. execute       — verbatim import; post-verify; atomic-by-restart on failure");
+    console.log("  4. sentinel-on   — DISABLED: use the R2 CLI");
+    console.log("  5. execute       — DISABLED: use the R2 CLI");
     console.log("  6. neutralize    — rename legacy store + remove legacy empty sentinel");
     console.log("                    (requires --confirm-legacy-empty-sentinel to remove a sentinel)");
     console.log("");
-    console.log("Stop MCP server before backup. Sentinel required before execute.");
+    console.log("The legacy sentinel-on/execute commands are unavailable; see bin/migrate-r2.cjs help.");
     process.exit(0);
   }
   if (cmd === "inventory") return cmdInventory();
   if (cmd === "dry-run") return cmdDryRun();
   if (cmd === "backup") return cmdBackup();
-  if (cmd === "sentinel-on") {
-    if (sentinel.isMigrationInProgress()) {
-      console.log("Sentinel already present at " + sentinel.sentinelPath());
-      process.exit(0);
-    }
-    const meta = sentinel.createMigrationSentinel({ reason: "manual migration start", operator: process.env.USER || "unknown" });
-    console.log("Sentinel created:", sentinel.sentinelPath());
-    console.log("metadata:", JSON.stringify(meta));
-    console.log("");
-    console.log("Production writes are now refused. Proceed with execute.");
+  // R2 sentinel metadata is run-owned (run_id + plan_digest). This legacy CLI
+  // cannot mint or verify that authority; its old execute path accepted mere
+  // sentinel presence. Refuse both operations instead of producing a malformed
+  // barrier or writing across a different migration's authority.
+  if (cmd === "sentinel-on" || cmd === "execute") {
+    console.error("Legacy " + cmd + " is disabled: it cannot satisfy the R2 run-owned migration contract.");
+    console.error("Use 'node bin/migrate-r2.cjs help' for supported R2 commands and current implementation status.");
+    process.exitCode = 1;
     return;
-  }
-  if (cmd === "execute") {
-    // Optional --resolve-conflicts <policy>
-    let policy = null;
-    for (let i = 4; i < process.argv.length; i++) {
-      if (process.argv[i] === "--resolve-conflicts" && process.argv[i + 1]) policy = process.argv[i + 1];
-    }
-    return cmdExecute(policy);
   }
   if (cmd === "neutralize") {
     try {
