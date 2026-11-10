@@ -789,6 +789,143 @@ async function test_readOnlyBackupFileRestored() {
   } finally { ctx.fx.dispose(); }
 }
 
+
+// ─── Interrupted restoration recovery (Step 10b.4C.2 increment) ─────────
+// Re-entry never trusts filesystem presence alone: it re-verifies the backup
+// authority and the staged/published bytes before accepting an outcome.
+
+async function test_recoveryReusesVerifiedStaging() {
+  const ctx = await buildRestorationReady("rp-rcs", "rprcs");
+  try {
+    const deps = makeRestoreDeps(ctx.fx);
+    let checks = 0;
+    deps.assertRollbackQuiescence = () => {
+      if (++checks === 2) throw new Error("interrupted before publish");
+    };
+    const initial = await tryRestore(ctx.fx, restoreArgs(ctx, { deps }));
+    const stage = path.join(ctx.rollbackDir, "staging", "ola-restore");
+    ok("rprcs.interrupted", initial.ok === false && initial.error.code === "ROLLBACK_RESTORE_SOURCE_CHANGED");
+    ok("rprcs.stagingRetained", fs.existsSync(stage));
+    const resumeDeps = makeRestoreDeps(ctx.fx);
+    resumeDeps.copyTree = () => { throw new Error("recovery must not recopy the backup"); };
+    const resumed = await tryRestore(ctx.fx, { ...restoreArgs(ctx, { deps: resumeDeps }), recovery: true });
+    ok("rprcs.recovered", resumed.ok === true, resumed.ok ? "" : resumed.error.message);
+    if (resumed.ok) {
+      ok("rprcs.published", fs.existsSync(ctx.paths.olaData) && !fs.existsSync(stage));
+      ok("rprcs.fingerprint", resumed.evidence.published_fingerprint ===
+        m.fingerprintLegacyRoot(path.join(ctx.backupDir, "ola-data")).aggregate_digest);
+    }
+  } finally { ctx.fx.dispose(); }
+}
+
+async function test_recoveryAdoptsPublishedDestination() {
+  const ctx = await buildRestorationReady("rp-rcp", "rprcp");
+  try {
+    const first = await tryRestore(ctx.fx, restoreArgs(ctx));
+    ok("rprcp.firstPublished", first.ok === true);
+    const deps = makeRestoreDeps(ctx.fx);
+    deps.copyTree = () => { throw new Error("no copy on published recovery"); };
+    deps.rename = () => { throw new Error("no rename on published recovery"); };
+    const recovered = await tryRestore(ctx.fx, { ...restoreArgs(ctx, { deps }), recovery: true });
+    ok("rprcp.recovered", recovered.ok === true, recovered.ok ? "" : recovered.error.message);
+    if (recovered.ok && first.ok) {
+      ok("rprcp.samePublishedFingerprint",
+        recovered.evidence.published_fingerprint === first.evidence.published_fingerprint);
+    }
+  } finally { ctx.fx.dispose(); }
+}
+
+async function test_recoveryRejectsChangedStaging() {
+  const ctx = await buildRestorationReady("rp-rcx", "rprcx");
+  try {
+    const deps = makeRestoreDeps(ctx.fx);
+    let checks = 0;
+    deps.assertRollbackQuiescence = () => {
+      if (++checks === 2) throw new Error("interrupt");
+    };
+    const initial = await tryRestore(ctx.fx, restoreArgs(ctx, { deps }));
+    ok("rprcx.interrupted", initial.ok === false);
+    const stage = path.join(ctx.rollbackDir, "staging", "ola-restore");
+    const changed = path.join(stage, "data", "events.jsonl");
+    fs.appendFileSync(changed, '{"unexpected":true}\n');
+    const result = await tryRestore(ctx.fx, { ...restoreArgs(ctx), recovery: true });
+    ok("rprcx.refused", result.ok === false &&
+       result.error.code === "ROLLBACK_RESTORE_STAGING_INVALID",
+       result.ok ? "" : result.error.code);
+    ok("rprcx.preserved", fs.existsSync(stage) && !fs.existsSync(ctx.paths.olaData));
+  } finally { ctx.fx.dispose(); }
+}
+
+async function test_recoveryRejectsChangedPublishedDestination() {
+  const ctx = await buildRestorationReady("rp-rcy", "rprcy");
+  try {
+    const first = await tryRestore(ctx.fx, restoreArgs(ctx));
+    ok("rprcy.firstPublished", first.ok === true);
+    const changed = path.join(ctx.paths.olaData, "data", "events.jsonl");
+    fs.appendFileSync(changed, '{"changed":true}\n');
+    const afterChange = m.hashFile(changed).sha256;
+    const result = await tryRestore(ctx.fx, { ...restoreArgs(ctx), recovery: true });
+    ok("rprcy.refused", result.ok === false &&
+       result.error.code === "ROLLBACK_RESTORE_POSTCHECK_FAILED",
+       result.ok ? "" : result.error.code);
+    ok("rprcy.noOverwrite", m.hashFile(changed).sha256 === afterChange);
+  } finally { ctx.fx.dispose(); }
+}
+
+async function test_recoveryRejectsBothEntries() {
+  const ctx = await buildRestorationReady("rp-rcb", "rprcb");
+  try {
+    const deps = makeRestoreDeps(ctx.fx);
+    let checks = 0;
+    deps.assertRollbackQuiescence = () => {
+      if (++checks === 2) throw new Error("interrupt");
+    };
+    const initial = await tryRestore(ctx.fx, restoreArgs(ctx, { deps }));
+    ok("rprcb.interrupted", initial.ok === false);
+    const stage = path.join(ctx.rollbackDir, "staging", "ola-restore");
+    fs.mkdirSync(ctx.paths.olaData, { recursive: true });
+    const result = await tryRestore(ctx.fx, { ...restoreArgs(ctx), recovery: true });
+    ok("rprcb.refused", result.ok === false &&
+       result.error.code === "ROLLBACK_RESTORE_STAGING_CONFLICT",
+       result.ok ? "" : result.error.code);
+    ok("rprcb.entriesPreserved", fs.existsSync(stage) && fs.existsSync(ctx.paths.olaData));
+  } finally { ctx.fx.dispose(); }
+}
+
+async function test_recoveryRefusesUnreadableDestination() {
+  const ctx = await buildRestorationReady("rp-rcu", "rprcu");
+  try {
+    const deps = makeRestoreDeps(ctx.fx);
+    deps.lstat = (entry) => {
+      if (entry === ctx.paths.olaData) {
+        const e = new Error("simulated EACCES");
+        e.code = "EACCES";
+        throw e;
+      }
+      return fs.lstatSync(entry);
+    };
+    const result = await tryRestore(ctx.fx, { ...restoreArgs(ctx, { deps }), recovery: true });
+    ok("rprcu.refused", result.ok === false &&
+       result.error.code === "ROLLBACK_RESTORE_PATH_UNREADABLE",
+       result.ok ? "" : result.error.code);
+    ok("rprcu.noStaging", !fs.existsSync(path.join(ctx.rollbackDir, "staging", "ola-restore")));
+  } finally { ctx.fx.dispose(); }
+}
+
+async function test_recoveryRequiresSentinelOnPublishedPath() {
+  const ctx = await buildRestorationReady("rp-rco", "rprco");
+  try {
+    const first = await tryRestore(ctx.fx, restoreArgs(ctx));
+    ok("rprco.firstPublished", first.ok === true);
+    const deps = makeRestoreDeps(ctx.fx);
+    deps.assertSentinelOwnedBy = () => { throw new Error("foreign sentinel"); };
+    const recovered = await tryRestore(ctx.fx, { ...restoreArgs(ctx, { deps }), recovery: true });
+    ok("rprco.refused", recovered.ok === false &&
+       recovered.error.code === "ROLLBACK_RESTORE_SOURCE_CHANGED",
+       recovered.ok ? "" : recovered.error.code);
+  } finally { ctx.fx.dispose(); }
+}
+
 const TESTS = [
   ["targetRestoration", test_targetRestoration],
   ["sourceRestoration", test_sourceRestoration],
@@ -838,6 +975,13 @@ const TESTS = [
   ["postPubMissingPublishedEntry", test_postPubMissingPublishedEntry],
   // Read-only fixture
   ["readOnlyBackupFileRestored", test_readOnlyBackupFileRestored],
+  ["recoveryReusesVerifiedStaging", test_recoveryReusesVerifiedStaging],
+  ["recoveryAdoptsPublishedDestination", test_recoveryAdoptsPublishedDestination],
+  ["recoveryRejectsChangedStaging", test_recoveryRejectsChangedStaging],
+  ["recoveryRejectsChangedPublishedDestination", test_recoveryRejectsChangedPublishedDestination],
+  ["recoveryRejectsBothEntries", test_recoveryRejectsBothEntries],
+  ["recoveryRefusesUnreadableDestination", test_recoveryRefusesUnreadableDestination],
+  ["recoveryRequiresSentinelOnPublishedPath", test_recoveryRequiresSentinelOnPublishedPath],
 ];
 
 (async () => {
