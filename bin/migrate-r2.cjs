@@ -8865,6 +8865,270 @@ function buildRestoreEvidence({
 }
 
 
+
+// ── Target restoration coordinator (Step 10b.4C.2, target only) ─────────
+//
+// Durably bind a verified target restore to the rollback journal. Only the
+// target is restored here. Source and transcript restoration, final rollback
+// verification, sentinel release, and the public CLI remain unavailable.
+//
+// Crash windows:
+//   staging exists, destination absent -> C.1 recovery verifies and publishes
+//   destination exists, evidence absent -> C.1 recovery verifies and adopts
+//   evidence exists, state unbound -> read and verify evidence, then bind
+//   state bound -> revalidate physical tree/evidence and return idempotently
+//
+// No error branch deletes a published destination, backup, or evidence file.
+const TARGET_RESTORE_EVIDENCE_NAME = "target-restore-evidence.json";
+const TARGET_RESTORE_EVIDENCE_REL = "rollback/" + TARGET_RESTORE_EVIDENCE_NAME;
+const TARGET_RESTORE_PREFIX = Object.freeze([
+  "intent", "target-quarantined", "source-quarantined",
+]);
+
+function verifyTargetRestoreEvidence(evidence, expectedFingerprint, destinationName, entries, expectedByteSize) {
+  if (!evidence || typeof evidence !== "object" || Array.isArray(evidence)) {
+    throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID", "target restore evidence is not an object");
+  }
+  const permitted = new Set([
+    "schema", "component", "action", "backup_component", "destination_name",
+    "expected_fingerprint", "staged_fingerprint", "published_fingerprint",
+    "entry_count", "byte_size", "completed_at", "evidence_digest",
+  ]);
+  if (Object.keys(evidence).some((k) => !permitted.has(k)) ||
+      Object.keys(evidence).length !== permitted.size) {
+    throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID", "target restore evidence fields differ from contract");
+  }
+  const body = { ...evidence };
+  delete body.evidence_digest;
+  if (typeof evidence.evidence_digest !== "string" ||
+      digestCanonical(body) !== evidence.evidence_digest ||
+      evidence.schema !== ROLLBACK_TREE_RESTORE_EVIDENCE_SCHEMA ||
+      evidence.component !== "target" || evidence.backup_component !== "ola-data" ||
+      evidence.destination_name !== destinationName ||
+      evidence.expected_fingerprint !== expectedFingerprint ||
+      evidence.published_fingerprint !== expectedFingerprint ||
+      evidence.staged_fingerprint !== expectedFingerprint ||
+      evidence.action !== "restored" ||
+      !Number.isSafeInteger(evidence.entry_count) || evidence.entry_count < 0 ||
+      !Number.isSafeInteger(evidence.byte_size) || evidence.byte_size < 0 ||
+      typeof evidence.completed_at !== "string" ||
+      evidence.entry_count !== entries.length ||
+      evidence.byte_size !== expectedByteSize) {
+    throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID",
+      "target restore evidence is invalid or not bound to the verified backup");
+  }
+  return evidence;
+}
+
+async function runRollbackTargetRestoration({ runId, deps }) {
+  const d = deps || defaultRollbackDeps();
+  function fail(code, message) {
+    return { ok: false, code: code || "ROLLBACK_TARGET_RESTORE_FAILED",
+      message: String(message).slice(0, 500) };
+  }
+  // Fail closed if a caller has not established an independent quiescence
+  // assertion. This is not a public production command yet.
+  if (typeof d.assertRollbackQuiescence !== "function" ||
+      typeof d.assertSentinelOwnedBy !== "function") {
+    return fail("ROLLBACK_TARGET_PREFLIGHT_UNAVAILABLE",
+      "rollback sentinel and quiescence guards are required");
+  }
+  let rd, root, rollbackDir, state, plan, intent, manifest, paths, evidencePath;
+  try {
+    validateRunId(runId);
+    root = path.join(os.homedir(), ".ola-migration");
+    rd = runDir(root, runId);
+    rollbackDir = path.join(rd, "rollback");
+    evidencePath = path.join(rollbackDir, TARGET_RESTORE_EVIDENCE_NAME);
+    state = d.readState(root, runId);
+    if (state.status !== RUN_STATUSES.rollback_in_progress ||
+        state.rollback.status !== ROLLBACK_STATUSES.in_progress ||
+        state.sentinel.owned !== true || !state.backup.verified) {
+      throw new R2Error("ROLLBACK_TARGET_STATE_INVALID",
+        "run is not in an owned, verified-backup rollback state");
+    }
+    const steps = state.rollback.completed_steps;
+    if (!Array.isArray(steps) || steps.length < 3 ||
+        !TARGET_RESTORE_PREFIX.every((step, i) => steps[i] === step)) {
+      throw new R2Error("ROLLBACK_TARGET_STATE_INVALID",
+        "quarantine journal prefix is not complete");
+    }
+    const recorded = steps.includes("target-restored");
+    if (steps.length > 3 && (steps[3] !== "target-restored" || !recorded)) {
+      throw new R2Error("ROLLBACK_TARGET_STATE_INVALID",
+        "target restore must follow the canonical quarantine steps");
+    }
+    if (!recorded && state.rollback.target_restore) {
+      throw new R2Error("ROLLBACK_TARGET_STATE_INVALID",
+        "target restore evidence bound before target-restored journal step");
+    }
+    if (recorded && (!state.rollback.target_restore ||
+        state.rollback.target_restore.evidence_path !== TARGET_RESTORE_EVIDENCE_REL)) {
+      throw new R2Error("ROLLBACK_TARGET_STATE_INVALID",
+        "target-restored step has no canonical evidence binding");
+    }
+    plan = d.loadAndVerifyPlan(path.join(rd, state.plan_path));
+    validateStateAgainstPlan(state, plan);
+    paths = reconstructPathsFromPlan(plan, {});
+    d.assertSentinelOwnedBy(runId, plan.plan_digest);
+    d.assertRollbackQuiescence();
+
+    const intentPath = path.join(rollbackDir, "rollback-intent.json");
+    intent = JSON.parse(fs.readFileSync(intentPath, "utf8"));
+    const intentBody = { ...intent };
+    delete intentBody.intent_digest;
+    if (digestCanonical(intentBody) !== intent.intent_digest ||
+        intent.run_id !== runId || intent.plan_digest !== plan.plan_digest ||
+        intent.intent_digest !== state.rollback.intent_digest ||
+        intent.backup_manifest_digest !== state.backup.manifest_digest ||
+        intent.backup_path !== state.backup.path) {
+      throw new R2Error("ROLLBACK_TARGET_INTENT_INVALID",
+        "rollback intent digest or authority binding does not match");
+    }
+    if (state.rollback.quarantine_manifest_path !== "rollback/quarantine-manifest.json" ||
+        !state.rollback.quarantine_manifest_digest) {
+      throw new R2Error("ROLLBACK_TARGET_QUARANTINE_INVALID",
+        "durable quarantine manifest is not bound");
+    }
+    const quarantine = JSON.parse(fs.readFileSync(
+      path.join(rollbackDir, "quarantine-manifest.json"), "utf8"));
+    const qBody = { ...quarantine };
+    delete qBody.manifest_digest;
+    if (digestCanonical(qBody) !== quarantine.manifest_digest ||
+        quarantine.manifest_digest !== state.rollback.quarantine_manifest_digest ||
+        quarantine.run_id !== runId ||
+        quarantine.plan_digest !== plan.plan_digest ||
+        quarantine.rollback_intent_digest !== intent.intent_digest) {
+      throw new R2Error("ROLLBACK_TARGET_QUARANTINE_INVALID",
+        "quarantine manifest digest or authority binding does not match");
+    }
+
+    const verified = d.verifyBackupPhysicalState({
+      backupPath: state.backup.path, manifestDigest: state.backup.manifest_digest,
+      runId, planDigest: plan.plan_digest, plan,
+    });
+    manifest = verified.manifest;
+    if (!manifest || !Array.isArray(manifest.entries)) {
+      throw new R2Error("ROLLBACK_TARGET_BACKUP_INVALID", "verified backup has no manifest entries");
+    }
+    const entries = manifest.entries.filter((e) => e.source === "ola-data");
+    if (!entries.length) {
+      // The target-restored coordinator is intentionally limited to present
+      // target trees. Confirmed-absent restoration needs its own proof path.
+      throw new R2Error("ROLLBACK_TARGET_BACKUP_INVALID",
+        "no present Ola target tree in backup; absent-target case is not implemented");
+    }
+    const backupRoot = path.join(state.backup.path.replace(/\//g, path.sep), "ola-data");
+    const backupStat = fs.lstatSync(backupRoot);
+    if (!backupStat.isDirectory() || backupStat.isSymbolicLink()) {
+      throw new R2Error("ROLLBACK_TARGET_BACKUP_INVALID", "backup target root is not a real directory");
+    }
+    verifyBackupTree(backupRoot, entries, "ola-data");
+    const backupFingerprint = fingerprintLegacyRoot(backupRoot);
+    const expected = backupFingerprint.aggregate_digest;
+
+    const inspectTarget = () => {
+      const st = fs.lstatSync(paths.olaData);
+      if (!st.isDirectory() || st.isSymbolicLink()) {
+        throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID",
+          "restored target is not a real directory");
+      }
+      verifyBackupTree(paths.olaData, entries, "ola-data");
+      if (fingerprintLegacyRoot(paths.olaData).aggregate_digest !== expected) {
+        throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID",
+          "restored target fingerprint differs from backup");
+      }
+    };
+    let evidence;
+    let persistedEvidence = false;
+    try {
+      fs.lstatSync(evidencePath);
+      persistedEvidence = true;
+    } catch (e) {
+      if (e.code !== "ENOENT") throw e;
+    }
+    if (persistedEvidence || recorded) {
+      // Immutable evidence was previously published. Never re-run a
+      // mutation primitive: verify the exact published tree and evidence.
+      if (!persistedEvidence) {
+        throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID",
+          "journal records target-restored but evidence is missing");
+      }
+      const evidenceStat = fs.lstatSync(evidencePath);
+      if (!evidenceStat.isFile() || evidenceStat.isSymbolicLink()) {
+        throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID",
+          "target restoration evidence is not a regular file");
+      }
+      evidence = verifyTargetRestoreEvidence(JSON.parse(fs.readFileSync(evidencePath, "utf8")),
+        expected, path.basename(paths.olaData), entries, backupFingerprint.totalByteSize || 0);
+      inspectTarget();
+      if (recorded) {
+        if (state.rollback.target_restore.evidence_digest !== evidence.evidence_digest) {
+          throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID",
+            "target restore evidence does not match run-state binding");
+        }
+        return { ok: true, target_evidence: evidence, state, idempotent: true };
+      }
+    } else {
+      // C.1 performs the strictly bounded copy/staging/publish/recovery.
+      evidence = restoreTreeFromVerifiedBackup({
+        component: "target", backupComponentPath: backupRoot,
+        backupManifestEntries: entries, sourceLabel: "ola-data",
+        destinationPath: paths.olaData,
+        stagingPath: path.join(rollbackDir, "staging", "ola-restore"),
+        intent, recovery: true, deps: d,
+      });
+      verifyTargetRestoreEvidence(evidence, expected, path.basename(paths.olaData), entries,
+        backupFingerprint.totalByteSize || 0);
+      inspectTarget();
+      persistCloseoutArtifact(rollbackDir, TARGET_RESTORE_EVIDENCE_NAME, evidence,
+        "ROLLBACK_TARGET_EVIDENCE_INVALID");
+    }
+    // The generic immutable publisher tolerates unsupported directory fsync.
+    // Before binding a target restoration to state, perform an explicit
+    // per-directory durability check (also on orphan-evidence reentry).
+    // A failed fsync keeps the journal unadvanced and the evidence intact.
+    const syncEvidenceDir = d.fsyncTargetEvidenceDirectory ||
+      ((dirPath) => sentinel.fsyncDirectory(dirPath));
+    syncEvidenceDir(rollbackDir);
+
+    // Persist the rollback journal AFTER the evidence is durable. On failure,
+    // re-entry reads existing evidence and binds it; nothing is overwritten.
+    d.assertSentinelOwnedBy(runId, plan.plan_digest);
+    d.assertRollbackQuiescence();
+    inspectTarget();
+    const current = d.readState(root, runId);
+    if (current.state_digest !== state.state_digest) {
+      throw new R2Error("ROLLBACK_TARGET_STATE_INVALID",
+        "state changed since target restoration preflight");
+    }
+    const ts = d.now().toISOString();
+    const body = {
+      ...current,
+      rollback: {
+        ...current.rollback,
+        completed_steps: [...current.rollback.completed_steps, "target-restored"],
+        target_restore: {
+          evidence_path: TARGET_RESTORE_EVIDENCE_REL,
+          evidence_digest: evidence.evidence_digest,
+        },
+      },
+      updated_at: ts,
+    };
+    delete body.state_digest;
+    assertMonotonicStateUpdate(current, body);
+    await d.writeStateAtomic(root, runId, body);
+    const finalState = d.readState(root, runId);
+    if (finalState.rollback.target_restore.evidence_digest !== evidence.evidence_digest) {
+      throw new R2Error("ROLLBACK_TARGET_STATE_INVALID",
+        "persisted target restore binding changed");
+    }
+    return { ok: true, target_evidence: evidence, state: finalState };
+  } catch (e) {
+    return fail(e.code || "ROLLBACK_TARGET_RESTORE_FAILED", e.message);
+  }
+}
+
 //
 // Step 10a scope ONLY: durable run-state representation + atomic state
 // persistence. No execute/resume/rollback logic yet — those land in 10b–10e.
@@ -12774,6 +13038,7 @@ module.exports = {
   // Tree restoration primitive (Step 10b.4C.1)
   ROLLBACK_TREE_RESTORE_EVIDENCE_SCHEMA, RESTORE_ERROR_CODES,
   restoreTreeFromVerifiedBackup, deriveBackupAuthority,
+  runRollbackTargetRestoration, verifyTargetRestoreEvidence,
   // Rendering
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
