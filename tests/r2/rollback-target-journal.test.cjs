@@ -206,6 +206,48 @@ async function testStatePrefixRefusal() {
     ok("no restore evidence", !fs.existsSync(evidenceFile(ctx)));
   } finally { ctx.fx.dispose(); }
 }
+
+async function testEvidenceDurabilityRefusal() {
+  const ctx = await ready("jrn-fsy", "jrnfsync");
+  try {
+    const d = deps(ctx);
+    d.fsyncTargetEvidenceDirectory = function () {
+      throw Object.assign(new Error("injected directory fsync failure"),
+        { code: "DIRECTORY_FSYNC_FAILED" });
+    };
+    const first = await restore(ctx, d);
+    ok("directory fsync failure refused", first.ok === false &&
+      first.code === "DIRECTORY_FSYNC_FAILED", JSON.stringify(first));
+    ok("published evidence retained", fs.existsSync(evidenceFile(ctx)));
+    ok("journal not advanced", state(ctx).rollback.completed_steps.length === 3);
+    const second = await restore(ctx);
+    ok("retry fsync and bind", second.ok === true, JSON.stringify(second));
+    ok("retry completed journal", second.ok &&
+      second.state.rollback.completed_steps.length === 4);
+  } finally { ctx.fx.dispose(); }
+}
+async function testOrphanEvidenceSizeTamperRefused() {
+  const ctx = await ready("jrn-siz", "jrnsiz");
+  try {
+    const d = deps(ctx);
+    d.writeStateAtomic = async () => {
+      throw Object.assign(new Error("injected write failure"), { code: "EIO" });
+    };
+    const first = await restore(ctx, d);
+    ok("orphan evidence produced", !first.ok && fs.existsSync(evidenceFile(ctx)));
+    fh.mutateJson(evidenceFile(ctx), (ev) => {
+      ev.byte_size += 1;
+      delete ev.evidence_digest;
+      ev.evidence_digest = m.digestCanonical(ev);
+      return ev;
+    });
+    const retried = await restore(ctx);
+    ok("forged orphan byte-size refused", retried.ok === false &&
+      retried.code === "ROLLBACK_TARGET_EVIDENCE_INVALID", JSON.stringify(retried));
+    ok("journal remains unbound", state(ctx).rollback.completed_steps.length === 3);
+  } finally { ctx.fx.dispose(); }
+}
+
 (async function main() {
   const cases = [
     ["success and idempotence", testSuccessAndIdempotence],
@@ -216,6 +258,8 @@ async function testStatePrefixRefusal() {
     ["missing quiescence refusal", testMissingQuiescenceRefusal],
     ["backup tamper refusal", testBackupChangeRefusal],
     ["invalid journal prefix refusal", testStatePrefixRefusal],
+    ["evidence directory fsync failure", testEvidenceDurabilityRefusal],
+    ["orphan evidence size forgery refusal", testOrphanEvidenceSizeTamperRefused],
   ];
   console.log("=== R2 target restoration journal ===");
   for (const [name, fn] of cases) {
