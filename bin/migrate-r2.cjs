@@ -8885,7 +8885,7 @@ const TARGET_RESTORE_PREFIX = Object.freeze([
   "intent", "target-quarantined", "source-quarantined",
 ]);
 
-function verifyTargetRestoreEvidence(evidence, expectedFingerprint, destinationName, entries) {
+function verifyTargetRestoreEvidence(evidence, expectedFingerprint, destinationName, entries, expectedByteSize) {
   if (!evidence || typeof evidence !== "object" || Array.isArray(evidence)) {
     throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID", "target restore evidence is not an object");
   }
@@ -8912,7 +8912,8 @@ function verifyTargetRestoreEvidence(evidence, expectedFingerprint, destinationN
       !Number.isSafeInteger(evidence.entry_count) || evidence.entry_count < 0 ||
       !Number.isSafeInteger(evidence.byte_size) || evidence.byte_size < 0 ||
       typeof evidence.completed_at !== "string" ||
-      evidence.entry_count !== entries.length) {
+      evidence.entry_count !== entries.length ||
+      evidence.byte_size !== expectedByteSize) {
     throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID",
       "target restore evidence is invalid or not bound to the verified backup");
   }
@@ -9023,7 +9024,8 @@ async function runRollbackTargetRestoration({ runId, deps }) {
       throw new R2Error("ROLLBACK_TARGET_BACKUP_INVALID", "backup target root is not a real directory");
     }
     verifyBackupTree(backupRoot, entries, "ola-data");
-    const expected = fingerprintLegacyRoot(backupRoot).aggregate_digest;
+    const backupFingerprint = fingerprintLegacyRoot(backupRoot);
+    const expected = backupFingerprint.aggregate_digest;
 
     const inspectTarget = () => {
       const st = fs.lstatSync(paths.olaData);
@@ -9058,7 +9060,7 @@ async function runRollbackTargetRestoration({ runId, deps }) {
           "target restoration evidence is not a regular file");
       }
       evidence = verifyTargetRestoreEvidence(JSON.parse(fs.readFileSync(evidencePath, "utf8")),
-        expected, path.basename(paths.olaData), entries);
+        expected, path.basename(paths.olaData), entries, backupFingerprint.totalByteSize || 0);
       inspectTarget();
       if (recorded) {
         if (state.rollback.target_restore.evidence_digest !== evidence.evidence_digest) {
@@ -9076,11 +9078,20 @@ async function runRollbackTargetRestoration({ runId, deps }) {
         stagingPath: path.join(rollbackDir, "staging", "ola-restore"),
         intent, recovery: true, deps: d,
       });
-      verifyTargetRestoreEvidence(evidence, expected, path.basename(paths.olaData), entries);
+      verifyTargetRestoreEvidence(evidence, expected, path.basename(paths.olaData), entries,
+        backupFingerprint.totalByteSize || 0);
       inspectTarget();
       persistCloseoutArtifact(rollbackDir, TARGET_RESTORE_EVIDENCE_NAME, evidence,
         "ROLLBACK_TARGET_EVIDENCE_INVALID");
     }
+    // The generic immutable publisher tolerates unsupported directory fsync.
+    // Before binding a target restoration to state, perform an explicit
+    // per-directory durability check (also on orphan-evidence reentry).
+    // A failed fsync keeps the journal unadvanced and the evidence intact.
+    const syncEvidenceDir = d.fsyncTargetEvidenceDirectory ||
+      ((dirPath) => sentinel.fsyncDirectory(dirPath));
+    syncEvidenceDir(rollbackDir);
+
     // Persist the rollback journal AFTER the evidence is durable. On failure,
     // re-entry reads existing evidence and binds it; nothing is overwritten.
     d.assertSentinelOwnedBy(runId, plan.plan_digest);
