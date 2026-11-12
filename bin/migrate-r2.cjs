@@ -8885,9 +8885,13 @@ const TARGET_RESTORE_PREFIX = Object.freeze([
   "intent", "target-quarantined", "source-quarantined",
 ]);
 
-function verifyTargetRestoreEvidence(evidence, expectedFingerprint, destinationName, entries, expectedByteSize) {
+function verifyRollbackTreeRestoreEvidence(evidence, {
+  component, backupComponent, destinationName, expectedFingerprint,
+  entries, expectedByteSize, errorCode,
+}) {
+  function refuse(message) { throw new R2Error(errorCode, message); }
   if (!evidence || typeof evidence !== "object" || Array.isArray(evidence)) {
-    throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID", "target restore evidence is not an object");
+    refuse("restoration evidence is not an object");
   }
   const permitted = new Set([
     "schema", "component", "action", "backup_component", "destination_name",
@@ -8896,14 +8900,14 @@ function verifyTargetRestoreEvidence(evidence, expectedFingerprint, destinationN
   ]);
   if (Object.keys(evidence).some((k) => !permitted.has(k)) ||
       Object.keys(evidence).length !== permitted.size) {
-    throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID", "target restore evidence fields differ from contract");
+    refuse("restoration evidence fields differ from contract");
   }
   const body = { ...evidence };
   delete body.evidence_digest;
   if (typeof evidence.evidence_digest !== "string" ||
       digestCanonical(body) !== evidence.evidence_digest ||
       evidence.schema !== ROLLBACK_TREE_RESTORE_EVIDENCE_SCHEMA ||
-      evidence.component !== "target" || evidence.backup_component !== "ola-data" ||
+      evidence.component !== component || evidence.backup_component !== backupComponent ||
       evidence.destination_name !== destinationName ||
       evidence.expected_fingerprint !== expectedFingerprint ||
       evidence.published_fingerprint !== expectedFingerprint ||
@@ -8914,10 +8918,25 @@ function verifyTargetRestoreEvidence(evidence, expectedFingerprint, destinationN
       typeof evidence.completed_at !== "string" ||
       evidence.entry_count !== entries.length ||
       evidence.byte_size !== expectedByteSize) {
-    throw new R2Error("ROLLBACK_TARGET_EVIDENCE_INVALID",
-      "target restore evidence is invalid or not bound to the verified backup");
+    refuse("restoration evidence is invalid or not bound to the verified backup");
   }
   return evidence;
+}
+
+function verifyTargetRestoreEvidence(evidence, expectedFingerprint, destinationName, entries, expectedByteSize) {
+  return verifyRollbackTreeRestoreEvidence(evidence, {
+    component: "target", backupComponent: "ola-data", destinationName,
+    expectedFingerprint, entries, expectedByteSize,
+    errorCode: "ROLLBACK_TARGET_EVIDENCE_INVALID",
+  });
+}
+
+function verifySourceRestoreEvidence(evidence, expectedFingerprint, destinationName, entries, expectedByteSize) {
+  return verifyRollbackTreeRestoreEvidence(evidence, {
+    component: "source", backupComponent: "moneta-data", destinationName,
+    expectedFingerprint, entries, expectedByteSize,
+    errorCode: "ROLLBACK_SOURCE_EVIDENCE_INVALID",
+  });
 }
 
 async function runRollbackTargetRestoration({ runId, deps }) {
@@ -9126,6 +9145,271 @@ async function runRollbackTargetRestoration({ runId, deps }) {
     return { ok: true, target_evidence: evidence, state: finalState };
   } catch (e) {
     return fail(e.code || "ROLLBACK_TARGET_RESTORE_FAILED", e.message);
+  }
+}
+
+
+// ── Source restoration journal (Step 10b.4C.3, source only) ─────────────
+//
+// The target must already be restored and its immutable evidence must pass
+// fresh physical verification. Restore only the originally present Moneta
+// source tree from the verified backup. No transcript mutation, public CLI,
+// rollback finalization, or sentinel release occurs in this stage.
+//
+// The exact source quarantine must remain preserved and intent-matching.
+// Re-entry reuses C.1 staged/published restorations but never blindly accepts
+// a destination or overwrites an immutable evidence file.
+const SOURCE_RESTORE_EVIDENCE_NAME = "source-restore-evidence.json";
+const SOURCE_RESTORE_EVIDENCE_REL = "rollback/" + SOURCE_RESTORE_EVIDENCE_NAME;
+const SOURCE_RESTORE_PREFIX = Object.freeze([
+  "intent", "target-quarantined", "source-quarantined", "target-restored",
+]);
+
+async function runRollbackSourceRestoration({ runId, deps }) {
+  const d = deps || defaultRollbackDeps();
+  function fail(code, message) {
+    return { ok: false, code: code || "ROLLBACK_SOURCE_RESTORE_FAILED",
+      message: String(message).slice(0, 500) };
+  }
+  if (typeof d.assertSentinelOwnedBy !== "function" ||
+      typeof d.assertRollbackQuiescence !== "function" ||
+      typeof d.verifyBackupPhysicalState !== "function" ||
+      typeof d.readState !== "function" || typeof d.writeStateAtomic !== "function") {
+    return fail("ROLLBACK_SOURCE_PREFLIGHT_UNAVAILABLE",
+      "owned sentinel, quiescence, physical backup and durable state guards are required");
+  }
+
+  try {
+    validateRunId(runId);
+    const root = path.join(os.homedir(), ".ola-migration");
+    const rd = runDir(root, runId);
+    const rollbackDir = path.join(rd, "rollback");
+    const evidencePath = path.join(rollbackDir, SOURCE_RESTORE_EVIDENCE_NAME);
+    const state = d.readState(root, runId);
+    if (state.status !== RUN_STATUSES.rollback_in_progress ||
+        state.rollback.status !== ROLLBACK_STATUSES.in_progress ||
+        state.sentinel.owned !== true || !state.backup.verified) {
+      throw new R2Error("ROLLBACK_SOURCE_STATE_INVALID",
+        "source restoration requires an owned rollback with a verified backup");
+    }
+
+    const steps = state.rollback.completed_steps;
+    if (!Array.isArray(steps) || steps.length < SOURCE_RESTORE_PREFIX.length ||
+        steps.some((step, index) => step !== ROLLBACK_STEPS[index]) ||
+        !SOURCE_RESTORE_PREFIX.every((step, i) => steps[i] === step)) {
+      throw new R2Error("ROLLBACK_SOURCE_STATE_INVALID",
+        "rollback journal is not a canonical prefix through target-restored");
+    }
+    const recorded = steps.includes("source-restored");
+    if (!recorded && state.rollback.source_restore) {
+      throw new R2Error("ROLLBACK_SOURCE_STATE_INVALID",
+        "unrecorded source restoration already has an evidence binding");
+    }
+    if (recorded && (!state.rollback.source_restore ||
+        state.rollback.source_restore.evidence_path !== SOURCE_RESTORE_EVIDENCE_REL)) {
+      throw new R2Error("ROLLBACK_SOURCE_STATE_INVALID",
+        "source-restored journal step is missing its canonical evidence binding");
+    }
+    const plan = d.loadAndVerifyPlan(path.join(rd, state.plan_path));
+    validateStateAgainstPlan(state, plan);
+    const paths = reconstructPathsFromPlan(plan, {});
+    d.assertSentinelOwnedBy(runId, plan.plan_digest);
+    d.assertRollbackQuiescence();
+
+    // Reverify the target before touching the source. The target coordinator
+    // checks its run-state binding, backup, immutable evidence and physical
+    // restored tree. It must be idempotent here (no mutation or re-journaling).
+    const target = await runRollbackTargetRestoration({ runId, deps: d });
+    if (!target.ok || target.idempotent !== true) {
+      throw new R2Error("ROLLBACK_SOURCE_TARGET_INVALID",
+        "completed target restore could not be reverified: " +
+        (target.code || "not idempotent"));
+    }
+
+    // Re-validate immutable rollback intent and quarantine manifest, including
+    // run/plan/backup authority. Neither is read from unverified user input.
+    const intent = JSON.parse(fs.readFileSync(
+      path.join(rollbackDir, "rollback-intent.json"), "utf8"));
+    const intentBody = { ...intent };
+    delete intentBody.intent_digest;
+    if (digestCanonical(intentBody) !== intent.intent_digest ||
+        intent.run_id !== runId || intent.plan_digest !== plan.plan_digest ||
+        intent.intent_digest !== state.rollback.intent_digest ||
+        intent.backup_path !== state.backup.path ||
+        intent.backup_manifest_digest !== state.backup.manifest_digest ||
+        intent.source_root !== normalizePlanPath(paths.monetaRoot)) {
+      throw new R2Error("ROLLBACK_SOURCE_INTENT_INVALID",
+        "source rollback intent digest or run/plan/backup binding differs");
+    }
+    if (state.rollback.quarantine_manifest_path !== "rollback/quarantine-manifest.json" ||
+        !state.rollback.quarantine_manifest_digest) {
+      throw new R2Error("ROLLBACK_SOURCE_QUARANTINE_INVALID",
+        "quarantine manifest has no durable state binding");
+    }
+    const quarantine = JSON.parse(fs.readFileSync(
+      path.join(rollbackDir, "quarantine-manifest.json"), "utf8"));
+    const quarantineBody = { ...quarantine };
+    delete quarantineBody.manifest_digest;
+    if (digestCanonical(quarantineBody) !== quarantine.manifest_digest ||
+        quarantine.manifest_digest !== state.rollback.quarantine_manifest_digest ||
+        quarantine.run_id !== runId || quarantine.plan_digest !== plan.plan_digest ||
+        quarantine.rollback_intent_digest !== intent.intent_digest) {
+      throw new R2Error("ROLLBACK_SOURCE_QUARANTINE_INVALID",
+        "quarantine manifest digest or authority differs");
+    }
+
+    // The source quarantine must remain exactly the tree that was atomically
+    // moved. This first increment supports a present source with action=renamed;
+    // confirmed-absent source restoration requires a separate proof path.
+    const sourceQ = path.join(rollbackDir, "quarantine", "moneta-current");
+    const qEvidenceFile = path.join(rollbackDir, "source-quarantine-evidence.json");
+    const qStat = fs.lstatSync(sourceQ);
+    const qeStat = fs.lstatSync(qEvidenceFile);
+    if (!qStat.isDirectory() || qStat.isSymbolicLink() ||
+        !qeStat.isFile() || qeStat.isSymbolicLink()) {
+      throw new R2Error("ROLLBACK_SOURCE_QUARANTINE_INVALID",
+        "source quarantine or its evidence is not a real directory/regular file");
+    }
+    const qe = JSON.parse(fs.readFileSync(qEvidenceFile, "utf8"));
+    const qeBody = { ...qe };
+    delete qeBody.evidence_digest;
+    if (digestCanonical(qeBody) !== qe.evidence_digest ||
+        qe.action !== "renamed" || qe.component !== "source" ||
+        !state.rollback.source_quarantine ||
+        state.rollback.source_quarantine.evidence_digest !== qe.evidence_digest ||
+        quarantine.source.action !== "renamed" ||
+        quarantine.source.evidence_digest !== qe.evidence_digest ||
+        quarantine.source.expected_fingerprint !== intent.source_expected_fingerprint ||
+        quarantine.source.verified_fingerprint !== intent.source_expected_fingerprint ||
+        !intent.source_expected_fingerprint) {
+      throw new R2Error("ROLLBACK_SOURCE_QUARANTINE_INVALID",
+        "source quarantine evidence is not bound to the rollback intent");
+    }
+    if (fingerprintLegacyRoot(sourceQ).aggregate_digest !== intent.source_expected_fingerprint) {
+      throw new R2Error("ROLLBACK_SOURCE_QUARANTINE_INVALID",
+        "quarantined source fingerprint differs from the original intent");
+    }
+
+    const verified = d.verifyBackupPhysicalState({
+      backupPath: state.backup.path, manifestDigest: state.backup.manifest_digest,
+      runId, planDigest: plan.plan_digest, plan,
+    });
+    const manifest = verified.manifest;
+    if (!manifest || !Array.isArray(manifest.entries)) {
+      throw new R2Error("ROLLBACK_SOURCE_BACKUP_INVALID",
+        "verified backup has no manifest entries");
+    }
+    const entries = manifest.entries.filter((entry) => entry.source === "moneta-data");
+    if (!entries.length) {
+      throw new R2Error("ROLLBACK_SOURCE_BACKUP_INVALID",
+        "pre-run source is absent; confirmed-absent recovery is not implemented here");
+    }
+    const backupRoot = path.join(state.backup.path.replace(/\//g, path.sep), "moneta-data");
+    const backupStat = fs.lstatSync(backupRoot);
+    if (!backupStat.isDirectory() || backupStat.isSymbolicLink()) {
+      throw new R2Error("ROLLBACK_SOURCE_BACKUP_INVALID",
+        "backup source root is not a real directory");
+    }
+    verifyBackupTree(backupRoot, entries, "moneta-data");
+    const fp = fingerprintLegacyRoot(backupRoot);
+    const expected = fp.aggregate_digest;
+    const verifySourceTree = () => {
+      const stat = fs.lstatSync(paths.monetaRoot);
+      if (!stat.isDirectory() || stat.isSymbolicLink()) {
+        throw new R2Error("ROLLBACK_SOURCE_EVIDENCE_INVALID",
+          "restored source is not a real directory");
+      }
+      verifyBackupTree(paths.monetaRoot, entries, "moneta-data");
+      if (fingerprintLegacyRoot(paths.monetaRoot).aggregate_digest !== expected) {
+        throw new R2Error("ROLLBACK_SOURCE_EVIDENCE_INVALID",
+          "restored source fingerprint differs from verified backup");
+      }
+    };
+
+    // An evidence entry may be an orphan from a crash after publication but
+    // before state.json persistence; it must be verified, never overwritten.
+    let hasEvidence = false;
+    try { fs.lstatSync(evidencePath); hasEvidence = true; }
+    catch (e) { if (e.code !== "ENOENT") throw e; }
+    let evidence;
+    if (hasEvidence || recorded) {
+      if (!hasEvidence) {
+        throw new R2Error("ROLLBACK_SOURCE_EVIDENCE_INVALID",
+          "state records source-restored but evidence file is absent");
+      }
+      const evStat = fs.lstatSync(evidencePath);
+      if (!evStat.isFile() || evStat.isSymbolicLink()) {
+        throw new R2Error("ROLLBACK_SOURCE_EVIDENCE_INVALID",
+          "restoration evidence is not a regular file");
+      }
+      evidence = verifySourceRestoreEvidence(
+        JSON.parse(fs.readFileSync(evidencePath, "utf8")),
+        expected, path.basename(paths.monetaRoot), entries, fp.totalByteSize || 0);
+      verifySourceTree();
+      if (recorded) {
+        if (state.rollback.source_restore.evidence_digest !== evidence.evidence_digest) {
+          throw new R2Error("ROLLBACK_SOURCE_EVIDENCE_INVALID",
+            "source restoration evidence differs from state binding");
+        }
+        return { ok: true, source_evidence: evidence, state, idempotent: true };
+      }
+    } else {
+      evidence = restoreTreeFromVerifiedBackup({
+        component: "source", backupComponentPath: backupRoot,
+        backupManifestEntries: entries, sourceLabel: "moneta-data",
+        destinationPath: paths.monetaRoot,
+        stagingPath: path.join(rollbackDir, "staging", "moneta-restore"),
+        intent, recovery: true, deps: d,
+      });
+      verifySourceRestoreEvidence(evidence, expected, path.basename(paths.monetaRoot),
+        entries, fp.totalByteSize || 0);
+      verifySourceTree();
+      persistCloseoutArtifact(rollbackDir, SOURCE_RESTORE_EVIDENCE_NAME, evidence,
+        "ROLLBACK_SOURCE_EVIDENCE_INVALID");
+    }
+
+    // Fsync the exact evidence directory, including orphan re-entry, before
+    // any state journal advancement. Never delete valid interrupted evidence.
+    const sync = d.fsyncSourceEvidenceDirectory ||
+      ((dirPath) => sentinel.fsyncDirectory(dirPath));
+    sync(rollbackDir);
+    d.assertSentinelOwnedBy(runId, plan.plan_digest);
+    d.assertRollbackQuiescence();
+    verifySourceTree();
+    // Source publication must not silently damage the restored target.
+    const targetAgain = await runRollbackTargetRestoration({ runId, deps: d });
+    if (!targetAgain.ok || targetAgain.idempotent !== true) {
+      throw new R2Error("ROLLBACK_SOURCE_TARGET_INVALID",
+        "target changed during source restoration: " + (targetAgain.code || "invalid"));
+    }
+    const current = d.readState(root, runId);
+    if (current.state_digest !== state.state_digest) {
+      throw new R2Error("ROLLBACK_SOURCE_STATE_INVALID",
+        "state changed while source restoration was running");
+    }
+    const body = {
+      ...current,
+      rollback: {
+        ...current.rollback,
+        completed_steps: [...current.rollback.completed_steps, "source-restored"],
+        source_restore: {
+          evidence_path: SOURCE_RESTORE_EVIDENCE_REL,
+          evidence_digest: evidence.evidence_digest,
+        },
+      },
+      updated_at: d.now().toISOString(),
+    };
+    delete body.state_digest;
+    assertMonotonicStateUpdate(current, body);
+    await d.writeStateAtomic(root, runId, body);
+    const persisted = d.readState(root, runId);
+    if (persisted.rollback.source_restore.evidence_digest !== evidence.evidence_digest) {
+      throw new R2Error("ROLLBACK_SOURCE_STATE_INVALID",
+        "source restoration evidence was not durably state-bound");
+    }
+    return { ok: true, source_evidence: evidence, state: persisted };
+  } catch (e) {
+    return fail(e.code || "ROLLBACK_SOURCE_RESTORE_FAILED", e.message);
   }
 }
 
@@ -13039,6 +13323,7 @@ module.exports = {
   ROLLBACK_TREE_RESTORE_EVIDENCE_SCHEMA, RESTORE_ERROR_CODES,
   restoreTreeFromVerifiedBackup, deriveBackupAuthority,
   runRollbackTargetRestoration, verifyTargetRestoreEvidence,
+  runRollbackSourceRestoration, verifySourceRestoreEvidence,
   // Rendering
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
