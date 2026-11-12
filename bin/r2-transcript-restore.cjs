@@ -384,14 +384,30 @@ async function runRollbackTranscriptRestoration({ runId, deps }) {
     }
     if (saved) {
       assertDigestEquals(quarantine, "quarantined original", original);
+      // Crash recovery must complete both durability barriers of the
+      // preceding original→quarantine rename before accepting that move.
+      // A prior fsync failure can leave the rename physically visible but
+      // not yet durable; a fresh retry must not skip this proof.
+      syncDir(d, liveParent);
+      syncDir(d, quarantineDir);
     }
     if (originalLive && saved) {
       if (staged) {
         throw err("ROLLBACK_TRANSCRIPT_STATE_INVALID",
           "published, staged and quarantined transcript all coexist");
       }
-      // Already published (possibly before journal publication). Byte-exact
-      // backup and frozen row-map checks are necessary before accepting it.
+      // Already published (possibly before journal publication). Re-fsync
+      // the publication directory and any surviving staging parent before
+      // accepting the recovered physical state.
+      const stagingParent = status(stageDir);
+      if (stagingParent) {
+        if (stagingParent.isSymbolicLink() || !stagingParent.isDirectory()) {
+          throw err("ROLLBACK_TRANSCRIPT_PATH_INVALID",
+            "staging parent is not a real directory");
+        }
+        syncDir(d, stageDir);
+      }
+      syncDir(d, liveParent);
       verifyFrozenTranscript(live, plan, manifest, backupHash);
     } else {
       if (originalLive && !saved) {
