@@ -13103,6 +13103,12 @@ function renderPlanSummary(result) {
   return lines.join("\n");
 }
 
+// Bounded rollback transcript coordinator (Step 10b.4C.4).
+// Lazy loading keeps the existing migration bootstrap/CLI unchanged.
+function runRollbackTranscriptRestoration(options) {
+  return require("./r2-transcript-restore.cjs").runRollbackTranscriptRestoration(options);
+}
+
 // ── Help / usage ──────────────────────────────────────────────────────────
 
 function renderHelp() {
@@ -13324,6 +13330,7 @@ module.exports = {
   restoreTreeFromVerifiedBackup, deriveBackupAuthority,
   runRollbackTargetRestoration, verifyTargetRestoreEvidence,
   runRollbackSourceRestoration, verifySourceRestoreEvidence,
+  runRollbackTranscriptRestoration, classifyTranscriptState,
   // Rendering
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
