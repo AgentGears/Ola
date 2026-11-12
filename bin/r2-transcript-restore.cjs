@@ -269,6 +269,7 @@ async function runRollbackTranscriptRestoration({ runId, deps }) {
     const intentPath = path.join(rollback, INTENT_NAME);
     const evidencePath = path.join(rollback, EVIDENCE_NAME);
     const liveParent = path.dirname(live);
+    const renameTranscript = d.renameTranscript || fs.renameSync;
 
     // The live filename must not intersect backup or migration evidence.
     if ([root, backupDir].some((dir) => {
@@ -430,7 +431,7 @@ async function runRollbackTranscriptRestoration({ runId, deps }) {
           throw err("ROLLBACK_TRANSCRIPT_STATE_INVALID",
             "quarantine appeared before original was moved");
         }
-        fs.renameSync(live, quarantine);
+        renameTranscript(live, quarantine);
         syncDir(d, liveParent);
         syncDir(d, quarantineDir);
         if (status(live)) {
@@ -447,7 +448,7 @@ async function runRollbackTranscriptRestoration({ runId, deps }) {
         throw err("ROLLBACK_TRANSCRIPT_STATE_INVALID",
           "live DB reappeared before staged publication");
       }
-      fs.renameSync(stage, live);
+      renameTranscript(stage, live);
       syncDir(d, stageDir);
       syncDir(d, liveParent);
       if (status(stage)) {
@@ -504,7 +505,9 @@ async function runRollbackTranscriptRestoration({ runId, deps }) {
       publishImmutable(rollback, EVIDENCE_NAME, evidence, d);
     }
     if (recorded) {
-      if (state.rollback.transcript_restore.evidence_digest !== evidence.evidence_digest) {
+      if (state.rollback.transcript_restore.evidence_digest !== evidence.evidence_digest ||
+          state.rollback.transcript_restore.intent_path !== INTENT_REL ||
+          state.rollback.transcript_restore.intent_digest !== restoreIntent.intent_digest) {
         throw err("ROLLBACK_TRANSCRIPT_EVIDENCE_INVALID",
           "journal digest does not match transcript evidence");
       }
