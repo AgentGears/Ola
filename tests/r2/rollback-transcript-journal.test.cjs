@@ -312,11 +312,37 @@ async function testEvidenceFsyncRecovery() {
   });
 }
 
+
+async function testPublishedFsyncInterruptionRecovery() {
+  await withCase("tx-pfsync", "transpubsync", async (c) => {
+    const d = deps(c);
+    const liveParent = path.dirname(sourceTree(c));
+    let calls = 0;
+    d.fsyncTranscriptDirectory = (dir) => {
+      if (dir === liveParent && ++calls === 2) {
+        throw Object.assign(new Error("injected publication parent fsync failure"), { code: "EIO" });
+      }
+      return "synced";
+    };
+    const first = await restore(c, d);
+    ok("post-publish fsync failed", !first.ok && first.code === "EIO", JSON.stringify(first));
+    ok("live and quarantine both present", fs.existsSync(sourceTree(c)) &&
+      fs.existsSync(quarantinedDb(c)));
+    ok("staging already renamed", !fs.existsSync(sourceStage(c)));
+    ok("evidence not yet journaled", !fs.existsSync(evidenceFile(c)) && noJournalAdvance(c));
+    const retry = await restore(c);
+    ok("published DB adopted after fsync retry", retry.ok, JSON.stringify(retry));
+    ok("recovered evidence bound", retry.ok &&
+      retry.state.rollback.completed_steps.length === 6);
+  });
+}
+
 (async function main() {
   const cases = [
     ["success and idempotence", testSuccessIdempotence],
     ["state write crash recovery", testInterruptedStateWrite],
     ["quarantine fsync crash recovery", testQuarantineFsyncInterruption],
+    ["post-publication fsync recovery", testPublishedFsyncInterruptionRecovery],
     ["publish rename crash recovery", testPublishRenameInterruption],
     ["staging changed refusal", testBadStagingRefusal],
     ["live WAL sidecar refusal", testWalSidecarRefusal],
