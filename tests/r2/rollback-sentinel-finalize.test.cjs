@@ -330,6 +330,27 @@ async function testTerminatedRunImmutableAgainstReentry() {
       c.fx.pathsFor().transcriptDb).includes(Buffer.from("post-rollback use")));
   });
 }
+
+async function testQuarantineManifestForgeryAfterRename() {
+  await withPrepared("fn-manifest","finalmanifest",async c=>{
+    const d=deps(c);
+    d.writeStateAtomic=async()=>{throw Object.assign(new Error("crash"),{code:"EIO"});};
+    const first=await finish(c,d);
+    ok("post-rename manifest test setup",!first.ok&&fs.existsSync(receipt(c)));
+    const file=path.join(c.rollbackDir,"quarantine-manifest.json");
+    fh.mutateJson(file,q=>{
+      q.rollback_intent_digest="0".repeat(64);
+      delete q.manifest_digest;
+      q.manifest_digest=m.digestCanonical(q);
+      return q;
+    });
+    const again=await finish(c);
+    ok("forged quarantine manifest refused after sentinel rename",!again.ok&&
+      again.code==="ROLLBACK_RELEASE_AUTHORITY_INVALID",JSON.stringify(again));
+    ok("forged manifest never finalized",journal(c).length===8);
+  });
+}
+
 (async function main(){
   const cases=[
     ["success and idempotence",testSuccessAndIdempotence],
@@ -342,6 +363,7 @@ async function testTerminatedRunImmutableAgainstReentry() {
     ["missing sentinel and receipt",testMissingBoth],
     ["modified receipt during recovery",testModifiedReceiptRecovery],
     ["restored tree mutation during recovery",testRestoredTreeChangeAfterRename],
+    ["forged quarantine manifest during recovery",testQuarantineManifestForgeryAfterRename],
     ["quarantine mutation during finalization",testQuarantineChangeAfterNinthStep],
     ["foreign sentinel",testForeignSentinel],
     ["missing readiness prerequisite",testMissingPrerequisite],
