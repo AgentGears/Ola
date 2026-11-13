@@ -151,6 +151,14 @@
       "remove_after": null
     },
     {
+      "id": "r2-rollback-sentinel-finalization",
+      "path": "bin/r2-rollback-finalize.cjs",
+      "pattern": "moneta-(?:data|current|restore)",
+      "reason": "The R2 rollback finalizer must compare exact Moneta-side backup/quarantine/staging paths while proving restoration before terminalizing; these are not runtime authority aliases.",
+      "owner": "R2 migration safety",
+      "remove_after": null
+    },
+    {
       "id": "ci-prohibited-path-check",
       "path": ".github/workflows/baseline-tests.yml",
       "pattern": "\\.moneta",

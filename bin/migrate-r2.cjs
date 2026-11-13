@@ -10163,7 +10163,19 @@ function validateState(state) {
         throw new R2Error("RUN_STATE_INVALID",
           "rolled_back requires live_verification=not_applicable");
       }
-      // Sentinel remains owned until separately released via release-sentinel.
+      // Terminal rollback requires the canonical ten-step release journal.
+      // Unlike the forward-closeout receipt, the rollback release receipt
+      // preserves the original sentinel bytes in rollback/ for forensics.
+      if (state.sentinel.owned !== false ||
+          typeof state.sentinel.released_at !== "string" ||
+          !Array.isArray(state.rollback.completed_steps) ||
+          state.rollback.completed_steps.length !== ROLLBACK_STEPS.length ||
+          state.rollback.completed_steps.some((step, i) => step !== ROLLBACK_STEPS[i]) ||
+          state.rollback.release_receipt_path !== "rollback/rollback-sentinel-receipt.json" ||
+          !/^[0-9a-f]{64}$/.test(state.rollback.release_receipt_digest || "")) {
+        throw new R2Error("RUN_STATE_INVALID",
+          "rolled_back requires ten canonical steps and exact released sentinel receipt binding");
+      }
       break;
     case RUN_STATUSES.failed_manual_intervention:
       // Failure must be recorded.
@@ -10199,12 +10211,32 @@ function validateState(state) {
           "the no-mutation sentinel-lock-release recovery case");
       }
       break;
-    case RUN_STATUSES.rollback_in_progress:
-      if (state.sentinel.owned !== true) {
+    case RUN_STATUSES.rollback_in_progress: {
+      // Only step 9 allows the physical sentinel to be absent before
+      // terminalization. A crash between atomic rename and state write
+      // remains in the previous owned state and must be recovered from the
+      // immutable receipt, never by relaxing other in-progress statuses.
+      const steps = state.rollback.completed_steps;
+      const released = Array.isArray(steps) &&
+        steps.length === ROLLBACK_STEPS.length - 1 &&
+        steps.every((step, i) => step === ROLLBACK_STEPS[i]);
+      if (released) {
+        if (state.sentinel.owned !== false ||
+            typeof state.sentinel.released_at !== "string" ||
+            state.rollback.status !== ROLLBACK_STATUSES.in_progress ||
+            state.rollback.verified !== true ||
+            state.rollback.release_receipt_path !== "rollback/rollback-sentinel-receipt.json" ||
+            !/^[a-f0-9]{64}$/.test(state.rollback.release_receipt_digest || "")) {
+          throw new R2Error("RUN_STATE_INVALID",
+            "sentinel-released recovery state requires unowned sentinel, receipt and verified rollback");
+        }
+      } else if (state.sentinel.owned !== true ||
+                 state.sentinel.released_at !== null) {
         throw new R2Error("RUN_STATE_INVALID",
-          "rollback_in_progress requires sentinel.owned=true");
+          "rollback_in_progress requires an owned sentinel before step sentinel-released");
       }
       break;
+    }
     default:
       // Already validated status is in RUN_STATUSES above; unreachable.
       break;
@@ -10606,7 +10638,8 @@ function assertMonotonicStateUpdate(previousState, nextState) {
       if (f === "structural_verification" &&
           prev[f] === VERIFICATION_STATUSES.passed &&
           next[f] === VERIFICATION_STATUSES.not_applicable &&
-          next.status === RUN_STATUSES.rollback_in_progress) {
+          (next.status === RUN_STATUSES.rollback_in_progress ||
+           next.status === RUN_STATUSES.rolled_back)) {
         // Legal: rolling back after structural passed.
         continue;
       }
@@ -13121,6 +13154,12 @@ function commitRollbackReleaseReadiness(options) {
   return require("./r2-rollback-release-readiness.cjs").commitRollbackReleaseReadiness(options);
 }
 
+// Gated physical release and terminal rollback (Step 10b.4D.3).
+// Exposes an internal coordinator; the public CLI remains unimplemented.
+function releaseAndFinalizeRollback(options) {
+  return require("./r2-rollback-finalize.cjs").releaseAndFinalizeRollback(options);
+}
+
 // ── Help / usage ──────────────────────────────────────────────────────────
 
 function renderHelp() {
@@ -13345,6 +13384,7 @@ module.exports = {
   runRollbackTranscriptRestoration, classifyTranscriptState,
   commitRollbackStructuralVerification,
   commitRollbackReleaseReadiness,
+  releaseAndFinalizeRollback,
   // Rendering
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
