@@ -185,7 +185,10 @@ async function runInternalRollbackRecovery({runId, confirmRelease, deps} = {}) {
           state:result.state,receipt:result.receipt,checkpoints};
       }
       d.assertRollbackQuiescence();
-      if (length <= 8) d.assertSentinelOwnedBy(runId,plan.plan_digest);
+      // The step-8 journal may coexist with a physically renamed receipt
+      // after a crash. Do not demand the *active* sentinel here: the
+      // finalizer alone validates the owned-sentinel/receipt recovery split.
+      if (length < 8) d.assertSentinelOwnedBy(runId,plan.plan_digest);
 
       if (length >= 8 && confirmRelease!==true) {
         return {ok:true,paused:true,requires_release_confirmation:true,
