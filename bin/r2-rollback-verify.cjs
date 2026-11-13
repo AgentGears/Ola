@@ -286,6 +286,14 @@ async function inspectVerifiedSurface({ root, runId, authority, deps }) {
   // Quarantine is forensic evidence; the previously neutralized archive
   // destination must not silently reappear alongside the restored source.
   requireAbsent(plan.archive_destination.replace(/\//g, path.sep), "legacy archive");
+  // An otherwise empty symlinked staging parent is still an ambiguous
+  // path: it could hide foreign files outside the migration run directory.
+  const stagingRoot = path.join(rollbackDir, "staging");
+  const stagingStat = inspect(stagingRoot);
+  if (stagingStat && (!stagingStat.isDirectory() || stagingStat.isSymbolicLink())) {
+    refuse("ROLLBACK_VERIFY_PATH_INVALID",
+      "rollback staging root is not a real directory");
+  }
   for (const name of ["ola-restore", "moneta-restore", "transcript-restore.sqlite"]) {
     requireAbsent(path.join(rollbackDir, "staging", name), "rollback staging/" + name);
   }
