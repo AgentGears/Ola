@@ -143,6 +143,14 @@
       "remove_after": null
     },
     {
+      "id": "r2-rollback-structural-verifier",
+      "path": "bin/r2-rollback-verify.cjs",
+      "pattern": "moneta-(?:data|current|restore)",
+      "reason": "The R2 offline rollback verifier compares the legacy Moneta backup tree, preserved quarantine tree and staging paths by their exact canonical source-side names. These references do not revive legacy runtime authority.",
+      "owner": "R2 migration safety",
+      "remove_after": null
+    },
+    {
       "id": "ci-prohibited-path-check",
       "path": ".github/workflows/baseline-tests.yml",
       "pattern": "\\.moneta",
