@@ -13160,6 +13160,12 @@ function releaseAndFinalizeRollback(options) {
   return require("./r2-rollback-finalize.cjs").releaseAndFinalizeRollback(options);
 }
 
+// Internal R2 checkpoint integration (Step 10b.4D.4).
+// Never dispatched by the public CLI; requires injected independent quiescence.
+function runInternalRollbackRecovery(options) {
+  return require("./r2-rollback-integration.cjs").runInternalRollbackRecovery(options);
+}
+
 // ── Help / usage ──────────────────────────────────────────────────────────
 
 function renderHelp() {
@@ -13385,6 +13391,7 @@ module.exports = {
   commitRollbackStructuralVerification,
   commitRollbackReleaseReadiness,
   releaseAndFinalizeRollback,
+  runInternalRollbackRecovery,
   // Rendering
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
