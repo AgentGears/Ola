@@ -126,6 +126,7 @@ jobs:
             "tests/r2/rollback-release-readiness.test.cjs"
             "tests/r2/rollback-sentinel-finalize.test.cjs"
             "tests/r2/rollback-integration.test.cjs"
+            "tests/r2/rollback-native-quiescence.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
