@@ -218,7 +218,7 @@ async function testOriginalTranscriptTamper() {
 }
 async function testQuarantineChange() {
   await completeCase("vr-qtree", "verifyquar", async (c) => {
-    const file = path.join(c.rollbackDir, "quarantine", "ola-current", "data", "events.jsonl");
+    const file = path.join(c.rollbackDir, "quarantine", "ola-current", "events.jsonl");
     fs.appendFileSync(file, '{"synthetic":"changed"}\n');
     const r = await verify(c);
     ok("quarantine target change refused", !r.ok &&
