@@ -6455,6 +6455,11 @@ function defaultRollbackDeps() {
       captureStructuralCloseoutSurface(args),
     assertStructuralCloseoutQuiescence: ({ plan, state, paths }) =>
       assertStructuralCloseoutQuiescence({ plan, state, paths }),
+    // State-aware rollback guard. Unlike the planner check, it exempts the
+    // single run-owned sentinel while rejecting competing run authorities.
+    // Dynamic load avoids a circular import during module initialization.
+    assertRollbackQuiescence: () =>
+      require("./r2-rollback-quiescence.cjs").assertRollbackQuiescence(),
     trace: () => {},
   };
 }
