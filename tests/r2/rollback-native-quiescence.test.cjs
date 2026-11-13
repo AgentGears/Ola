@@ -92,8 +92,8 @@ function actual(c) {
 function activeSentinel(c) {
   return path.join(c.fx.paths.olaMigrationRoot,".migration-in-progress");
 }
-function reportFault(fn) {
-  try { fn(); return {ok:true}; }
+async function reportFault(fn) {
+  try { await fn(); return {ok:true}; }
   catch(e) { return {ok:false,code:e.code,message:e.message}; }
 }
 async function driver(c, d) {
@@ -103,7 +103,7 @@ async function testNativeDefaultBeforeIntent() {
   await withCase("qu-okay","quiesceok",async c=>{
     const db=c.fx.pathsFor().transcriptDb;
     const before=m.hashFile(db).sha256;
-    const evidence=actual(c);
+    const evidence=await actual(c);
     ok("default guard runs on active R2 run",evidence.schema===guard.SCHEMA&&
       evidence.run_id===c.runId);
     ok("default guard proves single active run",evidence.foreign_runs_absent===true&&
@@ -116,7 +116,7 @@ async function testNativeDefaultBeforeIntent() {
 }
 async function testProcessScanRefusal() {
   await withCase("qu-proc","quiesceproc",async c=>{
-    const r=reportFault(()=>owned(c,{scanProcesses:()=>["zcode"]}));
+    const r=await reportFault(()=>owned(c,{scanProcesses:()=>["zcode"]}));
     ok("detected runtime process refuses",!r.ok&&
       r.code==="ROLLBACK_QUIESCENCE_PROCESS_ACTIVE",JSON.stringify(r));
     ok("process refusal preserves sentinel",fs.existsSync(activeSentinel(c)));
@@ -124,7 +124,7 @@ async function testProcessScanRefusal() {
 }
 async function testScannerMissingRefusal() {
   await withCase("qu-scan","quiescescan",async c=>{
-    const r=reportFault(()=>owned(c,{scanProcesses:()=>undefined}));
+    const r=await reportFault(()=>owned(c,{scanProcesses:()=>undefined}));
     ok("invalid process scanner evidence refuses",!r.ok&&
       r.code==="ROLLBACK_QUIESCENCE_PROCESS_SCAN_FAILED",JSON.stringify(r));
   });
@@ -133,7 +133,7 @@ async function testMutationLockRefusal() {
   await withCase("qu-lock","quiescelock",async c=>{
     const lock=path.join(c.fx.paths.olaMigrationRoot,sentinel.LOCK_NAME);
     fs.writeFileSync(lock,"injected lock metadata");
-    const r=reportFault(()=>owned(c));
+    const r=await reportFault(()=>owned(c));
     ok("unresolved mutation lock refuses",!r.ok&&
       r.code==="ROLLBACK_QUIESCENCE_MUTATION_LOCK",JSON.stringify(r));
     ok("mutation lock left untouched",fs.readFileSync(lock,"utf8")==="injected lock metadata");
@@ -149,7 +149,7 @@ async function testForeignRunRefusal() {
     delete other.state_digest;
     other.state_digest=m.computeStateDigest(other);
     fs.writeFileSync(path.join(rd,"state.json"),m.canonicalJson(other)+"\n");
-    const r=reportFault(()=>owned(c));
+    const r=await reportFault(()=>owned(c));
     ok("second active migration run refuses",!r.ok&&
       r.code==="ROLLBACK_QUIESCENCE_FOREIGN_RUN",JSON.stringify(r));
   });
@@ -158,7 +158,7 @@ async function testForeignSymlinkEntryRefusal() {
   await withCase("qu-link","quiescelink",async c=>{
     const p=path.join(c.fx.paths.runsRoot,"unexpected-symlink");
     fs.symlinkSync(c.rollbackDir,p,"dir");
-    const r=reportFault(()=>owned(c));
+    const r=await reportFault(()=>owned(c));
     ok("foreign symlink run entry refused",!r.ok&&
       r.code==="ROLLBACK_QUIESCENCE_FOREIGN_AUTHORITY",JSON.stringify(r));
   });
@@ -167,7 +167,7 @@ async function testSidecarRefusal() {
   await withCase("qu-side","quiesceside",async c=>{
     const sidecar=c.fx.pathsFor().transcriptDb+"-wal";
     fs.writeFileSync(sidecar,"unexpected");
-    const r=reportFault(()=>owned(c));
+    const r=await reportFault(()=>owned(c));
     ok("SQLite WAL sidecar refuses",!r.ok&&
       r.code==="ROLLBACK_QUIESCENCE_SQLITE_SIDECAR",JSON.stringify(r));
     ok("guard does not remove sidecar",fs.existsSync(sidecar));
@@ -178,13 +178,13 @@ async function testRealSQLiteBusyRefusal() {
     const db=new DatabaseSync(c.fx.pathsFor().transcriptDb);
     try {
       db.exec("BEGIN IMMEDIATE");
-      const r=reportFault(()=>owned(c));
+      const r=await reportFault(()=>owned(c));
       ok("real competing SQLite write reservation refuses",!r.ok&&
         r.code==="ROLLBACK_QUIESCENCE_TRANSCRIPT_BUSY",JSON.stringify(r));
     } finally {
       db.exec("ROLLBACK");db.close();
     }
-    const post=owned(c);
+    const post=await owned(c);
     ok("quiescence recovers after lock releases",post.transcript_probe===
       "write_reservation_available");
   });
@@ -193,7 +193,7 @@ async function testMissingLiveDbRefusal() {
   await withCase("qu-miss","quiescemissing",async c=>{
     const db=c.fx.pathsFor().transcriptDb;
     fs.unlinkSync(db);
-    const r=reportFault(()=>owned(c));
+    const r=await reportFault(()=>owned(c));
     ok("missing transcript outside restore intent refused",!r.ok&&
       r.code==="ROLLBACK_QUIESCENCE_TRANSCRIPT_MISSING",JSON.stringify(r));
     ok("guard never creates missing database",!fs.existsSync(db));
@@ -202,7 +202,7 @@ async function testMissingLiveDbRefusal() {
 async function testForeignSentinelRefusal() {
   await withCase("qu-own","quiesceownership",async c=>{
     fh.mutateJson(activeSentinel(c),value=>({...value,run_id:validRunId("otherauthority")}));
-    const r=reportFault(()=>owned(c));
+    const r=await reportFault(()=>owned(c));
     ok("foreign sentinel run authority refused",!r.ok&&
       r.code==="ROLLBACK_QUIESCENCE_RUN_MISMATCH",JSON.stringify(r));
   });
@@ -230,7 +230,7 @@ async function testReceiptWindowWithoutSentinel() {
     ok("post-rename release crash created receipt",!first.ok&&
       !fs.existsSync(activeSentinel(c))&&fs.existsSync(path.join(
         c.rollbackDir,"rollback-sentinel-receipt.json")));
-    const verified=actual(c);
+    const verified=await actual(c);
     ok("native default guard identifies receipt-only recovery",verified.run_id===c.runId&&
       verified.journal_steps===8);
     const retry=await c.fx.withHomeEnv(()=>m.releaseAndFinalizeRollback({
@@ -255,7 +255,7 @@ async function testMissingDbDuringTranscriptRenameRecovery() {
     const db=c.fx.pathsFor().transcriptDb;
     ok("live DB absent at fifth journal checkpoint",!fs.existsSync(db)&&
       state(c).rollback.completed_steps.length===5);
-    const ev=actual(c);
+    const ev=await actual(c);
     ok("native quiescence accepts verified transcript recovery window",
       ev.journal_steps===5&&ev.transcript_probe==="bounded_restore_window");
     const retry=await driver(c,m.defaultRollbackDeps());
