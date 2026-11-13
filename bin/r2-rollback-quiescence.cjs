@@ -30,9 +30,6 @@ const ACTIVE = new Set([
   m.RUN_STATUSES.verified_pending_release,
   m.RUN_STATUSES.rollback_in_progress,
 ]);
-const VALID_RELEASE_WINDOW = Object.freeze(
-  m.ROLLBACK_STEPS.slice(0,8));
-
 function invalid(code, message) {
   throw new m.R2Error(code, message);
 }
@@ -119,6 +116,38 @@ function requireNoForeignRuns(root, currentRunId) {
     }
   }
 }
+function discoverReceiptRecoveryRun(root) {
+  // After the only active sentinel was atomically renamed, there is no
+  // sentinel metadata from which the zero-arg default dependency can infer
+  // the run. Recovery may infer exactly ONE canonical pending-release state.
+  // Ambiguity is never resolved by choosing the most recently updated run.
+  const runs = path.join(root,"runs");
+  realDir(runs,"migration runs directory");
+  const candidates=[];
+  for (const entry of fs.readdirSync(runs,{withFileTypes:true})) {
+    if (!entry.isDirectory() || entry.isSymbolicLink()) {
+      invalid("ROLLBACK_QUIESCENCE_FOREIGN_AUTHORITY",
+        "migration runs namespace contains an unknown entry");
+    }
+    m.validateRunId(entry.name);
+    const state=m.readState(root,entry.name);
+    const steps=state.rollback?.completed_steps;
+    if (state.status === m.RUN_STATUSES.rollback_in_progress &&
+        Array.isArray(steps) &&
+        (steps.length===8 || steps.length===9) &&
+        steps.every((x,i)=>x===m.ROLLBACK_STEPS[i]) &&
+        lstat(path.join(m.runDir(root,entry.name),"rollback",
+          "rollback-sentinel-receipt.json"))) {
+      candidates.push(entry.name);
+    }
+  }
+  if (candidates.length!==1) {
+    invalid("ROLLBACK_QUIESCENCE_RUN_UNKNOWN",
+      "receipt-only recovery requires exactly one canonical rollback run");
+  }
+  return candidates[0];
+}
+
 function validateCurrentRun(root, expectedRunId, activeRecord) {
   const runId = activeRecord?.run_id || expectedRunId;
   if (!runId) {
@@ -239,6 +268,7 @@ function probeTranscript({state,paths,count,rd,probe}) {
   // probe() only obtains a short-lived write-reservation transaction; it
   // MUST roll it back, and must never create the database if it disappeared.
   probe(dbPath);
+  checkSidecars(dbPath,"live transcript after write-reservation probe");
   return "write_reservation_available";
 }
 function defaultTranscriptProbe(file) {
@@ -283,7 +313,8 @@ function assertRollbackQuiescence({runId, deps} = {}) {
       "active migration sentinel is not a regular file");
   }
   const activeRecord = activeStat ? readJson(activePath,"active migration sentinel") : null;
-  const resolved = validateCurrentRun(root,runId,activeRecord);
+  const resolved = validateCurrentRun(
+    root,runId || (activeRecord ? null : discoverReceiptRecoveryRun(root)),activeRecord);
   requireNoForeignRuns(root,resolved.runId);
   const list = (d.scanProcesses || defaultProcessScan)();
   if (!Array.isArray(list) || list.some(x => typeof x !== "string")) {
