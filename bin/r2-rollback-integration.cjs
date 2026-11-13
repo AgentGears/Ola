@@ -200,6 +200,22 @@ async function runInternalRollbackRecovery({runId, confirmRelease, deps} = {}) {
           invalid("ROLLBACK_INTEGRATION_BACKUP_INVALID",
             "run-backup bytes/manifest could not be reverified before rollback intent");
         }
+        // A clean SQLite integrity_check alone does NOT prove byte identity:
+        // SQLite may ignore appended bytes after the last database page.
+        // Also re-verify the signed backup SHA/size and full keyed row map
+        // before any intent is durably appended to the rollback journal.
+        const transcript = verified.manifest.transcript_database;
+        if (!transcript || !/^[a-f0-9]{64}$/.test(transcript.backup_sha256 || "") ||
+            !Number.isSafeInteger(transcript.backup_size) ||
+            transcript.backup_size <= 0) {
+          invalid("ROLLBACK_INTEGRATION_BACKUP_INVALID",
+            "trusted transcript backup digest/size is missing");
+        }
+        const {verifyFrozenTranscript} = require("./r2-transcript-restore.cjs");
+        verifyFrozenTranscript(
+          path.join(before.backup.path.replace(/\//g,path.sep),"transcript-db.sqlite"),
+          plan,verified.manifest,
+          {sha256:transcript.backup_sha256,bytes:transcript.backup_size});
       }
       // The step-8 journal may coexist with a physically renamed receipt
       // after a crash. Do not demand the *active* sentinel here: the
