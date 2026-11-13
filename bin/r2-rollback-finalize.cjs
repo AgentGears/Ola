@@ -167,6 +167,17 @@ function verifyReleasedRollbackSurface({ rd, state, plan, paths, readiness, atte
     "rollback intent plan");
   requireEqual(rollbackIntent.backup_path, state.backup.path,
     "rollback intent backup path");
+  const qManifest = readJson(
+    path.join(rollbackDir, "quarantine-manifest.json"), "quarantine manifest");
+  checkCanonical(qManifest, "manifest_digest", "quarantine manifest");
+  requireEqual(qManifest.manifest_digest, attestation.quarantine_manifest_digest,
+    "immutable quarantine manifest attestation");
+  requireEqual(qManifest.manifest_digest, state.rollback.quarantine_manifest_digest,
+    "immutable quarantine manifest state binding");
+  requireEqual(qManifest.rollback_intent_digest, rollbackIntent.intent_digest,
+    "quarantine manifest rollback authority");
+  requireEqual(qManifest.plan_digest, plan.plan_digest,
+    "quarantine manifest plan authority");
   const qFp = {};
   for (const [key, name, expected] of [
     ["target", "ola-current", rollbackIntent.target_expected_fingerprint],
@@ -290,6 +301,7 @@ function checkJournal(state) {
   if (steps.length===8 &&
       (state.rollback.release_receipt_path ||
        state.rollback.release_receipt_digest ||
+       state.rollback.released_at ||
        state.sentinel.released_at)) {
     refuse("ROLLBACK_RELEASE_STATE_INVALID",
       "release receipt binding exists before physical release");
