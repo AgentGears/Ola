@@ -13115,6 +13115,12 @@ function commitRollbackStructuralVerification(options) {
   return require("./r2-rollback-verify.cjs").commitRollbackStructuralVerification(options);
 }
 
+// Bounded, journal-only rollback release-readiness protocol (Step 10b.4D.2).
+// Does NOT remove the sentinel or turn the run into rolled_back.
+function commitRollbackReleaseReadiness(options) {
+  return require("./r2-rollback-release-readiness.cjs").commitRollbackReleaseReadiness(options);
+}
+
 // ── Help / usage ──────────────────────────────────────────────────────────
 
 function renderHelp() {
@@ -13338,6 +13344,7 @@ module.exports = {
   runRollbackSourceRestoration, verifySourceRestoreEvidence,
   runRollbackTranscriptRestoration, classifyTranscriptState,
   commitRollbackStructuralVerification,
+  commitRollbackReleaseReadiness,
   // Rendering
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
