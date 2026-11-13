@@ -38,6 +38,8 @@ on:
       - 'tests/r2/rollback-release-readiness.test.cjs'
       - 'tests/r2/rollback-sentinel-finalize.test.cjs'
       - 'tests/r2/rollback-integration.test.cjs'
+      - 'tests/r2/rollback-native-quiescence.test.cjs'
+      - 'bin/r2-rollback-quiescence.cjs'
       - 'bin/r2-rollback-integration.cjs'
       - 'bin/r2-rollback-finalize.cjs'
       - 'bin/r2-rollback-release-readiness.cjs'
@@ -74,6 +76,8 @@ on:
       - 'tests/r2/rollback-release-readiness.test.cjs'
       - 'tests/r2/rollback-sentinel-finalize.test.cjs'
       - 'tests/r2/rollback-integration.test.cjs'
+      - 'tests/r2/rollback-native-quiescence.test.cjs'
+      - 'bin/r2-rollback-quiescence.cjs'
       - 'bin/r2-rollback-integration.cjs'
       - 'bin/r2-rollback-finalize.cjs'
       - 'bin/r2-rollback-release-readiness.cjs'
@@ -206,6 +210,7 @@ jobs:
             "tests/r2/rollback-release-readiness.test.cjs"
             "tests/r2/rollback-sentinel-finalize.test.cjs"
             "tests/r2/rollback-integration.test.cjs"
+            "tests/r2/rollback-native-quiescence.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
