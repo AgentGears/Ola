@@ -159,6 +159,14 @@
       "remove_after": null
     },
     {
+      "id": "r2-rollback-quiescence",
+      "path": "bin/r2-rollback-quiescence.cjs",
+      "pattern": "moneta",
+      "reason": "R2 rollback quiescence verifies legacy source and quarantine memory-stats.sqlite sidecars by their canonical Moneta path names; it does not grant runtime legacy authority.",
+      "owner": "R2 migration safety",
+      "remove_after": null
+    },
+    {
       "id": "ci-prohibited-path-check",
       "path": ".github/workflows/baseline-tests.yml",
       "pattern": "\\.moneta",
