@@ -13109,6 +13109,12 @@ function runRollbackTranscriptRestoration(options) {
   return require("./r2-transcript-restore.cjs").runRollbackTranscriptRestoration(options);
 }
 
+// Rollback structural verifier (Step 10b.4D.1). This does NOT finalize the
+// rollback or release its owned sentinel.
+function commitRollbackStructuralVerification(options) {
+  return require("./r2-rollback-verify.cjs").commitRollbackStructuralVerification(options);
+}
+
 // ── Help / usage ──────────────────────────────────────────────────────────
 
 function renderHelp() {
@@ -13331,6 +13337,7 @@ module.exports = {
   runRollbackTargetRestoration, verifyTargetRestoreEvidence,
   runRollbackSourceRestoration, verifySourceRestoreEvidence,
   runRollbackTranscriptRestoration, classifyTranscriptState,
+  commitRollbackStructuralVerification,
   // Rendering
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
