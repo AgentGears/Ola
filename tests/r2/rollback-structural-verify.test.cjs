@@ -309,6 +309,20 @@ async function testSurfaceChangesDuringPublication() {
   });
 }
 
+
+async function testSymlinkedStagingRootRefused() {
+  await completeCase("vr-sym", "verifysymlink", async (c) => {
+    const stage = path.join(c.rollbackDir, "staging");
+    const moved = path.join(c.rollbackDir, "staging-preserved");
+    fs.renameSync(stage, moved);
+    fs.symlinkSync(moved, stage, "dir");
+    const r = await verify(c);
+    ok("symlinked staging root refused", !r.ok, JSON.stringify(r));
+    ok("symlink not followed for writes", !fs.existsSync(attestationFile(c)) &&
+      verifyState(c).completed_steps.length === 6);
+  });
+}
+
 (async function main() {
   const cases = [
     ["successful structural attestation", testSuccessAndIdempotence],
@@ -323,6 +337,7 @@ async function testSurfaceChangesDuringPublication() {
     ["missing recorded attestation refusal", testRecordedEvidenceMissing],
     ["unexpected archive refusal", testUnrecognizedArchive],
     ["foreign staging refusal", testStrayStaging],
+    ["symlink staging parent refusal", testSymlinkedStagingRootRefused],
     ["sentinel/quiescence refusal", testSentinelAndQuiescence],
     ["physical race after evidence publication", testSurfaceChangesDuringPublication],
   ];
