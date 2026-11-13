@@ -35,6 +35,8 @@ on:
       - 'tests/r2/rollback-source-journal.test.cjs'
       - 'tests/r2/rollback-transcript-journal.test.cjs'
       - 'tests/r2/rollback-structural-verify.test.cjs'
+      - 'tests/r2/rollback-release-readiness.test.cjs'
+      - 'bin/r2-rollback-release-readiness.cjs'
       - 'bin/r2-rollback-verify.cjs'
       - 'bin/r2-transcript-restore.cjs'
       - 'tests/helpers/managed-offload-worker.cjs'
@@ -65,6 +67,8 @@ on:
       - 'tests/r2/rollback-source-journal.test.cjs'
       - 'tests/r2/rollback-transcript-journal.test.cjs'
       - 'tests/r2/rollback-structural-verify.test.cjs'
+      - 'tests/r2/rollback-release-readiness.test.cjs'
+      - 'bin/r2-rollback-release-readiness.cjs'
       - 'bin/r2-rollback-verify.cjs'
       - 'bin/r2-transcript-restore.cjs'
       - 'tests/helpers/managed-offload-worker.cjs'
@@ -191,6 +195,7 @@ jobs:
             "tests/r2/rollback-source-journal.test.cjs"
             "tests/r2/rollback-transcript-journal.test.cjs"
             "tests/r2/rollback-structural-verify.test.cjs"
+            "tests/r2/rollback-release-readiness.test.cjs"
           )
           failed=0
           for t in "${deterministic_tests[@]}"; do
