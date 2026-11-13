@@ -185,6 +185,22 @@ async function runInternalRollbackRecovery({runId, confirmRelease, deps} = {}) {
           state:result.state,receipt:result.receipt,checkpoints};
       }
       d.assertRollbackQuiescence();
+      // Before the first intent even exists, reject a changed/forged backup:
+      // the run's "backup.verified" state bit by itself is not authority to
+      // quarantine a user's live directories. Later stages independently
+      // revalidate physical backup evidence as part of their protocols.
+      if (length === 0) {
+        const verified = d.verifyBackupPhysicalState({
+          backupPath: before.backup.path,
+          manifestDigest: before.backup.manifest_digest,
+          runId, planDigest: plan.plan_digest, plan,
+        });
+        if (!verified?.manifest ||
+            verified.manifest.manifest_digest !== before.backup.manifest_digest) {
+          invalid("ROLLBACK_INTEGRATION_BACKUP_INVALID",
+            "run-backup bytes/manifest could not be reverified before rollback intent");
+        }
+      }
       // The step-8 journal may coexist with a physically renamed receipt
       // after a crash. Do not demand the *active* sentinel here: the
       // finalizer alone validates the owned-sentinel/receipt recovery split.
