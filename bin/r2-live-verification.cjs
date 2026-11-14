@@ -75,25 +75,50 @@ function verifyReceipt(rd,state) {
   return digest;
 }
 function frozenSessions(plan) {
-  const rows=plan?.transcript?.source_rows?.session?.rows;
+  const transcript=plan?.transcript;
+  const rows=transcript?.source_rows?.session?.rows;
+  const binding=transcript?.rebind_binding;
+  const cols=transcript?.schema_fingerprint?.session?.columns_for_fingerprint;
   if(!Array.isArray(rows)||rows.length===0) {
     refuse(FAILURE.NO_SAMPLE,
       "executable plan has no frozen migrated historical session identifiers");
   }
+  if(plan.rebind_ruleset!==m.REBIND_RULESET_ID ||
+     binding?.session?.column!=="directory" ||
+     binding?.input_history?.column!=="project_id" ||
+     !Array.isArray(cols) || cols.length===0 ||
+     typeof binding.session.new_value!=="string" ||
+     typeof binding.input_history.new_value!=="string") {
+    refuse("LIVE_FROZEN_SAMPLE_INVALID",
+      "plan does not contain the accepted rebind ruleset and destination binding");
+  }
+  const destDirectory=binding.session.new_value;
+  const destProjectId=binding.input_history.new_value;
+  const mutations=[
+    {column:"directory",new_value:destDirectory},
+    {column:"path",new_value:destDirectory},
+    {column:"project_id",new_value:destProjectId},
+  ];
   const out=[],seen=new Set();
   for(const row of rows) {
-    const p=row?.post_values;
     const id=row?.stable_key_value;
     if(typeof id!=="string"||!id||seen.has(id) ||
-       !p||typeof p.project_id!=="string"||!p.project_id ||
-       typeof p.directory!=="string"||!p.directory ||
-       !(p.path===null||typeof p.path==="string")) {
+       !row.row || typeof row.row!=="object" ||
+       typeof row.expected_post_fingerprint!=="string") {
       refuse("LIVE_FROZEN_SAMPLE_INVALID",
-        "planned migrated session has invalid or duplicated non-sensitive identity bindings");
+        "planned migrated session has invalid or duplicated frozen identity");
     }
     seen.add(id);
-    out.push({session_id:id,project_id:p.project_id,
-      directory:p.directory,path:p.path});
+    const rebound=m.computeReboundRow(
+      row,row.row,cols,mutations,m.REBIND_TABLES.session.stable_key);
+    if(rebound.expected_post_fingerprint!==row.expected_post_fingerprint) {
+      refuse("LIVE_FROZEN_SAMPLE_INVALID",
+        "frozen migrated session no longer matches the accepted rebind rules");
+    }
+    out.push({
+      session_id:id,project_id:destProjectId,
+      directory:destDirectory,path:destDirectory,
+    });
   }
   out.sort((a,b)=>a.session_id.localeCompare(b.session_id));
   return out;
