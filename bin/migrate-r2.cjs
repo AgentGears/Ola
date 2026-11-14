@@ -13171,6 +13171,12 @@ function runInternalRollbackRecovery(options) {
   return require("./r2-rollback-integration.cjs").runInternalRollbackRecovery(options);
 }
 
+// Post-restart live verifier (Step 10e), intentionally not CLI-dispatched
+// until a real Ola-route resolver adapter is connected.
+function commitLiveVerification(options) {
+  return require("./r2-live-verification.cjs").commitLiveVerification(options);
+}
+
 // ── Help / usage ──────────────────────────────────────────────────────────
 
 function renderHelp() {
@@ -13397,6 +13403,7 @@ module.exports = {
   commitRollbackReleaseReadiness,
   releaseAndFinalizeRollback,
   runInternalRollbackRecovery,
+  commitLiveVerification,
   // Rendering
   renderInventory, renderPreview, renderPlanSummary, renderHelp,
   renderBackupSummary,
